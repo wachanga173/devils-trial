@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f0d0c">
+    <title>DEVIL'S TRIAL - Adaptive Shuffling Traps</title>
+    <meta name="description" content="Devil's Trial: An adaptive troll platformer where traps dynamically change positions on every respawn!">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <script>
+        // Register PWA Service Worker (Network-First strategy for online AI model & consistency)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then((reg) => {
+                    console.log('[PWA] ServiceWorker active with scope:', reg.scope);
+                }).catch((err) => {
+                    console.warn('[PWA] ServiceWorker registration notice:', err);
+                });
+            });
+        }
+    </script>
+    <link rel="stylesheet" href="style.css?v=7">
+</head>
+<body>
+    <!-- Toast Notification -->
+    <div id="gameToast" class="game-toast" aria-live="polite"></div>
+
+    <!-- Rotate Device to Landscape Overlay (Active on Mobile Portrait) -->
+    <div id="rotateOverlay" class="rotate-overlay" aria-hidden="true">
+        <div class="rotate-card">
+            <div class="phone-anim">
+                <div class="phone-body">
+                    <div class="phone-screen">
+                        <div class="phone-devil-icon">😈</div>
+                    </div>
+                </div>
+                <div class="rotate-arrow">↻</div>
+            </div>
+            <h2 class="rotate-title">ROTATE YOUR PHONE</h2>
+            <p class="rotate-subtitle">Devil's Trial uses the full phone landscape layout so the challenge isn't tiny or squished!</p>
+            <button id="btnForceLandscape" class="btn-landscape-lock">
+                <span>FORCE FULLSCREEN LANDSCAPE</span> ⛶
+            </button>
+            <p class="rotate-hint">Or turn off portrait orientation lock on your device</p>
+        </div>
+    </div>
+
+    <!-- Top Header -->
+    <header class="game-header">
+        <div class="header-left">
+            <h1 class="game-title">DEVIL'S TRIAL</h1>
+            <button id="modeToggle" class="mode-badge" title="Click to switch between Adaptive AI and Static trap modes">
+                <span>🧠 AI DIRECTOR:</span> <strong style="color: #ffca28;">ADAPTIVE ON</strong>
+            </button>
+            <div id="aiBadge" class="mode-badge" style="cursor: default;" title="Machine Learning model predicting player behavior">
+                <span>AI PREDICTION:</span> <strong style="color: #ffca28;">ANALYZING...</strong>
+            </div>
+        </div>
+        <div class="header-right">
+            <button id="pwaInstallBtn" class="pwa-install-badge" title="Install Devil's Trial as an App (Shared LocalStorage & Landscape)">
+                <span class="pwa-icon">📲</span>
+                <span class="pwa-text">INSTALL</span>
+            </button>
+            <div class="stat-pill">
+                <span>💀 DEATHS:</span>
+                <span id="deathCount" class="count">0</span>
+            </div>
+            <button id="headerStorageBtn" class="storage-hud-btn" title="View Device Storage Location & Save Data">
+                💾 DATA
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Viewport -->
+    <main class="screen-wrapper">
+        <canvas id="gameCanvas" width="840" height="480"></canvas>
+
+        <!-- In-game Retro HUD -->
+        <div class="hud-overlay">
+            <!-- Retro Pause/Esc Button -->
+            <button id="escBtn" class="esc-btn" aria-label="Pause Menu">
+                <div class="arrow-icon"></div>
+                <span class="esc-text">esc</span>
+            </button>
+
+            <!-- Level Info Badge -->
+            <div class="level-badge-hud">
+                <span id="levelNumber">LEVEL 1</span>: <span id="levelTitle" style="color: #ffca28;">The Descent</span>
+            </div>
+        </div>
+
+        <!-- Pause & Settings Modal -->
+        <div id="pauseOverlay" class="overlay-modal">
+            <div class="modal-content">
+                <h2 class="modal-title">GAME PAUSED</h2>
+                
+                <div class="modal-options">
+                    <div class="option-group">
+                        <label for="themeSelector">Visual Theme:</label>
+                        <select id="themeSelector" class="custom-select">
+                            <option value="inferno">Inferno Ochre (Classic)</option>
+                            <option value="midnight">Midnight Cyber</option>
+                            <option value="toxic">Toxic Cavern</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-buttons">
+                    <button id="resumeBtn" class="btn-primary">RESUME GAME</button>
+                    <button id="restartBtn" class="btn-secondary">RESTART LEVEL (R)</button>
+                    <button id="pausePwaInstallBtn" class="btn-secondary btn-pwa-install">📲 INSTALL AS APP (PWA)</button>
+                    <button id="openStorageBtn" class="btn-secondary btn-storage-action">💾 STORAGE & SAVE LOCATION</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Device Storage Location & Permanent Deletion Modal -->
+        <div id="storageOverlay" class="overlay-modal">
+            <div class="modal-content storage-modal-content">
+                <div class="storage-modal-header">
+                    <h2 class="modal-title">DEVICE STORAGE & DATA</h2>
+                    <button id="closeStorageBtn" class="close-modal-btn" aria-label="Close Storage Menu">✕</button>
+                </div>
+                
+                <div class="storage-info-box">
+                    <div class="storage-row">
+                        <span class="storage-label">Storage Engine:</span>
+                        <span class="storage-val">HTML5 LocalStorage API</span>
+                    </div>
+                    <div class="storage-row">
+                        <span class="storage-label">Storage Key:</span>
+                        <span class="storage-val code-val">devils_trial_save_v1</span>
+                    </div>
+                    <div class="storage-row">
+                        <span class="storage-label">Web Origin:</span>
+                        <a id="storageOrigin" class="storage-val code-val link-val" href="http://localhost:3333" target="_blank" title="Click to open Web Origin">http://localhost:3333 ↗</a>
+                    </div>
+                    <div class="storage-row">
+                        <span class="storage-label">Data Footprint:</span>
+                        <span id="storageSize" class="storage-val highlight-val">Calculating...</span>
+                    </div>
+                    <div class="storage-row">
+                        <span class="storage-label">Saved Progress:</span>
+                        <span id="storageProgress" class="storage-val">Level 1 | 0 Deaths</span>
+                    </div>
+                    <div class="storage-row">
+                        <span class="storage-label">Last Saved:</span>
+                        <span id="storageLastSaved" class="storage-val">Not saved yet</span>
+                    </div>
+                </div>
+
+                <div class="device-path-card">
+                    <div class="device-path-title">📂 Exact File Location on Your Device:</div>
+                    <div id="deviceDetectedOS" class="device-os-tag">Detecting Device OS...</div>
+                    <div id="deviceStoragePath" class="device-path-box clickable-path" role="button" tabindex="0" title="Click to open or copy this location">
+                        <div class="path-display-wrap">
+                            <span class="path-icon">📂</span>
+                            <span id="deviceStoragePathText">Checking path...</span>
+                        </div>
+                        <div class="path-click-indicator">
+                            <span class="click-pulse"></span>
+                            <span class="click-label">CLICK TO OPEN / COPY</span>
+                        </div>
+                    </div>
+                    <div id="locationActionFeedback" class="location-feedback-banner" style="display: none;"></div>
+                    <div class="device-path-actions">
+                        <button id="openFolderActionBtn" class="btn-location-action" title="Open this folder in File Explorer or copy path">
+                            🚀 OPEN IN FILE EXPLORER
+                        </button>
+                        <button id="copyLocationBtn" class="btn-location-action btn-location-subtle" title="Copy exact path to clipboard">
+                            📋 COPY PATH
+                        </button>
+                        <button id="viewRawDataBtn" class="btn-location-action btn-location-subtle" title="View or export saved JSON data">
+                            📄 EXPORT SAVE JSON
+                        </button>
+                    </div>
+                    <div class="device-path-note">
+                        💡 <strong>How to open:</strong> Click above to open Windows File Explorer directly, or copy the path to clipboard and press <kbd>Win</kbd> + <kbd>R</kbd>, paste, and hit <kbd>Enter</kbd>.
+                    </div>
+                </div>
+
+                <div class="pwa-storage-callout">
+                    <span class="callout-icon">📲</span>
+                    <div class="callout-body">
+                        <strong>Shared Storage Guarantee:</strong> Installing Devil's Trial as a PWA uses this <em>exact same local storage partition</em> (<span class="code-val">devils_trial_save_v1</span>). All your levels, deaths, and AI memory persist seamlessly!
+                    </div>
+                </div>
+
+                <div class="danger-zone">
+                    <div class="danger-title">⚠️ PERMANENT DATA DESTRUCTION</div>
+                    <p class="danger-desc">This will permanently destroy all saved progress, death statistics, and AI learning memory from your device's local storage. This action cannot be reversed.</p>
+                    <button id="destroyDataBtn" class="btn-danger-destroy">
+                        🔥 PERMANENTLY DESTROY ALL DATA & RESET
+                    </button>
+                </div>
+
+                <div class="modal-buttons" style="margin-top: 14px;">
+                    <button id="backFromStorageBtn" class="btn-primary">BACK TO GAME</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Raw Save Data Viewer & Exporter Modal -->
+        <div id="saveDataViewerModal" class="overlay-modal">
+            <div class="modal-content save-viewer-content">
+                <div class="storage-modal-header">
+                    <h2 class="modal-title">📄 DEVIL'S TRIAL SAVE DATA</h2>
+                    <button id="closeSaveViewerBtn" class="close-modal-btn" aria-label="Close Save Viewer">✕</button>
+                </div>
+                <p class="save-viewer-desc">Live JSON payload currently stored in <span class="code-val">devils_trial_save_v1</span>:</p>
+                <pre id="rawSaveDataPre" class="raw-json-viewer"><code>Loading save data...</code></pre>
+                <div class="modal-buttons" style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button id="copyJsonBtn" class="btn-primary" style="flex: 1;">📋 COPY JSON</button>
+                    <button id="downloadSaveFileBtn" class="btn-secondary" style="flex: 1;">💾 DOWNLOAD .JSON</button>
+                    <button id="closeSaveViewerActionBtn" class="btn-secondary" style="flex: 1;">CLOSE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PWA Installation Guide Modal (for iOS Safari & manual browser install) -->
+        <div id="pwaGuideModal" class="overlay-modal">
+            <div class="modal-content pwa-guide-content">
+                <div class="storage-modal-header">
+                    <h2 class="modal-title">📲 INSTALL DEVIL'S TRIAL</h2>
+                    <button id="closePwaGuideBtn" class="close-modal-btn" aria-label="Close Install Guide">✕</button>
+                </div>
+                <p class="pwa-guide-desc">Installing as a Progressive Web App (PWA) gives you full landscape fullscreen windowing and uses the <strong>exact same browser storage</strong>, keeping all your level progress and AI learning!</p>
+                <div id="pwaGuideSteps" class="pwa-guide-steps">
+                    <!-- Populated dynamically by detected browser/OS -->
+                </div>
+                <div class="modal-buttons" style="margin-top: 14px;">
+                    <button id="closePwaGuideActionBtn" class="btn-primary">GOT IT!</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile On-Screen Controls (hidden on desktop) -->
+    <div class="mobile-controls">
+        <div class="dpad">
+            <button id="btnLeft" class="touch-btn" aria-label="Move Left">◀</button>
+            <button id="btnDown" class="touch-btn" aria-label="Crawl on All Fours">▼</button>
+            <button id="btnRight" class="touch-btn" aria-label="Move Right">▶</button>
+        </div>
+        <button id="btnJump" class="touch-btn jump-btn" aria-label="Jump">JUMP</button>
+    </div>
+
+    <!-- Controls Legend -->
+    <footer class="footer-info">
+        <div>Move: <span class="key-badge">A</span> <span class="key-badge">D</span> or <span class="key-badge">◀</span> <span class="key-badge">▶</span></div>
+        <div>Crawl: <span class="key-badge">S</span> or <span class="key-badge">▼</span></div>
+        <div>Jump: <span class="key-badge">SPACE</span> or <span class="key-badge">▲</span> / <span class="key-badge">W</span></div>
+        <div>Restart: <span class="key-badge">R</span></div>
+        <div>Pause: <span class="key-badge">ESC</span></div>
+    </footer>
+
+    <!-- Scripts with cache busting -->
+    <script src="audio.js?v=24"></script>
+    <script src="ai.js?v=24"></script>
+    <script src="levelGenerator.js?v=24"></script>
+    <script src="character.js?v=24"></script>
+    <script src="physics.js?v=24"></script>
+    <script src="traps.js?v=24"></script>
+    <script src="levels.js?v=24"></script>
+    <script src="game.js?v=24"></script>
+</body>
+</html>
