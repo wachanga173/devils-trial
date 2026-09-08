@@ -26,6 +26,33 @@ const THEMES = {
         doorFrameColor: "#28133f",
         doorInnerColor: "#ccff90",
         playerColor: "#f5f5f5"
+    },
+    bloodstone: {
+        name: "Bloodstone Citadel",
+        bgColor: "#2b0a0a",
+        pathColor: "#571616",
+        spikeColor: "#ff1744",
+        doorFrameColor: "#3d0b0b",
+        doorInnerColor: "#ff8a80",
+        playerColor: "#ffffff"
+    },
+    neon: {
+        name: "Cyber Synth",
+        bgColor: "#090918",
+        pathColor: "#1a1638",
+        spikeColor: "#ff007f",
+        doorFrameColor: "#2a1b4e",
+        doorInnerColor: "#00f0ff",
+        playerColor: "#ffffff"
+    },
+    abyssal: {
+        name: "Abyssal Crypt",
+        bgColor: "#0d1b1e",
+        pathColor: "#1d353a",
+        spikeColor: "#ffd600",
+        doorFrameColor: "#13282b",
+        doorInnerColor: "#b2ebf2",
+        playerColor: "#ffffff"
     }
 };
 

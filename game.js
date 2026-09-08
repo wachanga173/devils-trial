@@ -263,6 +263,7 @@ class Game {
         // Clickable Storage Location & Save Data Viewer Wireups
         const deviceStoragePath = document.getElementById('deviceStoragePath');
         const openFolderActionBtn = document.getElementById('openFolderActionBtn');
+        const downloadBatLauncherBtn = document.getElementById('downloadBatLauncherBtn');
         const copyLocationBtn = document.getElementById('copyLocationBtn');
         const viewRawDataBtn = document.getElementById('viewRawDataBtn');
         const closeSaveViewerBtn = document.getElementById('closeSaveViewerBtn');
@@ -281,6 +282,9 @@ class Game {
         }
         if (openFolderActionBtn) {
             openFolderActionBtn.addEventListener('click', () => this.openStorageLocation());
+        }
+        if (downloadBatLauncherBtn) {
+            downloadBatLauncherBtn.addEventListener('click', () => this.downloadStorageBatchLauncher());
         }
         if (copyLocationBtn) {
             copyLocationBtn.addEventListener('click', () => this.copyStorageLocation());
@@ -516,6 +520,7 @@ class Game {
         const ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
         let detectedOS = 'Detected: Generic Web Browser';
         let storagePath = 'Browser profile sandbox directory';
+        let winRunCmd = '';
 
         const isWin = /Windows/i.test(ua);
         const isMac = /Macintosh|Mac OS X/i.test(ua);
@@ -527,59 +532,56 @@ class Game {
             const isBrave = (typeof navigator !== 'undefined' && (navigator.brave && typeof navigator.brave.isBrave === 'function')) || /Brave/i.test(ua);
             if (isBrave) {
                 detectedOS = 'Windows (Brave Browser)';
-                storagePath = '%LocalAppData%\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Local Storage\\leveldb\\';
+                storagePath = '%LocalAppData%\\BraveSoftware\\Brave-Browser\\User Data\\Default\\Local Storage\\leveldb';
             } else if (/OPR|Opera/i.test(ua)) {
                 if (/Opera GX/i.test(ua)) {
                     detectedOS = 'Windows (Opera GX)';
-                    storagePath = '%AppData%\\Opera Software\\Opera GX Stable\\Local Storage\\leveldb\\';
+                    storagePath = '%AppData%\\Opera Software\\Opera GX Stable\\Local Storage\\leveldb';
                 } else {
                     detectedOS = 'Windows (Opera)';
-                    storagePath = '%AppData%\\Opera Software\\Opera Stable\\Local Storage\\leveldb\\';
+                    storagePath = '%AppData%\\Opera Software\\Opera Stable\\Local Storage\\leveldb';
                 }
             } else if (/Vivaldi/i.test(ua)) {
                 detectedOS = 'Windows (Vivaldi)';
-                storagePath = '%LocalAppData%\\Vivaldi\\User Data\\Default\\Local Storage\\leveldb\\';
+                storagePath = '%LocalAppData%\\Vivaldi\\User Data\\Default\\Local Storage\\leveldb';
             } else if (/Edg/i.test(ua)) {
                 detectedOS = 'Windows (Microsoft Edge)';
-                storagePath = '%LocalAppData%\\Microsoft\\Edge\\User Data\\Default\\Local Storage\\leveldb\\';
+                storagePath = '%LocalAppData%\\Microsoft\\Edge\\User Data\\Default\\Local Storage\\leveldb';
             } else if (/Firefox/i.test(ua)) {
                 detectedOS = 'Windows (Mozilla Firefox)';
-                storagePath = '%AppData%\\Mozilla\\Firefox\\Profiles\\<Profile>\\storage\\default\\';
+                storagePath = '%APPDATA%\\Mozilla\\Firefox\\Profiles';
             } else if (/Chrome/i.test(ua)) {
                 detectedOS = 'Windows (Google Chrome)';
-                storagePath = '%LocalAppData%\\Google\\Chrome\\User Data\\Default\\Local Storage\\leveldb\\';
+                storagePath = '%LocalAppData%\\Google\\Chrome\\User Data\\Default\\Local Storage\\leveldb';
             } else {
                 detectedOS = 'Windows (Desktop)';
-                storagePath = '%LocalAppData%\\<Browser>\\User Data\\Default\\Local Storage\\leveldb\\';
+                storagePath = '%LocalAppData%';
             }
+            winRunCmd = `explorer "${storagePath}"`;
         } else if (isAndroid) {
             if (/SamsungBrowser/i.test(ua)) {
                 detectedOS = 'Android (Samsung Internet)';
-                storagePath = '/data/data/com.sec.android.app.sbrowser/app_sbrowser/Default/Local Storage/leveldb/';
-            } else if (/Chrome/i.test(ua)) {
-                detectedOS = 'Android (Google Chrome)';
-                storagePath = '/data/data/com.android.chrome/app_chrome/Default/Local Storage/leveldb/';
+                storagePath = '/data/data/com.sec.android.app.sbrowser/app_sbrowser/Default/Local Storage/leveldb';
             } else {
-                detectedOS = 'Android (Mobile)';
-                storagePath = '/data/data/<browser.package>/app_chrome/Default/Local Storage/leveldb/';
+                detectedOS = 'Android (Google Chrome)';
+                storagePath = '/data/data/com.android.chrome/app_chrome/Default/Local Storage/leveldb';
             }
         } else if (isIOS) {
-            detectedOS = 'Apple iOS (iPhone / iPad WebKit)';
-            storagePath = 'iOS App Sandbox: /private/var/mobile/Containers/Data/Application/<App-UUID>/Library/WebKit/WebsiteData/Default/LocalStorage/';
+            detectedOS = 'Apple iOS (WebKit Sandbox)';
+            storagePath = 'iOS App Sandbox: Library/WebKit/WebsiteData/Default/LocalStorage';
         } else if (isMac) {
             if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) {
                 detectedOS = 'macOS (Apple Safari)';
-                storagePath = '~/Library/Containers/com.apple.Safari/Data/Library/LocalStorage/';
-            } else if (/Chrome/i.test(ua)) {
-                detectedOS = 'macOS (Google Chrome)';
-                storagePath = '~/Library/Application Support/Google/Chrome/Default/Local Storage/leveldb/';
+                storagePath = '~/Library/Containers/com.apple.Safari/Data/Library/LocalStorage';
             } else {
-                detectedOS = 'macOS';
-                storagePath = '~/Library/Application Support/<Browser>/Default/Local Storage/leveldb/';
+                detectedOS = 'macOS (Google Chrome)';
+                storagePath = '~/Library/Application Support/Google/Chrome/Default/Local Storage/leveldb';
             }
+            winRunCmd = `open "${storagePath}"`;
         } else if (isLinux) {
             detectedOS = 'Linux';
-            storagePath = '~/.config/google-chrome/Default/Local Storage/leveldb/';
+            storagePath = '~/.config/google-chrome/Default/Local Storage/leveldb';
+            winRunCmd = `xdg-open "${storagePath}"`;
         }
 
         let raw = null;
@@ -612,6 +614,7 @@ class Game {
         return {
             detectedOS,
             storagePath,
+            winRunCmd: winRunCmd || `explorer "${storagePath}"`,
             origin: (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : 'http://localhost:3333',
             sizeText: raw ? `${sizeKB} KB (${charCount} characters)` : '0.00 KB (No Saved Data)',
             progressStr,
@@ -641,7 +644,7 @@ class Game {
         if (elLastSaved) elLastSaved.innerText = details.lastSavedStr;
         if (banner) banner.style.display = 'none';
 
-        // Query local server to resolve dynamic on-disk profile path (e.g. Firefox ddjl38xb.default-release)
+        // Query local server to resolve dynamic on-disk profile path if available
         if (typeof fetch !== 'undefined') {
             const ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
             fetch(`/api/detect-storage-path?ua=${encodeURIComponent(ua)}`)
@@ -660,13 +663,14 @@ class Game {
     openStorageLocation() {
         const details = this.getDeviceStorageDetails();
         const targetPath = this.resolvedStoragePath || details.storagePath;
+        const cmd = `explorer "${targetPath}"`;
 
-        // 1. Copy path to clipboard immediately
+        // 1. Copy valid quoted command to clipboard immediately
         if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(targetPath).catch(() => {});
+            navigator.clipboard.writeText(cmd).catch(() => {});
         }
 
-        // 2. Call local server endpoint to open in File Explorer if running locally
+        // 2. Call local server endpoint if running locally
         fetch(`/api/open-storage-dir?path=${encodeURIComponent(targetPath)}`)
             .then(res => res.json())
             .then(data => {
@@ -675,30 +679,50 @@ class Game {
                     this.showLocationFeedback(`🚀 Opened in Windows File Explorer: ${opened}`, 'success');
                     this.showToast('📂 Opened folder in Windows File Explorer!');
                 } else {
-                    this.showLocationFeedback(`📋 Path copied to clipboard! Press Win + R, paste (Ctrl+V) & hit Enter to open.`, 'info');
-                    this.showToast('📋 Storage path copied to clipboard!');
+                    this.showHostedLocationFeedback(cmd, targetPath);
                 }
             })
             .catch(() => {
-                // If API is unavailable (e.g. static host or offline PWA), fallback to clipboard + instructions
-                this.showLocationFeedback(`📋 Path copied to clipboard! Press Win + R, paste (Ctrl+V) & hit Enter to open.`, 'info');
-                this.showToast('📋 Storage path copied to clipboard!');
+                this.showHostedLocationFeedback(cmd, targetPath);
             });
+    }
+
+    showHostedLocationFeedback(cmd, targetPath) {
+        this.showLocationFeedback(`📋 Copied Win+R command: ${cmd}\nPress Win + R, paste (Ctrl+V) & hit Enter! Or click "1-Click Launcher (.bat)".`, 'info');
+        this.showToast('📋 Win+R command copied to clipboard!');
     }
 
     copyStorageLocation() {
         const details = this.getDeviceStorageDetails();
         const targetPath = this.resolvedStoragePath || details.storagePath;
+        const cmd = `explorer "${targetPath}"`;
         if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(targetPath)
+            navigator.clipboard.writeText(cmd)
                 .then(() => {
-                    this.showToast('📋 Storage path copied to clipboard!');
-                    this.showLocationFeedback('✓ Path copied to clipboard! Paste into Windows File Explorer address bar.', 'info');
+                    this.showToast('📋 Win+R command copied!');
+                    this.showLocationFeedback(`✓ Copied: ${cmd}\nPress Win + R, paste (Ctrl+V) & hit Enter!`, 'info');
                 })
                 .catch(() => {
                     this.showToast('Failed to copy to clipboard.');
                 });
         }
+    }
+
+    downloadStorageBatchLauncher() {
+        const details = this.getDeviceStorageDetails();
+        const targetPath = this.resolvedStoragePath || details.storagePath;
+        const batContent = `@echo off\r\ntitle Devil's Trial - Storage Folder\r\necho Opening Devil's Trial save location in Windows File Explorer...\r\nstart "" explorer "${targetPath}"\r\nexit\r\n`;
+        const blob = new Blob([batContent], { type: 'application/x-bat' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Open_Devils_Trial_Save_Location.bat';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast('💾 Downloaded Open_Devils_Trial_Save_Location.bat!');
+        this.showLocationFeedback('💾 Launcher downloaded! Double-click Open_Devils_Trial_Save_Location.bat in Downloads to open File Explorer.', 'success');
     }
 
     showLocationFeedback(msg, type = 'success') {

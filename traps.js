@@ -1385,6 +1385,7 @@ class MovingPlatformTrap {
         this.vy = this.axis === 'y' ? this.speed * this.dir : 0;
 
         this.isSolid = true;
+        this.isOneWay = true; // One-way top platform: player jumps through/off freely without ceiling collision
         this.active = true;
         this.trollMode = def.trollMode || 'none'; // 'speed_up_ceiling', 'drop_on_step'
         this.stepTimer = 0;
@@ -1392,13 +1393,13 @@ class MovingPlatformTrap {
 
     update(player, game, onTrigger) {
         // Detect if player is standing on top
-        if (player && player.onGround) {
+        if (player && player.onGround && !player.isJumping) {
             const pLeft = player.x - player.width / 2;
             const pRight = player.x + player.width / 2;
-            const onTop = pRight > this.x && pLeft < this.x + this.w && Math.abs(player.y - this.y) < 4;
+            const onTop = pRight > this.x + 2 && pLeft < this.x + this.w - 2 && Math.abs(player.y - this.y) <= 4;
             if (onTop) {
                 this.stepTimer++;
-                // Carry player smoothly
+                // Carry player smoothly along platform transit
                 player.x += this.vx;
                 player.y += this.vy;
             } else {

@@ -162,7 +162,7 @@ class Physics {
         const pBottom = player.y;
 
         for (const s of solids) {
-            if (s.passthrough) continue;
+            if (s.passthrough || s.isOneWay) continue;
             if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y && pTop < s.y + s.h) {
                 if (player.vx > 0) {
                     player.x = s.x - player.width / 2;
@@ -184,6 +184,26 @@ class Physics {
         for (const s of solids) {
             // isWallOnly blocks (like vertical slam crushers) DO NOT push or snap player Y!
             if (s.passthrough || s.isWallOnly) continue;
+
+            // One-way moving platforms & elevators (only collide with feet from above when falling or landing!)
+            if (s.isOneWay) {
+                // If player is moving upward (jumping), NEVER collide or force down!
+                if (player.vy < 0) continue;
+
+                const prevBottom = player.y - player.vy;
+                const platVy = s.vy || 0;
+                const landingTolerance = Math.max(14, player.vy + Math.abs(platVy) + 4);
+
+                if (pRight > s.x + 2 && pLeft < s.x + s.w - 2) {
+                    if (prevBottom <= s.y + landingTolerance && player.y >= s.y - 4) {
+                        player.y = s.y;
+                        player.vy = 0;
+                        player.onGround = true;
+                        player.isJumping = false;
+                    }
+                }
+                continue;
+            }
 
             if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y && pTop < s.y + s.h) {
                 // Ceilings anchored at y: 0 are NEVER floors; always push down into corridor!

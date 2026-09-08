@@ -253,126 +253,8 @@ class DevilAI {
         // Anti-Checkmate System: Semantic Mutual Exclusion Matrix
         // Guarantees traps never combine into impossible checkmates (e.g. boulder + crawl razor, boulder + mid-air spike)
         const activeTraps = (staticTraps || []).map(st => ({ ...st, isStatic: true }));
+        const isAntiCheckmateSafe = (slot, deployedList) => this.isAntiCheckmateSafe(slot, deployedList);
 
-        const isAntiCheckmateSafe = (slot, deployedList) => {
-            const slotGroundY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
-
-            // 1. Rolling Boulder Incompatibilities
-            if (slot.type === 'rolling_ball') {
-                const bTriggerX = slot.triggerX || (slot.x - 110);
-                const bJumpMinX = Math.min(slot.x, bTriggerX) - 50;
-                const bJumpMaxX = Math.max(slot.x, bTriggerX) + 50;
-
-                for (const act of deployedList) {
-                    const actGroundY = act.groundY !== undefined ? act.groundY : (act.y || 345);
-                    const isSameElevation = Math.abs(slotGroundY - actGroundY) < 65;
-
-                    // Never two rolling boulders in the same level section
-                    if (act.type === 'rolling_ball' && isSameElevation) return false;
-
-                    // In the same corridor, never pair a rolling boulder with sawblades (crawling gets crushed by boulder, jumping gets sliced by saw)
-                    if ((act.type === 'spinning_saw' || act.type === 'razor') && isSameElevation) {
-                        return false;
-                    }
-
-                    // Cannot pair with dropping ceiling spikes in the boulder jump-evasion runway (prevents mid-air spearing)
-                    if (act.type === 'dropping_spike' && isSameElevation) {
-                        if (Math.abs(act.x - bTriggerX) < 140) return false;
-                        if (act.x >= bJumpMinX - 30 && act.x <= bJumpMaxX + 30) return false;
-                    }
-
-                    // Cannot pair with floor spikes in jump takeoff / landing zones (prevents landing on spikes)
-                    if ((act.type === 'hidden_spike' || act.type === 'static_spike') && isSameElevation) {
-                        if (act.x >= bJumpMinX && act.x <= bJumpMaxX) return false;
-                        if (Math.abs(act.x - bTriggerX) < 85) return false;
-                    }
-
-                    // Cannot collapse floor in boulder jump evasion zone
-                    if (act.type === 'collapsing_floor' && isSameElevation) {
-                        if (act.x >= bJumpMinX && act.x <= bJumpMaxX) return false;
-                    }
-                }
-            }
-
-            // 2. Reciprocal checks: If an active trap is a rolling boulder on the same elevation, validate incoming slot
-            for (const act of deployedList) {
-                if (act.type === 'rolling_ball') {
-                    const actGroundY = act.groundY !== undefined ? act.groundY : (act.y || 345);
-                    const isSameElevation = Math.abs(slotGroundY - actGroundY) < 65;
-
-                    if (isSameElevation) {
-                        const bTriggerX = act.triggerX || (act.x - 110);
-                        const bJumpMinX = Math.min(act.x, bTriggerX) - 50;
-                        const bJumpMaxX = Math.max(act.x, bTriggerX) + 50;
-
-                        if (slot.type === 'spinning_saw' || slot.type === 'razor') {
-                            return false;
-                        }
-
-                        if (slot.type === 'dropping_spike') {
-                            if (Math.abs(slot.x - bTriggerX) < 140) return false;
-                            if (slot.x >= bJumpMinX - 30 && slot.x <= bJumpMaxX + 30) return false;
-                        }
-
-                        if (slot.type === 'hidden_spike' || slot.type === 'static_spike') {
-                            if (slot.x >= bJumpMinX && slot.x <= bJumpMaxX) return false;
-                            if (Math.abs(slot.x - bTriggerX) < 85) return false;
-                        }
-
-                        if (slot.type === 'collapsing_floor') {
-                            if (slot.x >= bJumpMinX && slot.x <= bJumpMaxX) return false;
-                        }
-                    }
-                }
-            }
-
-            // 3. Head-height Crawl Razor Incompatibilities (y around 305-335 forces crawling on all fours)
-            const isCrawlSaw = (t) => (t.type === 'spinning_saw' || t.type === 'razor') && (t.y >= 305 && t.y <= 335);
-            if (isCrawlSaw(slot)) {
-                for (const act of deployedList) {
-                    if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
-                        if (Math.abs(act.x - slot.x) < 70) return false;
-                    }
-                }
-            }
-            for (const act of deployedList) {
-                if (isCrawlSaw(act)) {
-                    if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
-                        if (Math.abs(slot.x - act.x) < 70) return false;
-                    }
-                }
-            }
-
-            // 4. Ceiling Dropping Spike vs Floor Hazard Incompatibilities (prevents mid-air sandwich)
-            if (slot.type === 'dropping_spike') {
-                for (const act of deployedList) {
-                    if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
-                        if (Math.abs(act.x - slot.x) < 75) return false;
-                    }
-                }
-            }
-            if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
-                for (const act of deployedList) {
-                    if (act.type === 'dropping_spike') {
-                        if (Math.abs(act.x - slot.x) < 75) return false;
-                    }
-                }
-            }
-
-            // 5. Standard minimum physical distance separation (>= 50px buffer)
-            const slotStart = slot.x;
-            const slotEnd = slot.x + (slot.w || 32);
-            for (const act of deployedList) {
-                const actStart = act.x;
-                const actEnd = act.x + (act.w || 32);
-                const minGap = act.isStatic ? 50 : 35;
-                if (!(slotEnd <= actStart - minGap || slotStart >= actEnd + minGap)) {
-                    return false;
-                }
-            }
-
-            return true;
-        };
 
         // 1. Score candidate traps using ML Model Prediction + Online Efficacy
         const scoredSlots = candidateSlots.map((rawSlot, idx) => {
@@ -479,6 +361,137 @@ class DevilAI {
         if (Array.isArray(data.learningHistory)) {
             this.learningHistory = [...data.learningHistory];
         }
+    }
+
+    /**
+     * Semantic Anti-Checkmate Mutual Exclusion Validator
+     * Evaluates a candidate trap slot against currently active/deployed traps
+     * to guarantee levels are never physically impossible.
+     */
+    isAntiCheckmateSafe(slot, deployedList) {
+        if (!slot || !deployedList) return true;
+        const slotGroundY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
+
+        // 1. Rolling Boulder Incompatibilities
+        if (slot.type === 'rolling_ball') {
+            const bTriggerX = slot.triggerX || (slot.x - 110);
+            const bJumpMinX = Math.min(slot.x, bTriggerX) - 50;
+            const bJumpMaxX = Math.max(slot.x, bTriggerX) + 50;
+
+            for (const act of deployedList) {
+                const actGroundY = act.groundY !== undefined ? act.groundY : (act.y || 345);
+                const isSameElevation = Math.abs(slotGroundY - actGroundY) < 65;
+
+                // Never two rolling boulders in the same level section
+                if (act.type === 'rolling_ball' && isSameElevation) return false;
+
+                // In the same corridor, never pair a rolling boulder with sawblades
+                if ((act.type === 'spinning_saw' || act.type === 'razor') && isSameElevation) {
+                    return false;
+                }
+
+                // Cannot pair with dropping ceiling spikes in the boulder jump-evasion runway
+                if (act.type === 'dropping_spike' && isSameElevation) {
+                    if (Math.abs(act.x - bTriggerX) < 140) return false;
+                    if (act.x >= bJumpMinX - 30 && act.x <= bJumpMaxX + 30) return false;
+                }
+
+                // Cannot pair with floor spikes in jump takeoff / landing zones
+                if ((act.type === 'hidden_spike' || act.type === 'static_spike') && isSameElevation) {
+                    if (act.x >= bJumpMinX && act.x <= bJumpMaxX) return false;
+                    if (Math.abs(act.x - bTriggerX) < 85) return false;
+                }
+
+                // Cannot collapse floor in boulder jump evasion zone
+                if (act.type === 'collapsing_floor' && isSameElevation) {
+                    if (act.x >= bJumpMinX && act.x <= bJumpMaxX) return false;
+                }
+            }
+        }
+
+        // 2. Reciprocal checks: If an active trap is a rolling boulder on the same elevation, validate incoming slot
+        for (const act of deployedList) {
+            if (act.type === 'rolling_ball') {
+                const actGroundY = act.groundY !== undefined ? act.groundY : (act.y || 345);
+                const isSameElevation = Math.abs(slotGroundY - actGroundY) < 65;
+
+                if (isSameElevation) {
+                    const bTriggerX = act.triggerX || (act.x - 110);
+                    const bJumpMinX = Math.min(act.x, bTriggerX) - 50;
+                    const bJumpMaxX = Math.max(act.x, bTriggerX) + 50;
+
+                    if (slot.type === 'spinning_saw' || slot.type === 'razor') {
+                        return false;
+                    }
+
+                    if (slot.type === 'dropping_spike') {
+                        if (Math.abs(slot.x - bTriggerX) < 140) return false;
+                        if (slot.x >= bJumpMinX - 30 && slot.x <= bJumpMaxX + 30) return false;
+                    }
+
+                    if (slot.type === 'hidden_spike' || slot.type === 'static_spike') {
+                        if (slot.x >= bJumpMinX && slot.x <= bJumpMaxX) return false;
+                        if (Math.abs(slot.x - bTriggerX) < 85) return false;
+                    }
+
+                    if (slot.type === 'collapsing_floor') {
+                        if (slot.x >= bJumpMinX && slot.x <= bJumpMaxX) return false;
+                    }
+                }
+            }
+        }
+
+        // 3. Head-height Crawl Razor Incompatibilities (y around 305-335 forces crawling on all fours)
+        const isCrawlSaw = (t) => (t.type === 'spinning_saw' || t.type === 'razor') && (t.y >= 305 && t.y <= 335);
+        if (isCrawlSaw(slot)) {
+            for (const act of deployedList) {
+                if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
+                    if (Math.abs(act.x - slot.x) < 70) return false;
+                }
+            }
+        }
+        for (const act of deployedList) {
+            if (isCrawlSaw(act)) {
+                if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
+                    if (Math.abs(slot.x - act.x) < 70) return false;
+                }
+            }
+        }
+
+        // 4. Ceiling Dropping Spike vs Floor Hazard Incompatibilities (prevents mid-air sandwich)
+        if (slot.type === 'dropping_spike') {
+            for (const act of deployedList) {
+                if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
+                    if (Math.abs(act.x - slot.x) < 75) return false;
+                }
+            }
+        }
+        if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
+            for (const act of deployedList) {
+                if (act.type === 'dropping_spike') {
+                    if (Math.abs(act.x - slot.x) < 75) return false;
+                }
+            }
+        }
+
+        // 5. Standard minimum physical distance separation (>= 50px buffer for statics, 35px for dynamics)
+        // Only applies when sharing the same vertical corridor or elevation zone
+        const slotY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
+        const slotStart = slot.x;
+        const slotEnd = slot.x + (slot.w || 32);
+        for (const act of deployedList) {
+            const actY = act.groundY !== undefined ? act.groundY : (act.y || 345);
+            if (Math.abs(slotY - actY) > 75) continue; // Different floors/stories do not conflict
+
+            const actStart = act.x;
+            const actEnd = act.x + (act.w || 28);
+            const minGap = (act.isStatic || act.type === 'static_spike') ? 50 : 35;
+            if (!(slotEnd <= actStart - minGap || slotStart >= actEnd + minGap)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
