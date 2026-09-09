@@ -89,17 +89,14 @@ class TrapManager {
             case 'spring_pad':
                 trap = new SpringPadTrap(def);
                 break;
-            case 'pop_up_wall':
-                trap = new PopUpWallTrap(def);
+            case 'reversed_controls':
+                trap = new ReversedControlsTrap(def);
                 break;
-            case 'ceiling_squish':
-                trap = new CeilingSquishTrap(def);
+            case 'falling_platform':
+                trap = new FallingPlatformTrap(def);
                 break;
-            case 'shifting_block':
-                trap = new ShiftingBlockTrap(def);
-                break;
-            case 'wall_ejector':
-                trap = new WallEjectorTrap(def);
+            case 'coin_trap':
+                trap = new CoinBaitTrap(def);
                 break;
         }
         if (trap) this.traps.push(trap);
@@ -121,33 +118,29 @@ class TrapManager {
     }
 }
 
-// --- ADAPTIVE SHIFTING EXIT DOOR ---
+// --- SPECIFIED PUZZLE EXIT DOOR ---
 class AdaptiveDoor {
     constructor(doorDef, level, aiModel) {
-        this.baseX = doorDef.x;
-        this.baseY = doorDef.y;
-        this.x = doorDef.x;
-        this.y = doorDef.y;
-        this.w = doorDef.w || 32;
-        this.h = doorDef.h || 46;
-        this.open = true;
+        this.def = doorDef || {};
         this.level = level;
+        this.baseX = this.def.x || 700;
+        this.baseY = this.def.y || 299;
+        this.x = this.baseX;
+        this.y = this.baseY;
+        this.w = this.def.w || 32;
+        this.h = this.def.h || 46;
+        this.open = true;
 
-        // Comedic shifts count: 1 on L1, 1-2 on higher levels
-        this.shiftsMax = doorDef.shiftsMax !== undefined ? doorDef.shiftsMax : (level && level.id > 1 ? (Math.random() < 0.6 ? 2 : 1) : 1);
-        this.shiftsLeft = this.shiftsMax;
+        // Specified puzzle shift: The door moves ONLY if explicitly specified by the level design!
+        this.hasScriptedShift = !!(this.def.shiftX || (this.def.shiftsMax && this.def.shiftsMax > 0));
+        this.shiftsLeft = this.hasScriptedShift ? (this.def.shiftsMax || 1) : 0;
+        this.shiftDirection = this.def.shiftDirection || (this.def.shiftX && this.def.shiftX < 0 ? -1 : 1);
+        this.shiftDistance = this.def.shiftDistance || (this.def.shiftX ? Math.abs(this.def.shiftX) : 90);
+        this.triggerRange = this.def.triggerRange || 75;
 
-        this.shiftDirection = doorDef.shiftDirection || (this.x > 400 ? -1 : 1);
-        this.shiftDistance = doorDef.shiftDistance || 85;
-
-        // States: 'idle', 'alert', 'shifting', 'settled'
+        // States: 'idle', 'shifting', 'settled', 'shutting', 'shut'
         this.state = this.shiftsLeft === 0 ? 'settled' : 'idle';
-        this.alertTimer = 0;
-
-        // Animation & Physical Attributes
-        this.isHopping = false;
         this.isShifting = false;
-        this.isAlert = false;
         this.shiftProgress = 0;
         this.hopStartX = this.x;
         this.hopTargetX = this.x;
@@ -157,8 +150,6 @@ class AdaptiveDoor {
         this.scaleY = 1;
         this.opacity = 1;
         this.eyeLookX = 0;
-        this.shiftType = 'LEAP_OVER';
-        this.cautiousTimer = 0;
         this.shutProgress = 0;
         this.onShutComplete = null;
     }
@@ -171,7 +162,7 @@ class AdaptiveDoor {
     }
 
     update(player, aiModel, game) {
-        // Physical door shutting sequence
+        // 1. Physical door shutting sequence
         if (this.state === 'shutting') {
             this.shutProgress += 0.12;
             if (this.shutProgress >= 1) {
@@ -192,16 +183,15 @@ class AdaptiveDoor {
         }
         if (this.state === 'shut') return;
 
-        // Track player horizontally with animated eyes
+        // 2. Track player with animated eyes
         const playerCenterX = player ? player.x : this.x;
         const doorCenterX = this.x + this.w / 2;
         const diffX = playerCenterX - doorCenterX;
         this.eyeLookX = Math.max(-2.2, Math.min(2.2, diffX * 0.04));
 
-        // 1. Shifting animation
+        // 3. Shifting animation (smooth specified hop to puzzle destination)
         if (this.isShifting) {
-            this.shiftProgress += (this.shiftType === 'POP_TELEPORT' ? 0.08 : 0.055);
-
+            this.shiftProgress += 0.055;
             if (this.shiftProgress >= 1) {
                 this.shiftProgress = 1;
                 this.x = this.hopTargetX;
@@ -209,280 +199,47 @@ class AdaptiveDoor {
                 this.rotation = 0;
                 this.scaleX = 1;
                 this.scaleY = 1;
-                this.opacity = 1;
                 this.isShifting = false;
-                this.isHopping = false;
-
-                // Shift completed!
                 this.shiftsLeft--;
-                if (this.shiftsLeft <= 0) {
-                    this.state = 'settled';
-                    if (window.soundFX) window.soundFX.playDoorSettle();
-                    if (game) {
-                        if (game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
-                        // Golden sparkle burst
-                        if (game.particles) {
-                            for (let i = 0; i < 10; i++) {
-                                game.particles.push({
-                                    x: this.x + this.w / 2 + (Math.random() - 0.5) * 20,
-                                    y: this.y + this.h / 2 + (Math.random() - 0.5) * 28,
-                                    vx: (Math.random() - 0.5) * 2.5,
-                                    vy: -Math.random() * 2.5 - 0.8,
-                                    life: 32,
-                                    maxLife: 32,
-                                    color: '#ffca28',
-                                    size: 2.6,
-                                    gravity: 0.08
-                                });
-                            }
-                        }
-                    }
-                } else {
-                    this.state = 'idle';
-                    if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
-                }
+                this.state = 'settled';
+                if (window.soundFX && window.soundFX.playDoorSettle) window.soundFX.playDoorSettle();
+                if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
             } else {
                 const t = this.shiftProgress;
-                if (this.shiftType === 'LEAP_OVER') {
-                    // Parabolic leap over player
-                    this.x = this.hopStartX + (this.hopTargetX - this.hopStartX) * t;
-                    this.hopY = -Math.sin(t * Math.PI) * 54;
-                    this.rotation = Math.sin(t * Math.PI) * (this.shiftDirection * 0.24);
-                    // Squash and stretch
-                    if (t < 0.2) {
-                        this.scaleX = 1.35;
-                        this.scaleY = 0.72;
-                    } else if (t < 0.8) {
-                        this.scaleX = 0.8;
-                        this.scaleY = 1.28;
-                    } else {
-                        this.scaleX = 1.25;
-                        this.scaleY = 0.8;
-                    }
-                } else if (this.shiftType === 'SCURRY_SPRINT') {
-                    // Rapid ground skid with running tilt
-                    this.x = this.hopStartX + (this.hopTargetX - this.hopStartX) * t;
-                    this.hopY = 0;
-                    this.rotation = this.shiftDirection * 0.15 * Math.sin(t * Math.PI * 4);
-                    this.scaleX = 1.15;
-                    this.scaleY = 0.9;
-                    if (game && game.spawnDust && Math.random() < 0.35) {
-                        game.spawnDust(this.x + this.w / 2, this.y + this.h);
-                    }
-                } else if (this.shiftType === 'POP_TELEPORT') {
-                    // Comic vanish and reappear
-                    if (t < 0.5) {
-                        this.opacity = Math.max(0, 1 - t * 2.5);
-                        this.scaleX = Math.max(0.2, 1 - t * 1.8);
-                        this.scaleY = Math.max(0.2, 1 - t * 1.8);
-                    } else {
-                        this.x = this.hopTargetX;
-                        this.opacity = Math.min(1, (t - 0.5) * 2.5);
-                        this.scaleX = 1 + Math.sin((t - 0.5) * Math.PI * 2) * 0.35;
-                        this.scaleY = 1 - Math.sin((t - 0.5) * Math.PI * 2) * 0.25;
-                    }
-                } else if (this.shiftType === 'ANTI_AIR_DUCK_SLIDE') {
-                    // Flattened duck slide under airborne player
-                    this.x = this.hopStartX + (this.hopTargetX - this.hopStartX) * t;
-                    this.hopY = this.h * 0.35;
-                    this.scaleY = 0.45;
-                    this.scaleX = 1.45;
-                    this.rotation = 0;
-                }
+                this.x = this.hopStartX + (this.hopTargetX - this.hopStartX) * t;
+                this.hopY = -Math.sin(t * Math.PI) * 28;
+                this.scaleX = 1 + Math.sin(t * Math.PI) * 0.1;
+                this.scaleY = 1 - Math.sin(t * Math.PI) * 0.1;
             }
             return;
         }
 
-        // 2. Alert anticipation state
-        if (this.isAlert) {
-            this.alertTimer--;
-            this.scaleX = 0.86;
-            this.scaleY = 1.2; // Startle recoil stretch
-            if (this.alertTimer <= 0) {
-                this.isAlert = false;
-                this.executeShift(game);
-            }
-            return;
-        }
-
-        // 3. Settled state check
-        if (this.shiftsLeft <= 0) {
+        // 4. Only trigger if shift is scripted and remaining
+        if (this.shiftsLeft <= 0 || !this.hasScriptedShift) {
             this.state = 'settled';
             return;
         }
 
-        // 4. Proximity & Playstyle trigger detection
+        // Proximity detection for specified shift
         const dist = Math.abs(player.x - (this.x + this.w / 2));
         const yDist = Math.abs(player.y - (this.y + this.h));
-        if (yDist > 55) return;
-
-        const profile = aiModel ? aiModel.currentProfile : 'BALANCED';
-        let shouldTrigger = false;
-
-        if (profile === 'RUSHER') {
-            // Rushers get caught off guard when sprinting at full speed towards the door!
-            if (Math.abs(player.vx) > 1.6 && dist < 88) {
-                shouldTrigger = true;
-            }
-        } else if (profile === 'CAUTIOUS') {
-            // Cautious players get baited when they hesitate right near the door!
-            if (dist < 105 && Math.abs(player.vx) < 0.45) {
-                this.cautiousTimer++;
-                if (this.cautiousTimer > 15) {
-                    shouldTrigger = true;
-                }
-            } else {
-                this.cautiousTimer = 0;
-            }
-        } else if (profile === 'HOPPER') {
-            // Jumpers have the door duck or leap as they jump towards it!
-            if (!player.onGround && dist < 88) {
-                shouldTrigger = true;
-            }
-        } else {
-            // Balanced: triggers within 68px proximity
-            if (dist < 68) {
-                shouldTrigger = true;
-            }
-        }
-
-        // Fallback proximity catch
-        if (dist < 52) {
-            shouldTrigger = true;
-        }
-
-        if (shouldTrigger) {
-            this.triggerShift(player, aiModel, game);
+        if (dist < this.triggerRange && yDist < 50) {
+            this.executeSpecifiedShift(game);
         }
     }
 
-    triggerShift(player, aiModel, game) {
-        this.state = 'alert';
-        this.isAlert = true;
-        this.alertTimer = 6; // 6-frame comedy startle anticipation!
-
-        const profile = aiModel ? aiModel.currentProfile : 'BALANCED';
-        const rand = Math.random();
-
-        // Weighted shift selection based on player psychology
-        if (profile === 'RUSHER') {
-            if (rand < 0.45) this.shiftType = 'LEAP_OVER';
-            else if (rand < 0.80) this.shiftType = 'POP_TELEPORT';
-            else this.shiftType = 'SCURRY_SPRINT';
-        } else if (profile === 'CAUTIOUS') {
-            if (rand < 0.45) this.shiftType = 'SCURRY_SPRINT';
-            else if (rand < 0.75) this.shiftType = 'POP_TELEPORT';
-            else this.shiftType = 'LEAP_OVER';
-        } else if (profile === 'HOPPER') {
-            if (rand < 0.45) this.shiftType = 'ANTI_AIR_DUCK_SLIDE';
-            else if (rand < 0.80) this.shiftType = 'LEAP_OVER';
-            else this.shiftType = 'SCURRY_SPRINT';
-        } else {
-            if (rand < 0.25) this.shiftType = 'LEAP_OVER';
-            else if (rand < 0.50) this.shiftType = 'SCURRY_SPRINT';
-            else if (rand < 0.75) this.shiftType = 'POP_TELEPORT';
-            else this.shiftType = 'ANTI_AIR_DUCK_SLIDE';
-        }
-
-        // Vault or duck-slide moves towards the side the player approached from (leap over their head!)
-        if (this.shiftType === 'LEAP_OVER' || this.shiftType === 'ANTI_AIR_DUCK_SLIDE') {
-            this.shiftDirection = player.x < this.x ? -1 : 1;
-        } else {
-            this.shiftDirection = player.x < this.x ? 1 : -1;
-        }
-    }
-
-    executeShift(game) {
+    executeSpecifiedShift(game) {
         this.isShifting = true;
-        this.isHopping = (this.shiftType === 'LEAP_OVER');
         this.shiftProgress = 0;
         this.hopStartX = this.x;
 
-        // Calculate safe landing spot on solid ground
-        const dist = (this.shiftType === 'POP_TELEPORT') ? 130 : 85;
-        let candidateX = this.x + this.shiftDirection * dist;
-
-        candidateX = this.findSafeLandingSpot(candidateX, this.shiftDirection);
-        this.hopTargetX = candidateX;
-
-        // Play sound effects & particles
-        if (this.shiftType === 'LEAP_OVER') {
-            if (window.soundFX) window.soundFX.playDoorBoing();
-            if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
-        } else if (this.shiftType === 'POP_TELEPORT') {
-            if (window.soundFX) window.soundFX.playDoorPoof();
-            if (game && game.particles) {
-                for (let i = 0; i < 14; i++) {
-                    game.particles.push({
-                        x: this.x + this.w / 2 + (Math.random() - 0.5) * 16,
-                        y: this.y + this.h / 2 + (Math.random() - 0.5) * 20,
-                        vx: (Math.random() - 0.5) * 3.5,
-                        vy: -Math.random() * 3 - 0.5,
-                        life: 25,
-                        maxLife: 25,
-                        color: ['#ffffff', '#ffca28', '#8d6e63'][Math.floor(Math.random() * 3)],
-                        size: 3,
-                        gravity: 0.1
-                    });
-                }
-            }
-        } else if (this.shiftType === 'SCURRY_SPRINT' || this.shiftType === 'ANTI_AIR_DUCK_SLIDE') {
-            if (window.soundFX) window.soundFX.playDoorScurry();
-            if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
-        }
-
-        if (game && game.shake) game.shake(5, 2);
-    }
-
-    findSafeLandingSpot(targetX, dir) {
         const boundsW = (this.level && this.level.bounds) ? this.level.bounds.width : 840;
-        const minX = 80;
-        const maxX = boundsW - 80 - this.w;
+        let targetX = this.x + this.shiftDirection * this.shiftDistance;
+        targetX = Math.max(90, Math.min(boundsW - 90 - this.w, targetX));
+        this.hopTargetX = targetX;
 
-        // Find the solid floor supporting the door at its base
-        const floorY = this.baseY + this.h;
-        let supportingSolid = null;
-        if (this.level && this.level.solids) {
-            supportingSolid = this.level.solids.find(s => 
-                Math.abs(s.y - floorY) <= 5 && 
-                s.x <= this.baseX + 10 && 
-                (s.x + s.w) >= this.baseX + this.w - 10
-            );
-        }
-
-        let floorLeft = minX;
-        let floorRight = maxX;
-        if (supportingSolid) {
-            floorLeft = Math.max(minX, supportingSolid.x + 10);
-            floorRight = Math.min(maxX, supportingSolid.x + supportingSolid.w - this.w - 10);
-        }
-
-        // Clamp targetX strictly to valid solid ground on the current story
-        let safeX = Math.max(floorLeft, Math.min(floorRight, targetX));
-
-        // If target was too close or cramped, pick a safe landing at least 65px away along the same floor
-        if (Math.abs(safeX - this.x) < 55) {
-            const shiftAttempt = dir !== 0 ? dir : -1;
-            const cand1 = this.x + shiftAttempt * 85;
-            const cand2 = this.x - shiftAttempt * 85;
-
-            if (cand1 >= floorLeft && cand1 <= floorRight) {
-                safeX = cand1;
-            } else if (cand2 >= floorLeft && cand2 <= floorRight) {
-                safeX = cand2;
-            }
-        }
-
-        // Avoid landing directly on static spikes
-        if (this.level && this.level.staticTraps) {
-            for (const trap of this.level.staticTraps) {
-                if (Math.abs(safeX - trap.x) < 36) {
-                    safeX = safeX > trap.x ? Math.min(floorRight, trap.x + 42) : Math.max(floorLeft, trap.x - 42 - this.w);
-                }
-            }
-        }
-
-        return Math.max(floorLeft, Math.min(floorRight, safeX));
+        if (window.soundFX && window.soundFX.playDoorScurry) window.soundFX.playDoorScurry();
+        if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
     }
 
     draw(ctx, theme) {
@@ -492,11 +249,9 @@ class AdaptiveDoor {
         ctx.rotate(this.rotation);
         ctx.scale(this.scaleX, this.scaleY);
 
-        // Draw door centered at origin with expressive eyes, comic reaction and physical shutting
         drawArchedDoor(ctx, -this.w / 2, -this.h / 2, this.w, this.h, theme, {
             eyeLookX: this.eyeLookX,
             state: this.state,
-            isAlert: this.isAlert,
             shutProgress: this.shutProgress
         });
 
@@ -1586,283 +1341,201 @@ class SpringPadTrap {
     }
 }
 
-// --- 11. LIVING POP-UP WALL BLOCK TRAP ---
-class PopUpWallTrap {
+// --- 11. REVERSED CONTROLS ZONE TRAP (Level Devil Level 5 Signature) ---
+class ReversedControlsTrap {
     constructor(def) {
         this.x = def.x;
-        this.y = def.y; // Base floor line
-        this.w = def.w || 32;
-        this.maxH = def.h || 40;
-        this.currentH = 0;
-        this.state = 'dormant'; // 'dormant', 'rising', 'risen'
-        this.triggerRange = def.triggerRange || 70;
-        this.speed = def.speed || 3.5;
-        this.isSolid = true;
-        this.isDynamicBlock = true;
+        this.y = def.y;
+        this.w = def.w || 120;
+        this.h = def.h || 100;
+        this.triggered = false;
     }
 
     update(player, particles, onTrigger) {
-        const pCenterX = player.x;
+        if (!player) return;
+        const pLeft = player.x - (player.width || 20) / 2;
+        const pRight = player.x + (player.width || 20) / 2;
         const pBottom = player.y;
-        const dist = Math.abs(pCenterX - (this.x + this.w / 2));
-        const isNearFloor = Math.abs(pBottom - this.y) < 32;
+        const pTop = player.y - (player.height || 26);
 
-        if (this.state === 'dormant') {
-            if (dist < this.triggerRange && isNearFloor) {
-                this.state = 'rising';
-                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
+        const inZone = pRight > this.x && pLeft < this.x + this.w &&
+                       pBottom > this.y && pTop < this.y + this.h;
+
+        if (inZone) {
+            if (!this.triggered) {
+                this.triggered = true;
+                if (window.soundFX && window.soundFX.playWarp) window.soundFX.playWarp();
                 if (onTrigger) onTrigger(this);
             }
-        } else if (this.state === 'rising') {
-            this.currentH = Math.min(this.maxH, this.currentH + this.speed);
-            if (this.currentH >= this.maxH) {
-                this.state = 'risen';
+            if (window.gameInstance) {
+                window.gameInstance.reversedControls = true;
+                window.gameInstance.reversedTimer = 15;
             }
         }
     }
 
-    getSolidBox() {
-        if (this.currentH <= 2) return null;
-        return {
-            x: this.x,
-            y: this.y - this.currentH,
-            w: this.w,
-            h: this.currentH
-        };
-    }
-
-    getHazardBox() {
-        return null; // Physical barrier to bonk / block
-    }
-
-    draw(ctx, theme) {
-        if (this.currentH <= 1) return;
-        ctx.save();
-        const drawY = this.y - this.currentH;
-        ctx.fillStyle = theme.groundColor || '#2c221e';
-        ctx.fillRect(this.x, drawY, this.w, this.currentH);
-
-        ctx.fillStyle = theme.groundTopColor || '#3d3029';
-        ctx.fillRect(this.x, drawY, this.w, Math.min(4, this.currentH));
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(this.x, drawY, this.w, this.currentH);
-
-        if (this.currentH > 18) {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-            ctx.beginPath();
-            ctx.moveTo(this.x, drawY + this.currentH / 2);
-            ctx.lineTo(this.x + this.w, drawY + this.currentH / 2);
-            ctx.stroke();
-        }
-        ctx.restore();
-    }
-}
-
-// --- 12. LIVING CEILING SQUISH BLOCK TRAP ---
-class CeilingSquishTrap {
-    constructor(def) {
-        this.x = def.x;
-        this.y = def.y; // Base ceiling level
-        this.w = def.w || 60;
-        this.maxDrop = def.dropH || 38;
-        this.currentDrop = 0;
-        this.floorY = def.floorY || (def.y + 115);
-        this.state = 'dormant';
-        this.triggerRange = def.triggerRange || 75;
-        this.speed = def.speed || 3.0;
-        this.isSolid = true;
-        this.isDynamicBlock = true;
-    }
-
-    update(player, particles, onTrigger) {
-        const pCenterX = player.x;
-        const dist = Math.abs(pCenterX - (this.x + this.w / 2));
-
-        if (this.state === 'dormant') {
-            if (dist < this.triggerRange && player.y > this.y) {
-                this.state = 'dropping';
-                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
-                if (onTrigger) onTrigger(this);
-            }
-        } else if (this.state === 'dropping') {
-            this.currentDrop = Math.min(this.maxDrop, this.currentDrop + this.speed);
-            if (this.currentDrop >= this.maxDrop) {
-                this.state = 'dropped';
-            }
-        }
-    }
-
-    getSolidBox() {
-        if (this.currentDrop <= 1) return null;
-        return {
-            x: this.x,
-            y: this.y,
-            w: this.w,
-            h: this.currentDrop
-        };
-    }
-
-    getHazardBox() {
-        return null; // Crawl underneath safely!
-    }
-
-    draw(ctx, theme) {
-        if (this.currentDrop <= 1) return;
-        ctx.save();
-        ctx.fillStyle = theme.ceilingColor || theme.groundColor || '#2c221e';
-        ctx.fillRect(this.x, this.y, this.w, this.currentDrop);
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        ctx.fillRect(this.x, this.y + this.currentDrop - 4, this.w, 4);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(this.x, this.y, this.w, this.currentDrop);
-        ctx.restore();
-    }
-}
-
-// --- 13. LIVING SHIFTING STEPPING BLOCK TRAP ---
-class ShiftingBlockTrap {
-    constructor(def) {
-        this.baseX = def.x;
-        this.baseY = def.y;
-        this.x = def.x;
-        this.y = def.y;
-        this.w = def.w || 55;
-        this.h = def.h || 20;
-        this.shiftDist = def.shiftDist || 50;
-        this.shiftAxis = def.axis || 'x';
-        this.state = 'dormant';
-        this.progress = 0;
-        this.speed = def.speed || 0.055;
-        this.triggerRange = def.triggerRange || 70;
-        this.isSolid = true;
-        this.isDynamicBlock = true;
-    }
-
-    update(player, particles, onTrigger) {
-        if (this.state === 'dormant') {
-            const pCenterX = player.x;
-            const dist = Math.abs(pCenterX - (this.baseX + this.w / 2));
-            if (dist < this.triggerRange) {
-                this.state = 'shifting';
-                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
-                if (onTrigger) onTrigger(this);
-            }
-        } else if (this.state === 'shifting') {
-            this.progress = Math.min(1, this.progress + this.speed);
-            if (this.shiftAxis === 'x') {
-                this.x = this.baseX + this.shiftDist * Math.sin(this.progress * Math.PI / 2);
-            } else {
-                this.y = this.baseY + this.shiftDist * Math.sin(this.progress * Math.PI / 2);
-            }
-            if (this.progress >= 1) {
-                this.state = 'shifted';
-            }
-        }
-    }
-
-    getSolidBox() {
-        return {
-            x: this.x,
-            y: this.y,
-            w: this.w,
-            h: this.h
-        };
-    }
-
-    getHazardBox() {
-        return null;
-    }
+    getSolidBox() { return null; }
+    getHazardBox() { return null; }
 
     draw(ctx, theme) {
         ctx.save();
-        ctx.fillStyle = theme.platformColor || theme.groundColor || '#3d3029';
-        ctx.fillRect(this.x, this.y, this.w, this.h);
-        ctx.fillStyle = theme.groundTopColor || '#4e3f36';
-        ctx.fillRect(this.x, this.y, this.w, 3.5);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-        ctx.lineWidth = 1.5;
+        // Subtle dotted inverted indicator zone
+        ctx.strokeStyle = 'rgba(239, 83, 80, 0.28)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 4]);
         ctx.strokeRect(this.x, this.y, this.w, this.h);
+
+        // Floor rune indicating flipped arrows
+        const midX = this.x + this.w / 2;
+        const botY = this.y + this.h - 6;
+        ctx.fillStyle = 'rgba(239, 83, 80, 0.45)';
+        ctx.font = 'bold 11px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('⮂ ⮃', midX, botY);
         ctx.restore();
     }
 }
 
-// --- 14. LIVING WALL EJECTOR BLOCK TRAP ---
-class WallEjectorTrap {
+// --- 12. FALLING PLATFORM TRAP (Level Devil Level 6 Signature) ---
+class FallingPlatformTrap {
     constructor(def) {
         this.x = def.x;
         this.y = def.y;
-        this.w = def.w || 24;
-        this.h = def.h || 32;
-        this.ejectDist = def.ejectDist || 36;
-        this.direction = def.direction || 1;
-        this.currentEject = 0;
-        this.state = 'dormant';
-        this.triggerRange = def.triggerRange || 65;
-        this.speed = def.speed || 4.5;
-        this.pauseTimer = 0;
+        this.initialY = def.y;
+        this.w = def.w || 55;
+        this.h = def.h || 14;
+        this.state = 'dormant'; // 'dormant', 'shaking', 'falling', 'gone'
+        this.shakeTimer = 0;
+        this.vy = 0;
+        this.dropSpeed = def.dropSpeed || 2.2;
         this.isSolid = true;
-        this.isDynamicBlock = true;
+        this.isPlatform = true;
     }
 
     update(player, particles, onTrigger) {
-        const pCenterX = player.x;
-        const dist = Math.abs(pCenterX - this.x);
-        const pNearY = Math.abs(player.y - (this.y + this.h / 2)) < 35;
-
+        if (!player) return;
         if (this.state === 'dormant') {
-            if (dist < this.triggerRange && pNearY) {
-                this.state = 'punching';
+            const pLeft = player.x - (player.width || 20) / 2;
+            const pRight = player.x + (player.width || 20) / 2;
+            const pBottom = player.y;
+
+            const isOverX = pRight > this.x + 2 && pLeft < this.x + this.w - 2;
+            const isNearY = Math.abs(pBottom - this.y) < 6;
+
+            if (isOverX && isNearY) {
+                this.state = 'shaking';
+                this.shakeTimer = 14;
                 if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
                 if (onTrigger) onTrigger(this);
             }
-        } else if (this.state === 'punching') {
-            this.currentEject = Math.min(this.ejectDist, this.currentEject + this.speed);
-            if (this.currentEject >= this.ejectDist) {
-                this.state = 'extended';
-                this.pauseTimer = 35;
+        } else if (this.state === 'shaking') {
+            this.shakeTimer--;
+            if (this.shakeTimer <= 0) {
+                this.state = 'falling';
+                this.vy = this.dropSpeed;
             }
-        } else if (this.state === 'extended') {
-            this.pauseTimer--;
-            if (this.pauseTimer <= 0) {
-                this.state = 'retracting';
+        } else if (this.state === 'falling') {
+            this.vy += 0.5;
+            this.y += this.vy;
+
+            if (this.y - this.initialY > 8) {
+                this.isSolid = false;
             }
-        } else if (this.state === 'retracting') {
-            this.currentEject = Math.max(0, this.currentEject - 1.5);
-            if (this.currentEject <= 0) {
-                this.state = 'dormant';
+
+            if (this.y > 650) {
+                this.state = 'gone';
+                this.isSolid = false;
             }
         }
     }
 
     getSolidBox() {
-        if (this.currentEject <= 2) return null;
-        const blockX = this.direction > 0 ? this.x : (this.x - this.currentEject);
+        if (!this.isSolid || this.state === 'gone') return null;
         return {
-            x: blockX,
+            x: this.x,
             y: this.y,
-            w: this.currentEject,
+            w: this.w,
             h: this.h
         };
     }
 
-    getHazardBox() {
-        return null;
-    }
+    getHazardBox() { return null; }
 
     draw(ctx, theme) {
-        if (this.currentEject <= 2) return;
+        if (this.state === 'gone') return;
         ctx.save();
-        const blockX = this.direction > 0 ? this.x : (this.x - this.currentEject);
-        ctx.fillStyle = theme.groundColor || '#2c221e';
-        ctx.fillRect(blockX, this.y, this.currentEject, this.h);
-        ctx.fillStyle = 'rgba(255, 202, 40, 0.4)';
-        ctx.fillRect(this.direction > 0 ? (blockX + this.currentEject - 3) : blockX, this.y, 3, this.h);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        let drawX = this.x;
+        let drawY = this.y;
+        if (this.state === 'shaking') {
+            drawX += (Math.random() - 0.5) * 3;
+            drawY += (Math.random() - 0.5) * 1.5;
+        }
+
+        ctx.fillStyle = theme.platformColor || theme.groundColor || '#3d3029';
+        ctx.fillRect(drawX, drawY, this.w, this.h);
+
+        ctx.fillStyle = theme.groundTopColor || '#5a463a';
+        ctx.fillRect(drawX, drawY, this.w, 3.5);
+
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(drawX, drawY, this.w, this.h);
+        ctx.restore();
+    }
+}
+
+// --- 13. COIN BAIT TRAP (Classic Level Devil Gimmick) ---
+class CoinBaitTrap {
+    constructor(def) {
+        this.x = def.x;
+        this.y = def.y;
+        this.baseY = def.y;
+        this.r = def.r || 8;
+        this.collected = false;
+        this.bobAngle = Math.random() * Math.PI * 2;
+    }
+
+    update(player, particles, onTrigger) {
+        if (this.collected || !player) return;
+        this.bobAngle += 0.08;
+        const curY = this.baseY + Math.sin(this.bobAngle) * 3;
+        const pCenterX = player.x;
+        const pCenterY = player.y - (player.height || 26) / 2;
+
+        const dist = Math.hypot(pCenterX - this.x, pCenterY - curY);
+        if (dist < this.r + 14) {
+            this.collected = true;
+            if (window.soundFX && window.soundFX.playWarp) window.soundFX.playWarp();
+            if (particles && particles.addDeathExplosion) {
+                particles.addDeathExplosion(this.x, curY, '#ffd54f');
+            }
+            if (onTrigger) onTrigger(this);
+        }
+    }
+
+    getSolidBox() { return null; }
+    getHazardBox() { return null; }
+
+    draw(ctx, theme) {
+        if (this.collected) return;
+        ctx.save();
+        const curY = this.baseY + Math.sin(this.bobAngle) * 3;
+
+        // Glowing gold coin
+        ctx.fillStyle = '#ffca28';
+        ctx.beginPath();
+        ctx.arc(this.x, curY, this.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ff8f00';
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(blockX, this.y, this.currentEject, this.h);
+        ctx.stroke();
+
+        // Inner devil imprint / shine
+        ctx.fillStyle = '#fff9c4';
+        ctx.beginPath();
+        ctx.arc(this.x - 2, curY - 2, this.r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     }
 }
@@ -1872,38 +1545,7 @@ function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
 
     ctx.save();
 
-    // 1. SETTLED STATE: The door will not jump again -> TURNS COMPLETELY PITCH BLACK!
-    if (state === 'settled' || state === 'entering') {
-        // Deep matte black outer arched frame
-        ctx.fillStyle = '#050505';
-        ctx.beginPath();
-        ctx.moveTo(x, y + h);
-        ctx.lineTo(x, y + w / 2);
-        ctx.arc(x + w / 2, y + w / 2, w / 2, Math.PI, 0);
-        ctx.lineTo(x + w, y + h);
-        ctx.closePath();
-        ctx.fill();
-
-        // Pitch black inner doorway void
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.moveTo(x + 2.5, y + h);
-        ctx.lineTo(x + 2.5, y + w / 2 + 2);
-        ctx.arc(x + w / 2, y + w / 2 + 2, w / 2 - 2.5, Math.PI, 0);
-        ctx.lineTo(x + w - 2.5, y + h);
-        ctx.closePath();
-        ctx.fill();
-
-        // Subtle dark crisp silhouette edge
-        ctx.strokeStyle = '#222222';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-
-        ctx.restore();
-        return;
-    }
-
-    // Outer arch frame for active/hopping door
+    // Outer arch frame - ALWAYS uses authentic theme colors, NEVER pitch black!
     ctx.fillStyle = theme.doorFrameColor || '#473628';
     ctx.beginPath();
     ctx.moveTo(x, y + h);
@@ -2044,8 +1686,7 @@ window.EmergingSpikeTrap = EmergingSpikeTrap;
 window.SpinningSawbladeTrap = SpinningSawbladeTrap;
 window.MovingPlatformTrap = MovingPlatformTrap;
 window.SpringPadTrap = SpringPadTrap;
-window.PopUpWallTrap = PopUpWallTrap;
-window.CeilingSquishTrap = CeilingSquishTrap;
-window.ShiftingBlockTrap = ShiftingBlockTrap;
-window.WallEjectorTrap = WallEjectorTrap;
+window.ReversedControlsTrap = ReversedControlsTrap;
+window.FallingPlatformTrap = FallingPlatformTrap;
+window.CoinBaitTrap = CoinBaitTrap;
 window.drawArchedDoor = drawArchedDoor;

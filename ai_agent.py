@@ -31,7 +31,10 @@ DEFAULT_EFFICACY = {
     "moving_platform": 1.0,
     "spring_pad": 1.0,
     "troll_portal": 1.0,
-    "sliding_door": 1.0
+    "sliding_door": 1.0,
+    "reversed_controls": 1.0,
+    "falling_platform": 1.0,
+    "coin_trap": 1.0
 }
 
 class DevilPythonAI:
@@ -260,40 +263,27 @@ class DevilPythonAI:
             trap['aiLean'] = profile
             synth_traps.append(trap)
 
-        # 1. DOOR DEFENSE PERIMETER
+        # 1. DOOR DEFENSE PERIMETER — Authentic Level Devil hazards around door approach
         door_x = door.get('x', 750)
         door_floor_y = door.get('y', 340) + door.get('h', 46)
         door_pre_step_x = door_x - 70
 
+        # A1: Door Step Threshold Trap: Vanishing floor right before the door!
         if is_safe_distance(door_pre_step_x, door_floor_y, 48, 20):
-            if profile == "RUSHER":
-                add_synth_trap({
-                    'type': 'pop_up_wall',
-                    'x': door_pre_step_x,
-                    'y': door_floor_y,
-                    'w': 32,
-                    'h': 32,
-                    'riseHeight': 36,
-                    'riseSpeed': round(2.8 + diff_mult * 0.2, 2),
-                    'triggerRange': 60,
-                    'zone': 'exit',
-                    'purpose': 'door_blocker'
-                })
-            else:
-                add_synth_trap({
-                    'type': 'collapsing_floor',
-                    'x': door_pre_step_x,
-                    'y': door_floor_y,
-                    'w': 48,
-                    'h': 35,
-                    'dropSpeed': round(2.4 + diff_mult * 0.15, 2),
-                    'zone': 'exit',
-                    'purpose': 'door_sinkhole'
-                })
+            add_synth_trap({
+                'type': 'collapsing_floor',
+                'x': door_pre_step_x,
+                'y': door_floor_y,
+                'w': 48,
+                'h': 35,
+                'dropSpeed': round(2.4 + diff_mult * 0.15, 2),
+                'zone': 'exit',
+                'purpose': 'door_sinkhole'
+            })
 
-        # Door ceiling ambush
+        # A2: Door Ceiling Ambush (Dropping spike above door approach)
         door_ceil_y = max(30, door_floor_y - 115)
-        door_ambush_x = door_x - 115
+        door_ambush_x = door_x - 110
         if is_safe_distance(door_ambush_x, door_ceil_y, 26, 25):
             add_synth_trap({
                 'type': 'dropping_spike',
@@ -307,8 +297,19 @@ class DevilPythonAI:
                 'purpose': 'door_anti_air'
             })
 
-        # Troll Loop Portal (Level 8+)
-        if level_id >= 8 and is_safe_distance(door_x - 150, door_floor_y, 45, 30):
+        # A3: Inverted Controls Zone on Approach (Levels 6+)
+        if level_id >= 6 and is_safe_distance(door_x - 160, door_floor_y - 90, 110, 30):
+            add_synth_trap({
+                'type': 'reversed_controls',
+                'x': door_x - 160,
+                'y': door_floor_y - 90,
+                'w': 110,
+                'h': 90,
+                'zone': 'exit',
+                'purpose': 'door_inverted_approach'
+            })
+        elif level_id >= 8 and is_safe_distance(door_x - 150, door_floor_y, 45, 30):
+            # A4: Troll Loop Portal (Levels 8+)
             sp_x = spawn.get('x', 80)
             sp_y = spawn.get('y', 345)
             add_synth_trap({
@@ -324,47 +325,9 @@ class DevilPythonAI:
                 'purpose': 'door_loop_portal'
             })
 
-        # 2. LIVING BLOCKS CONVERSION
+        # 2. ARCHITECTURAL LEVEL DEVIL HAZARDS — Natural traps built into level geography
         sp_x = spawn.get('x', 80)
         sp_y = spawn.get('y', 345)
-        for sol in solids:
-            s_h = sol.get('h', 0)
-            s_w = sol.get('w', 0)
-            s_x = sol.get('x', 0)
-            s_y = sol.get('y', 0)
-            if s_h >= 60 and s_w >= 18 and (sp_x + 60 < s_x < door_x - 40):
-                mid_wall_y = s_y + s_h - 32
-                if s_x + s_w < bounds['width'] - 100 and is_safe_distance(s_x + s_w + 5, mid_wall_y, 28, 25):
-                    add_synth_trap({
-                        'type': 'wall_ejector',
-                        'x': s_x + s_w,
-                        'y': mid_wall_y,
-                        'w': 28,
-                        'h': 30,
-                        'punchDist': 38 + int(round(diff_mult * 3)),
-                        'punchSpeed': round(2.6 + diff_mult * 0.2, 2),
-                        'direction': 1,
-                        'triggerRange': 55,
-                        'zone': 'mid',
-                        'purpose': 'living_wall'
-                    })
-                elif s_x > 100 and is_safe_distance(s_x - 32, mid_wall_y, 28, 25):
-                    add_synth_trap({
-                        'type': 'wall_ejector',
-                        'x': s_x - 28,
-                        'y': mid_wall_y,
-                        'w': 28,
-                        'h': 30,
-                        'punchDist': 38 + int(round(diff_mult * 3)),
-                        'punchSpeed': round(2.6 + diff_mult * 0.2, 2),
-                        'direction': -1,
-                        'triggerRange': 55,
-                        'zone': 'mid',
-                        'purpose': 'living_wall'
-                    })
-                if sum(1 for t in synth_traps if t.get('purpose') == 'living_wall') >= 2:
-                    break
-
         for corr in corridors:
             c_w = corr.get('w', 0)
             c_h = corr.get('h', 0)
@@ -375,51 +338,56 @@ class DevilPythonAI:
                 floor_y = c_y + c_h
                 mid_x = int(round(c_x + c_w * 0.5))
 
-                if is_safe_distance(mid_x, ceil_y, 48, 30):
+                # Dropping stalactite from open ceiling
+                if is_safe_distance(mid_x, ceil_y, 22, 30):
                     add_synth_trap({
-                        'type': 'ceiling_squish',
+                        'type': 'dropping_spike',
                         'x': mid_x,
                         'y': ceil_y,
-                        'w': 48,
-                        'h': 26,
-                        'dropDistance': max(25, c_h - 22),
-                        'dropSpeed': round(2.2 + diff_mult * 0.2, 2),
-                        'triggerRange': 52,
+                        'w': 22,
+                        'h': 22,
+                        'groundY': floor_y,
+                        'triggerRange': 48,
                         'zone': 'mid',
-                        'purpose': 'living_ceiling'
+                        'purpose': 'arch_dropping_spike'
                     })
 
-                shelf_x = int(round(c_x + c_w * 0.25))
-                if is_safe_distance(shelf_x, floor_y, 44, 25):
+                # Falling stepping platform or bait coin in corridor
+                plat_x = int(round(c_x + c_w * 0.25))
+                if is_safe_distance(plat_x, floor_y, 55, 25):
                     add_synth_trap({
-                        'type': 'shifting_block',
-                        'x': shelf_x,
-                        'y': floor_y - 18,
-                        'w': 44,
-                        'h': 18,
-                        'shiftAxis': 'y',
-                        'shiftDistance': -32,
-                        'shiftSpeed': 2.2,
-                        'triggerRange': 50,
+                        'type': 'falling_platform',
+                        'x': plat_x,
+                        'y': floor_y,
+                        'w': 55,
+                        'h': 14,
+                        'dropSpeed': 2.2,
                         'zone': 'mid',
-                        'purpose': 'living_floor_shift'
+                        'purpose': 'arch_falling_platform'
+                    })
+                elif is_safe_distance(plat_x + 30, floor_y - 35, 20, 20):
+                    add_synth_trap({
+                        'type': 'coin_trap',
+                        'x': plat_x + 30,
+                        'y': floor_y - 35,
+                        'r': 8,
+                        'zone': 'mid',
+                        'purpose': 'arch_bait_coin'
                     })
 
         # 3. TELEMETRY COUNTER-LEAN TRAPS
         if profile == "RUSHER":
             rush_x = sp_x + int(round((door_x - sp_x) * 0.4))
-            if is_safe_distance(rush_x, sp_y, 32, 25):
+            if is_safe_distance(rush_x, sp_y, 26, 25):
                 add_synth_trap({
-                    'type': 'pop_up_wall',
+                    'type': 'hidden_spike',
                     'x': rush_x,
                     'y': sp_y,
-                    'w': 30,
-                    'h': 32,
-                    'riseHeight': 36,
-                    'riseSpeed': 2.8,
-                    'triggerRange': 60,
+                    'w': 26,
+                    'h': 16,
+                    'triggerRange': 38,
                     'zone': 'mid',
-                    'purpose': 'rush_counter_wall'
+                    'purpose': 'rush_counter_spike'
                 })
             boulder_x = min(bounds['width'] - 160, door_x - 60)
             if is_safe_distance(boulder_x, sp_y, 34, 40):
@@ -584,32 +552,36 @@ class DevilPythonAI:
             efficacy = self.trap_efficacy.get(t_type, 1.0)
 
             if profile == "RUSHER":
-                if t_type in ('pop_up_wall', 'ceiling_squish'):
+                if t_type in ('reversed_controls', 'collapsing_floor'):
                     affinity += 2.4
-                elif t_type in ('collapsing_floor', 'piston_crusher'):
+                elif t_type in ('rolling_ball', 'piston_crusher'):
                     affinity += 1.8
-                elif t_type in ('rolling_ball', 'hidden_spike'):
-                    affinity += 1.2
-            elif profile == "CAUTIOUS":
-                if t_type in ('wall_ejector', 'rolling_ball'):
-                    affinity += 2.4
-                elif t_type in ('shifting_block', 'piston_crusher'):
-                    affinity += 1.5
-            elif profile == "HOPPER":
-                if t_type in ('pop_up_wall', 'shifting_block'):
-                    affinity += 2.5
-                elif t_type == 'dropping_spike':
-                    affinity += 2.2
                 elif t_type in ('spinning_saw', 'hidden_spike'):
-                    affinity += 1.3
-            elif profile == "CHAOTIC":
-                if t_type in ('troll_portal', 'wall_ejector', 'sliding_door'):
-                    affinity += 2.2
-            elif profile == "METHODICAL":
-                if t_type in ('ceiling_squish', 'pop_up_wall', 'shifting_block'):
-                    affinity += 2.0
-                elif t_type in ('collapsing_floor', 'piston_crusher'):
                     affinity += 1.4
+            elif profile == "CAUTIOUS":
+                if t_type in ('falling_platform', 'rolling_ball'):
+                    affinity += 2.4
+                elif t_type in ('coin_trap', 'piston_crusher'):
+                    affinity += 1.8
+                elif t_type in ('hidden_spike',):
+                    affinity += 1.4
+            elif profile == "HOPPER":
+                if t_type in ('dropping_spike', 'falling_platform'):
+                    affinity += 2.5
+                elif t_type == 'spinning_saw':
+                    affinity += 1.8
+                elif t_type == 'hidden_spike':
+                    affinity += 1.4
+            elif profile == "CHAOTIC":
+                if t_type in ('troll_portal', 'reversed_controls'):
+                    affinity += 2.4
+                elif t_type in ('sliding_door', 'spring_pad'):
+                    affinity += 2.0
+            elif profile == "METHODICAL":
+                if t_type in ('reversed_controls', 'collapsing_floor'):
+                    affinity += 2.2
+                elif t_type in ('falling_platform', 'coin_trap'):
+                    affinity += 1.8
 
             zone = slot.get('zone', 'mid')
             if zone == 'entry':

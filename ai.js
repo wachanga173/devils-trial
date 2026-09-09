@@ -45,10 +45,9 @@ class DevilAI {
             spring_pad: 1.0,
             troll_portal: 1.0,
             sliding_door: 1.0,
-            pop_up_wall: 1.0,
-            ceiling_squish: 1.0,
-            shifting_block: 1.0,
-            wall_ejector: 1.0
+            reversed_controls: 1.0,
+            falling_platform: 1.0,
+            coin_trap: 1.0
         };
 
         this.learningHistory = [];
@@ -359,42 +358,27 @@ class DevilAI {
             synthTraps.push(trap);
         };
 
-        // 1. DOOR DEFENSE PERIMETER — Fortifying the entrance to the door
+        // 1. DOOR DEFENSE PERIMETER — Authentic Level Devil hazards around door approach
         const doorFloorY = door.y + (door.h || 46);
         const doorPreStepX = door.x - 70;
 
-        // A1: Door Step Threshold Trap
+        // A1: Door Step Threshold Trap: Vanishing floor right before the door!
         if (isSafeDistance(doorPreStepX, doorFloorY, 48, 20)) {
-            if (profile === "RUSHER") {
-                addSynthTrap({
-                    type: 'pop_up_wall',
-                    x: doorPreStepX,
-                    y: doorFloorY,
-                    w: 32,
-                    h: 32,
-                    riseHeight: 36,
-                    riseSpeed: 2.8 + diffMult * 0.2,
-                    triggerRange: 60,
-                    zone: 'exit',
-                    purpose: 'door_blocker'
-                });
-            } else {
-                addSynthTrap({
-                    type: 'collapsing_floor',
-                    x: doorPreStepX,
-                    y: doorFloorY,
-                    w: 48,
-                    h: 35,
-                    dropSpeed: 2.4 + diffMult * 0.15,
-                    zone: 'exit',
-                    purpose: 'door_sinkhole'
-                });
-            }
+            addSynthTrap({
+                type: 'collapsing_floor',
+                x: doorPreStepX,
+                y: doorFloorY,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.4 + diffMult * 0.15,
+                zone: 'exit',
+                purpose: 'door_sinkhole'
+            });
         }
 
         // A2: Door Ceiling Ambush (Dropping spike above door approach)
         const doorCeilY = Math.max(30, doorFloorY - 115);
-        const doorAmbushX = door.x - 115;
+        const doorAmbushX = door.x - 110;
         if (isSafeDistance(doorAmbushX, doorCeilY, 26, 25)) {
             addSynthTrap({
                 type: 'dropping_spike',
@@ -409,8 +393,19 @@ class DevilAI {
             });
         }
 
-        // A3: Troll Loop Portal (Levels 8+) — flings hasty players backward
-        if (levelId >= 8 && isSafeDistance(door.x - 150, doorFloorY, 45, 30)) {
+        // A3: Inverted Controls Zone on Approach (Levels 6+)
+        if (levelId >= 6 && isSafeDistance(door.x - 160, doorFloorY - 90, 110, 30)) {
+            addSynthTrap({
+                type: 'reversed_controls',
+                x: door.x - 160,
+                y: doorFloorY - 90,
+                w: 110,
+                h: 90,
+                zone: 'exit',
+                purpose: 'door_inverted_approach'
+            });
+        } else if (levelId >= 8 && isSafeDistance(door.x - 150, doorFloorY, 45, 30)) {
+            // A4: Troll Loop Portal (Levels 8+) — flings hasty players backward
             addSynthTrap({
                 type: 'troll_portal',
                 x: door.x - 150,
@@ -425,80 +420,49 @@ class DevilAI {
             });
         }
 
-        // 2. LIVING BLOCKS CONVERSION — Turn surrounding solid walls, ceilings, and floors into traps
-        for (const sol of solids) {
-            // Vertical wall solids adjacent to corridors converted to wall ejector pistons
-            if (sol.h >= 60 && sol.w >= 18 && sol.x > spawn.x + 60 && sol.x < door.x - 40) {
-                const midWallY = sol.y + sol.h - 32;
-                if (sol.x + sol.w < bounds.width - 100 && isSafeDistance(sol.x + sol.w + 5, midWallY, 28, 25)) {
-                    addSynthTrap({
-                        type: 'wall_ejector',
-                        x: sol.x + sol.w,
-                        y: midWallY,
-                        w: 28,
-                        h: 30,
-                        punchDist: 38 + Math.round(diffMult * 3),
-                        punchSpeed: 2.6 + diffMult * 0.2,
-                        direction: 1,
-                        triggerRange: 55,
-                        zone: 'mid',
-                        purpose: 'living_wall'
-                    });
-                } else if (sol.x > 100 && isSafeDistance(sol.x - 32, midWallY, 28, 25)) {
-                    addSynthTrap({
-                        type: 'wall_ejector',
-                        x: sol.x - 28,
-                        y: midWallY,
-                        w: 28,
-                        h: 30,
-                        punchDist: 38 + Math.round(diffMult * 3),
-                        punchSpeed: 2.6 + diffMult * 0.2,
-                        direction: -1,
-                        triggerRange: 55,
-                        zone: 'mid',
-                        purpose: 'living_wall'
-                    });
-                }
-                if (synthTraps.filter(t => t.purpose === 'living_wall').length >= 2) break;
-            }
-        }
-
-        // Living Ceilings & Shifting Shelves from corridors
+        // 2. ARCHITECTURAL LEVEL DEVIL HAZARDS — Natural traps built into level geography
         for (const corr of corridors) {
             if (corr.w >= 140 && corr.x > spawn.x + 50 && corr.x + corr.w < door.x + 50) {
                 const ceilY = corr.y;
                 const floorY = corr.y + corr.h;
                 const midX = Math.round(corr.x + corr.w * 0.5);
 
-                if (isSafeDistance(midX, ceilY, 48, 30)) {
+                // Dropping stalactite from open ceiling
+                if (isSafeDistance(midX, ceilY, 22, 30)) {
                     addSynthTrap({
-                        type: 'ceiling_squish',
+                        type: 'dropping_spike',
                         x: midX,
                         y: ceilY,
-                        w: 48,
-                        h: 26,
-                        dropDistance: Math.max(25, corr.h - 22),
-                        dropSpeed: 2.2 + diffMult * 0.2,
-                        triggerRange: 52,
+                        w: 22,
+                        h: 22,
+                        groundY: floorY,
+                        triggerRange: 48,
                         zone: 'mid',
-                        purpose: 'living_ceiling'
+                        purpose: 'arch_dropping_spike'
                     });
                 }
 
-                const shelfX = Math.round(corr.x + corr.w * 0.25);
-                if (isSafeDistance(shelfX, floorY, 44, 25)) {
+                // Falling stepping platform or bait coin in corridor
+                const platX = Math.round(corr.x + corr.w * 0.25);
+                if (isSafeDistance(platX, floorY, 55, 25)) {
                     addSynthTrap({
-                        type: 'shifting_block',
-                        x: shelfX,
-                        y: floorY - 18,
-                        w: 44,
-                        h: 18,
-                        shiftAxis: 'y',
-                        shiftDistance: -32,
-                        shiftSpeed: 2.2,
-                        triggerRange: 50,
+                        type: 'falling_platform',
+                        x: platX,
+                        y: floorY,
+                        w: 55,
+                        h: 14,
+                        dropSpeed: 2.2,
                         zone: 'mid',
-                        purpose: 'living_floor_shift'
+                        purpose: 'arch_falling_platform'
+                    });
+                } else if (isSafeDistance(platX + 30, floorY - 35, 20, 20)) {
+                    addSynthTrap({
+                        type: 'coin_trap',
+                        x: platX + 30,
+                        y: floorY - 35,
+                        r: 8,
+                        zone: 'mid',
+                        purpose: 'arch_bait_coin'
                     });
                 }
             }
@@ -508,18 +472,16 @@ class DevilAI {
         if (profile === "RUSHER") {
             const rushX = spawn.x + Math.round((door.x - spawn.x) * 0.4);
             const rushY = spawn.y;
-            if (isSafeDistance(rushX, rushY, 32, 25)) {
+            if (isSafeDistance(rushX, rushY, 26, 25)) {
                 addSynthTrap({
-                    type: 'pop_up_wall',
+                    type: 'hidden_spike',
                     x: rushX,
                     y: rushY,
-                    w: 30,
-                    h: 32,
-                    riseHeight: 36,
-                    riseSpeed: 2.8,
-                    triggerRange: 60,
+                    w: 26,
+                    h: 16,
+                    triggerRange: 38,
                     zone: 'mid',
-                    purpose: 'rush_counter_wall'
+                    purpose: 'rush_counter_spike'
                 });
             }
             const boulderX = Math.min(bounds.width - 160, door.x - 60);
@@ -696,23 +658,23 @@ class DevilAI {
             const efficacy = this.trapEfficacy[slot.type] || 1.0;
 
             if (this.currentProfile === "RUSHER") {
-                if (slot.type === 'pop_up_wall' || slot.type === 'ceiling_squish') affinity += 2.4;
-                else if (slot.type === 'collapsing_floor' || slot.type === 'piston_crusher') affinity += 1.8;
-                else if (slot.type === 'spinning_saw' || slot.type === 'rolling_ball') affinity += 1.2;
+                if (slot.type === 'reversed_controls' || slot.type === 'collapsing_floor') affinity += 2.4;
+                else if (slot.type === 'rolling_ball' || slot.type === 'piston_crusher') affinity += 1.8;
+                else if (slot.type === 'spinning_saw' || slot.type === 'hidden_spike') affinity += 1.4;
             } else if (this.currentProfile === "CAUTIOUS") {
-                if (slot.type === 'wall_ejector' || slot.type === 'rolling_ball') affinity += 2.4;
-                else if (slot.type === 'shifting_block' || slot.type === 'piston_crusher') affinity += 1.6;
-                else if (slot.type === 'hidden_spike') affinity += 1.2;
+                if (slot.type === 'falling_platform' || slot.type === 'rolling_ball') affinity += 2.4;
+                else if (slot.type === 'coin_trap' || slot.type === 'piston_crusher') affinity += 1.8;
+                else if (slot.type === 'hidden_spike') affinity += 1.4;
             } else if (this.currentProfile === "HOPPER") {
-                if (slot.type === 'pop_up_wall' || slot.type === 'shifting_block') affinity += 2.5;
-                else if (slot.type === 'dropping_spike') affinity += 2.2;
-                else if (slot.type === 'spinning_saw') affinity += 1.4;
+                if (slot.type === 'dropping_spike' || slot.type === 'falling_platform') affinity += 2.5;
+                else if (slot.type === 'spinning_saw') affinity += 1.8;
+                else if (slot.type === 'hidden_spike') affinity += 1.4;
             } else if (this.currentProfile === "CHAOTIC") {
-                if (slot.type === 'troll_portal' || slot.type === 'wall_ejector') affinity += 2.4;
+                if (slot.type === 'troll_portal' || slot.type === 'reversed_controls') affinity += 2.4;
                 else if (slot.type === 'sliding_door' || slot.type === 'spring_pad') affinity += 2.0;
             } else if (this.currentProfile === "METHODICAL") {
-                if (slot.type === 'ceiling_squish' || slot.type === 'pop_up_wall') affinity += 2.2;
-                else if (slot.type === 'shifting_block' || slot.type === 'collapsing_floor') affinity += 1.6;
+                if (slot.type === 'reversed_controls' || slot.type === 'collapsing_floor') affinity += 2.2;
+                else if (slot.type === 'falling_platform' || slot.type === 'coin_trap') affinity += 1.8;
             }
 
             // Zone distribution weighting (encourage entry ambush and exit troll traps)
@@ -865,18 +827,6 @@ class DevilAI {
             (s.x + s.w) >= door.x + (door.w || 32) - 10
         );
         if (!doorSupported) return false;
-
-        // 2. Validate headroom across active traps (min crawl height 18px, max vault height 48px)
-        for (const trap of activeTraps) {
-            if (trap.type === 'ceiling_squish') {
-                const floorY = trap.floorY || (trap.y + 115);
-                const clearance = floorY - (trap.y + (trap.dropH || 38));
-                if (clearance < 18) return false; // Must leave crawl space!
-            }
-            if (trap.type === 'pop_up_wall') {
-                if (trap.h > 48) return false; // Must be jumpable!
-            }
-        }
 
         return true;
     }
@@ -1103,16 +1053,7 @@ class DevilAI {
             }
         }
 
-        // 5. Living Block Vertical Sandwich Prevention (Pop-Up Wall + Ceiling Squish)
-        for (const act of deployedList) {
-            if (isSameCombo(slot, act)) continue;
-            if ((slot.type === 'pop_up_wall' && act.type === 'ceiling_squish') ||
-                (slot.type === 'ceiling_squish' && act.type === 'pop_up_wall')) {
-                if (Math.abs(slot.x - act.x) < 50) return false;
-            }
-        }
-
-        // 6. Standard minimum physical distance separation
+        // 5. Standard minimum physical distance separation
         const slotY = slot.y || slot.groundY || 345;
         const slotStart = slot.x;
         const slotEnd = slot.x + (slot.w || 32);
@@ -1128,8 +1069,6 @@ class DevilAI {
                 minGap = 35;
             } else if (act.type === 'spring_pad' || slot.type === 'spring_pad') {
                 minGap = 16;
-            } else if (act.type === 'pop_up_wall' || slot.type === 'pop_up_wall') {
-                minGap = 20;
             }
             if (!(slotEnd <= actStart - minGap || slotStart >= actEnd + minGap)) {
                 return false;

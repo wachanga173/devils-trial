@@ -32,6 +32,9 @@ class Game {
             jump: false,
             jumpPressed: false
         };
+        this.reversedControls = false;
+        this.reversedTimer = 0;
+        window.gameInstance = this;
 
         this.particles = [];
 
@@ -1217,6 +1220,8 @@ class Game {
         this.player.height = 24;
         this.player.coyoteTimer = 0;
         this.player.jumpBufferTimer = 0;
+        this.reversedControls = false;
+        this.reversedTimer = 0;
         this.gameState = 'playing';
 
         // 1. Setup / Shuffle traps adapted by AI model
@@ -1385,19 +1390,37 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            // Physics with dynamic solids
-            this.physics.update(
-                this.player,
-                this.input,
-                this.currentSolids,
-                this.trapManager.traps,
-                this.currentLevel.bounds
-            );
-
             // Traps update
             this.trapManager.update(this.player, this, (trap) => {
                 this.shake(5, 2.5);
             });
+
+            // Handle reversed controls zone
+            let effectiveInput = this.input;
+            if (this.reversedTimer > 0) {
+                this.reversedTimer--;
+                if (this.reversedTimer <= 0) {
+                    this.reversedControls = false;
+                }
+            }
+            if (this.reversedControls) {
+                effectiveInput = {
+                    left: this.input.right,
+                    right: this.input.left,
+                    down: this.input.down,
+                    jump: this.input.jump,
+                    jumpPressed: this.input.jumpPressed
+                };
+            }
+
+            // Physics with dynamic solids
+            this.physics.update(
+                this.player,
+                effectiveInput,
+                this.currentSolids,
+                this.trapManager.traps,
+                this.currentLevel.bounds
+            );
 
             // Update Adaptive Door (reacts to player velocity/jump/hesitation!)
             if (this.door) {
@@ -1654,6 +1677,16 @@ class Game {
         }
 
         ctx.restore(); // Restore camera transform to draw HUD / overlays in screen space!
+
+        // 7b. Inverted Controls Indicator (in screen space)
+        if (this.reversedControls) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(239, 83, 80, 0.9)';
+            ctx.font = 'bold 13px "Courier New", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('⚠️ CONTROLS INVERTED ⚠️', screenW / 2, 28);
+            ctx.restore();
+        }
 
         // 8. Level Complete Banner (Centered in screen space!)
         if (this.gameState === 'level_complete') {
