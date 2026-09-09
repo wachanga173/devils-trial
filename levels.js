@@ -289,11 +289,13 @@ const LEVELS = [
             { x: 580, y: 155, w: 180, h: 110 }  // Exit ledge floor (floor at 155)
         ],
 
-        door: { x: 690, y: 109, w: 32, h: 46, open: true, shiftsMax: 2, shiftDirection: -1, shiftDistance: 70 },
+        door: { x: 690, y: 109, w: 32, h: 46, open: true, shiftsMax: 2, shiftDirection: -1, shiftDistance: 45 },
 
         staticTraps: [
             // Moving elevator ferry up to mid ledge
             { type: 'moving_platform', x: 380, y: 320, w: 60, h: 14, minX: 350, maxX: 430, speed: 2.0, isOneWay: true },
+            // Moving platform ferry across top summit gap (guaranteed crossing)
+            { type: 'moving_platform', x: 440, y: 155, w: 60, h: 14, minX: 410, maxX: 560, speed: 2.5, isOneWay: true },
             // Troll portal chute near mid tier: teleports back to entry!
             { type: 'troll_portal', x: 480, y: 265, w: 55, h: 75, exitX: 135, exitY: 340, exitVy: 2.0 },
             // Static spikes on summit
@@ -301,8 +303,6 @@ const LEVELS = [
         ],
 
         candidateTrapSlots: [
-            // Moving platform ferry across top summit gap
-            { type: 'moving_platform', x: 440, y: 155, w: 60, h: 14, minX: 410, maxX: 560, speed: 2.5, isOneWay: true },
             // Dropping stalactite on summit
             { type: 'dropping_spike', x: 310, y: 50, w: 22, h: 22, groundY: 155, triggerRange: 40 },
             // Rolling boulder on summit

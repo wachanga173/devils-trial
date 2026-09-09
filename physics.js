@@ -152,7 +152,7 @@ class Physics {
         // --- Y AXIS COLLISION ---
         player.onGround = false;
         player.y += player.vy;
-        this.resolveYCollisions(player, activeSolids);
+        this.resolveYCollisions(player, activeSolids, bounds);
 
         // Fall off the world check (triggered while still in visible viewport for on-screen splat!)
         if (bounds && player.y > bounds.height - 5) {
@@ -183,25 +183,31 @@ class Physics {
 
         for (const s of solids) {
             if (s.passthrough || s.isOneWay || s.isWallOnly) continue;
-            // Snag prevention: only collide horizontally if penetrating at least 3px into the vertical wall face.
-            // Walking on top of adjacent floor blocks will never snag or register as a wall collision!
+            // Snag prevention: only collide horizontally if penetrating into the vertical wall face
+            // and within vertical corridor bounds of the wall
             if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y + 3 && pTop < s.y + s.h - 1) {
-                if (player.vx > 0) {
+                const overlapLeft = pRight - s.x; // penetration into block's left face
+                const overlapRight = (s.x + s.w) - pLeft; // penetration through block's right face
+
+                if (overlapLeft < overlapRight) {
+                    // Player is colliding with block's LEFT face
                     player.x = s.x - player.width / 2;
-                    player.vx = 0;
-                } else if (player.vx < 0) {
+                    if (player.vx > 0) player.vx = 0;
+                } else {
+                    // Player is colliding with block's RIGHT face
                     player.x = s.x + s.w + player.width / 2;
-                    player.vx = 0;
+                    if (player.vx < 0) player.vx = 0;
                 }
             }
         }
     }
 
-    resolveYCollisions(player, solids) {
+    resolveYCollisions(player, solids, bounds) {
         const pLeft = player.x - player.width / 2 + 1.5;
         const pRight = player.x + player.width / 2 - 1.5;
         const pTop = player.y - player.height;
         const pBottom = player.y;
+        const boundsH = bounds ? bounds.height : 480;
 
         for (const s of solids) {
             // isWallOnly blocks (like vertical slam crushers) DO NOT push or snap player Y!
@@ -228,22 +234,24 @@ class Physics {
             }
 
             if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y && pTop < s.y + s.h) {
-                // Ceilings anchored at y: 0 are NEVER floors; always push down into corridor!
-                if (s.y === 0) {
+                const isWorldBottom = (s.y + s.h >= boundsH - 10);
+
+                // Ceilings anchored at y: 0 with open corridor below:
+                if (s.y === 0 && !isWorldBottom) {
                     player.y = s.y + s.h + player.height;
                     player.vy = Math.max(0, player.vy);
                     continue;
                 }
 
-                if (player.vy >= 0) {
-                    const prevBottom = player.y - player.vy;
-                    const topOverlap = player.y - s.y;
-                    const bottomOverlap = (s.y + s.h) - (player.y - player.height);
+                const prevBottom = player.y - player.vy;
+                const prevTop = prevBottom - player.height;
+                const topOverlap = player.y - s.y;
+                const bottomOverlap = (s.y + s.h) - (player.y - player.height);
 
+                if (player.vy >= 0) {
                     // Landing on top of solid floor:
-                    // Player arrived from above, or penetration is closer to top surface than bottom.
-                    // Snaps player.y exactly to s.y so player is firmly grounded with ZERO floating pixels!
-                    if (prevBottom <= s.y + Math.max(16, player.vy + 4) || topOverlap <= bottomOverlap) {
+                    // Player arrived from above, or penetration is closer to top surface than bottom, or block reaches world bottom
+                    if (prevBottom <= s.y + Math.max(16, player.vy + 4) || topOverlap <= bottomOverlap || isWorldBottom) {
                         player.y = s.y;
                         player.vy = 0;
                         player.onGround = true;
@@ -254,9 +262,11 @@ class Physics {
                         player.vy = 0;
                     }
                 } else if (player.vy < 0) {
-                    // Hitting solid ceiling from below: push down
-                    player.y = s.y + s.h + player.height;
-                    player.vy = 0;
+                    // Moving upward: only push down if block is an actual hanging ceiling with an exposed underside
+                    if (!isWorldBottom && prevTop >= s.y + s.h - 6) {
+                        player.y = s.y + s.h + player.height;
+                        player.vy = 0;
+                    }
                 }
             }
         }
