@@ -3,11 +3,14 @@ class Physics {
     constructor() {
         this.gravity = 0.42;
         this.maxFallSpeed = 9.8;
-        this.runSpeed = 3.6;
+        this.runSpeed = 3.8;
+        this.leapSpeed = 4.4; // Enhanced forward leap velocity for clearing group spikes & boulders
         this.crawlSpeed = 2.2;
-        this.accel = 0.85;
+        this.accel = 0.90;
+        this.airAccel = 0.92;
         this.friction = 0.72;
-        this.jumpForce = -7.5; // Tuned so player never hits the ceiling when jumping!
+        this.airFriction = 0.95;
+        this.jumpForce = -7.8; // Tuned for crisp leap clearance while remaining safely within corridor ceiling bounds!
 
         this.standWidth = 12;
         this.standHeight = 24;
@@ -61,14 +64,23 @@ class Physics {
         if (input.right) moveDir += 1;
 
         if (moveDir !== 0) {
-            player.vx += moveDir * this.accel;
+            const currentAccel = player.onGround ? this.accel : this.airAccel;
+            player.vx += moveDir * currentAccel;
             player.facing = moveDir;
         } else {
-            player.vx *= this.friction;
+            const currentFriction = player.onGround ? this.friction : this.airFriction;
+            player.vx *= currentFriction;
             if (Math.abs(player.vx) < 0.05) player.vx = 0;
         }
 
-        const maxSpeed = player.isCrawling ? this.crawlSpeed : this.runSpeed;
+        let maxSpeed;
+        if (player.isCrawling) {
+            maxSpeed = this.crawlSpeed;
+        } else if (!player.onGround) {
+            maxSpeed = this.leapSpeed;
+        } else {
+            maxSpeed = this.runSpeed;
+        }
         player.vx = Math.max(-maxSpeed, Math.min(maxSpeed, player.vx));
 
         // --- JUMP LOGIC (Variable height, coyote time, buffer) ---
@@ -102,6 +114,14 @@ class Physics {
                 player.coyoteTimer = 0;
                 player.jumpBufferTimer = 0;
                 player.isJumping = true;
+
+                // Dynamic forward leap momentum: when jumping while holding a direction,
+                // immediately impart forward leap velocity so jumps from standstill or walk carry full leap momentum!
+                if (moveDir !== 0) {
+                    player.vx = moveDir * Math.max(Math.abs(player.vx), this.leapSpeed);
+                    player.facing = moveDir;
+                }
+
                 if (window.soundFX) window.soundFX.playJump();
             }
         }

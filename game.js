@@ -1167,6 +1167,7 @@ class Game {
         this.player.alive = true;
         this.player.onGround = true;
         this.player.isCrawling = false;
+        this.player.isJumping = false;
         this.player.width = 12;
         this.player.height = 24;
         this.player.coyoteTimer = 0;
@@ -1241,6 +1242,7 @@ class Game {
             } else if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
                 if (!this.input.jump) {
                     this.input.jumpPressed = true;
+                    this.input.jump = true;
                 }
             } else if (e.code === 'Escape') {
                 const legalOverlay = document.getElementById('legalOverlay');

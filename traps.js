@@ -822,6 +822,10 @@ class RollingBallTrap {
                 y: this.groundY - this.radius * 2 + 3,
                 w: (this.radius - 3) * 2,
                 h: (this.radius - 3) * 2,
+                isRadial: true,
+                cx: this.x,
+                cy: this.groundY - this.radius,
+                r: this.radius - 2.5,
                 trapType: 'rolling_ball'
             };
         }
@@ -1499,7 +1503,7 @@ class SpringPadTrap {
             if (landsOn && player.vy >= 0) {
                 player.vy = this.boostVy;
                 player.onGround = false;
-                player.isJumping = true;
+                player.isJumping = false; // Preserves full spring bounce momentum regardless of jump key state
                 this.compressTimer = 14;
                 if (window.soundFX && window.soundFX.playSpringBoing) {
                     window.soundFX.playSpringBoing();
