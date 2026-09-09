@@ -176,7 +176,62 @@ class AILevelGenerator {
             }
         }
 
+        // Universal Surface Snap Pass: guarantees 100% of static and candidate traps sit flush on surfaces (0 inside blocks)
+        const allTraps = [...(level.staticTraps || []), ...(level.candidateTrapSlots || [])];
+        for (const t of allTraps) {
+            const tx = t.x + (t.w || 26) / 2;
+            const surf = this.getSurfaceAt(level, tx, t.y);
+            if (['hidden_spike', 'static_spike', 'collapsing_floor', 'spring_pad', 'falling_platform'].includes(t.type)) {
+                t.y = surf.floorY;
+            } else if (t.type === 'coin_trap') {
+                t.y = surf.floorY - 35;
+            } else if (t.type === 'dropping_spike') {
+                t.y = surf.ceilY;
+                t.groundY = surf.floorY;
+            } else if (t.type === 'rolling_ball') {
+                t.y = surf.floorY;
+                t.groundY = surf.floorY;
+            } else if (t.type === 'piston_crusher') {
+                t.startY = surf.ceilY - 25;
+                t.targetY = surf.ceilY + 15;
+            } else if (t.type === 'reversed_controls') {
+                t.y = surf.floorY - (t.h || 32);
+            }
+        }
+
         return level;
+    }
+
+    /**
+     * Canonical Surface Finder helper on AILevelGenerator instance
+     */
+    getSurfaceAt(level, x, preferredY = null) {
+        if (!level) return { floorY: 345, ceilY: 220, headroom: 125 };
+        const corridors = (level.pathwayCorridors || []).filter(c => x >= c.x - 2 && x <= c.x + c.w + 2);
+        if (corridors.length > 0) {
+            let best = corridors[0];
+            if (corridors.length > 1 && preferredY !== null && preferredY !== undefined) {
+                let minDiff = Infinity;
+                for (const c of corridors) {
+                    const mid = c.y + c.h / 2;
+                    const diff = Math.abs(mid - preferredY);
+                    if (diff < minDiff) { minDiff = diff; best = c; }
+                }
+            }
+            let ceilY = best.y;
+            let floorY = best.y + best.h;
+            if (level.solids) {
+                const floorSolids = level.solids.filter(s => 
+                    x >= s.x - 1 && x <= s.x + s.w + 1 && s.y >= ceilY && Math.abs(s.y - floorY) <= 35
+                );
+                if (floorSolids.length > 0) {
+                    floorSolids.sort((a, b) => a.y - b.y);
+                    floorY = floorSolids[0].y;
+                }
+            }
+            return { floorY, ceilY, headroom: floorY - ceilY };
+        }
+        return { floorY: 345, ceilY: 220, headroom: 125 };
     }
 
     /**
@@ -188,14 +243,8 @@ class AILevelGenerator {
         if (levelNumber < 6) return; // Combos start at level 6
 
         const slots = level.candidateTrapSlots;
-        const statics = level.staticTraps || [];
         const bounds = level.bounds;
         const comboId = 'combo_' + levelNumber + '_' + rngInt(1000, 9999);
-
-        // Find floor Y from existing traps or statics
-        let floorY = 340;
-        for (const s of slots) { if (s.y && s.zone === 'mid') { floorY = s.y; break; } }
-        let ceilY = Math.max(30, floorY - 115);
 
         // Pick a combo archetype suited for this level
         const archetypes = [
@@ -209,6 +258,9 @@ class AILevelGenerator {
         const chosen = rngChoice(archetypes);
         const midSlots = slots.filter(s => s.zone === 'mid');
         const baseX = midSlots.length > 0 ? midSlots[Math.floor(midSlots.length / 2)].x : Math.round(bounds.width * 0.45);
+        const baseSurf = this.getSurfaceAt(level, baseX);
+        const floorY = baseSurf.floorY;
+        const ceilY = baseSurf.ceilY;
         const cid = comboId;
 
         switch (chosen) {

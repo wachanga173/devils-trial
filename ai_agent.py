@@ -205,6 +205,24 @@ class DevilPythonAI:
         if not level_data:
             return []
 
+        def get_surface_at(lvl, x, preferred_y=None):
+            if not lvl:
+                return {'floorY': 345, 'ceilY': 220, 'headroom': 125}
+            corridors = [c for c in lvl.get('pathwayCorridors', []) if c.get('x', 0) - 2 <= x <= c.get('x', 0) + c.get('w', 0) + 2]
+            if corridors:
+                best = corridors[0]
+                if len(corridors) > 1 and preferred_y is not None:
+                    best = min(corridors, key=lambda c: abs(c.get('y', 0) + c.get('h', 0) / 2 - preferred_y))
+                ceil_y = best.get('y', 220)
+                floor_y = ceil_y + best.get('h', 125)
+                solids = lvl.get('solids', [])
+                floor_solids = [s for s in solids if s.get('x', 0) - 1 <= x <= s.get('x', 0) + s.get('w', 0) + 1 and s.get('y', 0) >= ceil_y and abs(s.get('y', 0) - floor_y) <= 35]
+                if floor_solids:
+                    floor_solids.sort(key=lambda s: s.get('y', 0))
+                    floor_y = floor_solids[0].get('y', 0)
+                return {'floorY': floor_y, 'ceilY': ceil_y, 'headroom': floor_y - ceil_y}
+            return {'floorY': 345, 'ceilY': 220, 'headroom': 125}
+
         synth_traps = []
         spawn = level_data.get('spawn', {'x': 80, 'y': 345})
         door = level_data.get('door', {'x': 750, 'y': 340, 'w': 34, 'h': 46})
@@ -266,14 +284,18 @@ class DevilPythonAI:
         # 1. DOOR DEFENSE PERIMETER — Authentic Level Devil hazards around door approach
         door_x = door.get('x', 750)
         door_floor_y = door.get('y', 340) + door.get('h', 46)
-        door_pre_step_x = door_x - 70
+        sp_x = spawn.get('x', 80)
+        sp_y = spawn.get('y', 345)
+
+        door_pre_step_x = max(95, door_x - 70) if door_x > sp_x else min(bounds['width'] - 95, door_x + 70)
 
         # A1: Door Step Threshold Trap: Vanishing floor right before the door!
-        if is_safe_distance(door_pre_step_x, door_floor_y, 48, 20):
+        surf_pre = get_surface_at(level_data, door_pre_step_x, door_floor_y)
+        if is_safe_distance(door_pre_step_x, surf_pre['floorY'], 48, 20):
             add_synth_trap({
                 'type': 'collapsing_floor',
                 'x': door_pre_step_x,
-                'y': door_floor_y,
+                'y': surf_pre['floorY'],
                 'w': 48,
                 'h': 35,
                 'dropSpeed': round(2.4 + diff_mult * 0.15, 2),
@@ -282,40 +304,40 @@ class DevilPythonAI:
             })
 
         # A2: Door Ceiling Ambush (Dropping spike above door approach)
-        door_ceil_y = max(30, door_floor_y - 115)
-        door_ambush_x = door_x - 110
-        if is_safe_distance(door_ambush_x, door_ceil_y, 26, 25):
+        door_ambush_x = max(95, door_x - 110) if door_x > sp_x else min(bounds['width'] - 95, door_x + 110)
+        surf_ambush = get_surface_at(level_data, door_ambush_x, door_floor_y)
+        if is_safe_distance(door_ambush_x, surf_ambush['ceilY'], 22, 25):
             add_synth_trap({
                 'type': 'dropping_spike',
                 'x': door_ambush_x,
-                'y': door_ceil_y,
+                'y': surf_ambush['ceilY'],
                 'w': 22,
                 'h': 22,
-                'groundY': door_floor_y,
+                'groundY': surf_ambush['floorY'],
                 'triggerRange': 55,
                 'zone': 'exit',
                 'purpose': 'door_anti_air'
             })
 
-        # A3: Inverted Controls Zone on Approach (Levels 6+)
-        if level_id >= 6 and is_safe_distance(door_x - 160, door_floor_y - 90, 110, 30):
+        # A3: Inverted Controls Sigil on Approach (Levels 6+)
+        door_invert_x = max(95, door_x - 140) if door_x > sp_x else min(bounds['width'] - 95, door_x + 140)
+        surf_invert = get_surface_at(level_data, door_invert_x, door_floor_y)
+        if level_id >= 6 and is_safe_distance(door_invert_x, surf_invert['floorY'] - 30, 50, 25):
             add_synth_trap({
                 'type': 'reversed_controls',
-                'x': door_x - 160,
-                'y': door_floor_y - 90,
-                'w': 110,
-                'h': 90,
+                'x': door_invert_x,
+                'y': surf_invert['floorY'] - 30,
+                'w': 50,
+                'h': 30,
                 'zone': 'exit',
                 'purpose': 'door_inverted_approach'
             })
-        elif level_id >= 8 and is_safe_distance(door_x - 150, door_floor_y, 45, 30):
+        elif level_id >= 8 and is_safe_distance(door_invert_x, surf_invert['floorY'], 45, 30):
             # A4: Troll Loop Portal (Levels 8+)
-            sp_x = spawn.get('x', 80)
-            sp_y = spawn.get('y', 345)
             add_synth_trap({
                 'type': 'troll_portal',
-                'x': door_x - 150,
-                'y': door_floor_y,
+                'x': door_invert_x,
+                'y': surf_invert['floorY'],
                 'w': 45,
                 'h': 65,
                 'exitX': max(160, sp_x + 140),
@@ -326,27 +348,24 @@ class DevilPythonAI:
             })
 
         # 2. ARCHITECTURAL LEVEL DEVIL HAZARDS — Natural traps built into level geography
-        sp_x = spawn.get('x', 80)
-        sp_y = spawn.get('y', 345)
         for corr in corridors:
             c_w = corr.get('w', 0)
             c_h = corr.get('h', 0)
             c_x = corr.get('x', 0)
             c_y = corr.get('y', 0)
-            if c_w >= 140 and (c_x > sp_x + 50) and (c_x + c_w < door_x + 50):
-                ceil_y = c_y
-                floor_y = c_y + c_h
+            if c_w >= 120 and (c_x > sp_x + 40) and (c_x + c_w < door_x + 40):
                 mid_x = int(round(c_x + c_w * 0.5))
+                surf_mid = get_surface_at(level_data, mid_x, c_y + c_h / 2)
 
                 # Dropping stalactite from open ceiling
-                if is_safe_distance(mid_x, ceil_y, 22, 30):
+                if 95 <= mid_x <= bounds['width'] - 95 and is_safe_distance(mid_x, surf_mid['ceilY'], 22, 25):
                     add_synth_trap({
                         'type': 'dropping_spike',
                         'x': mid_x,
-                        'y': ceil_y,
+                        'y': surf_mid['ceilY'],
                         'w': 22,
                         'h': 22,
-                        'groundY': floor_y,
+                        'groundY': surf_mid['floorY'],
                         'triggerRange': 48,
                         'zone': 'mid',
                         'purpose': 'arch_dropping_spike'
@@ -354,22 +373,23 @@ class DevilPythonAI:
 
                 # Falling stepping platform or bait coin in corridor
                 plat_x = int(round(c_x + c_w * 0.25))
-                if is_safe_distance(plat_x, floor_y, 55, 25):
+                surf_plat = get_surface_at(level_data, plat_x, c_y + c_h / 2)
+                if 95 <= plat_x <= bounds['width'] - 95 and is_safe_distance(plat_x, surf_plat['floorY'], 55, 20):
                     add_synth_trap({
                         'type': 'falling_platform',
                         'x': plat_x,
-                        'y': floor_y,
+                        'y': surf_plat['floorY'],
                         'w': 55,
                         'h': 14,
                         'dropSpeed': 2.2,
                         'zone': 'mid',
                         'purpose': 'arch_falling_platform'
                     })
-                elif is_safe_distance(plat_x + 30, floor_y - 35, 20, 20):
+                elif 95 <= plat_x + 30 <= bounds['width'] - 95 and is_safe_distance(plat_x + 30, surf_plat['floorY'] - 35, 20, 20):
                     add_synth_trap({
                         'type': 'coin_trap',
                         'x': plat_x + 30,
-                        'y': floor_y - 35,
+                        'y': surf_plat['floorY'] - 35,
                         'r': 8,
                         'zone': 'mid',
                         'purpose': 'arch_bait_coin'
@@ -377,52 +397,55 @@ class DevilPythonAI:
 
         # 3. TELEMETRY COUNTER-LEAN TRAPS
         if profile == "RUSHER":
-            rush_x = sp_x + int(round((door_x - sp_x) * 0.4))
-            if is_safe_distance(rush_x, sp_y, 26, 25):
+            rush_x = max(95, min(bounds['width'] - 95, sp_x + int(round((door_x - sp_x) * 0.4))))
+            surf_rush = get_surface_at(level_data, rush_x, sp_y)
+            if is_safe_distance(rush_x, surf_rush['floorY'], 26, 25):
                 add_synth_trap({
                     'type': 'hidden_spike',
                     'x': rush_x,
-                    'y': sp_y,
+                    'y': surf_rush['floorY'],
                     'w': 26,
                     'h': 16,
                     'triggerRange': 38,
                     'zone': 'mid',
                     'purpose': 'rush_counter_spike'
                 })
-            boulder_x = min(bounds['width'] - 160, door_x - 60)
-            if is_safe_distance(boulder_x, sp_y, 34, 40):
+            boulder_x = max(95, min(bounds['width'] - 95, door_x - 60 if door_x > sp_x else door_x + 60))
+            surf_boulder = get_surface_at(level_data, boulder_x, door_floor_y)
+            if is_safe_distance(boulder_x, surf_boulder['floorY'], 34, 30):
                 add_synth_trap({
                     'type': 'rolling_ball',
                     'x': boulder_x,
-                    'y': sp_y,
-                    'groundY': sp_y,
+                    'y': surf_boulder['floorY'],
+                    'groundY': surf_boulder['floorY'],
                     'radius': 17,
-                    'vx': round(-4.6 - diff_mult * 0.35, 2),
+                    'vx': round((-4.6 if door_x > sp_x else 4.6) - diff_mult * 0.35, 2),
                     'triggerRange': 95,
                     'zone': 'mid',
                     'purpose': 'rush_counter_boulder'
                 })
         elif profile == "HOPPER":
-            jump_apex_x = sp_x + int(round((door_x - sp_x) * 0.35))
-            ceil_y = max(30, sp_y - 115)
-            if is_safe_distance(jump_apex_x, ceil_y, 22, 25):
+            jump_apex_x = max(95, min(bounds['width'] - 95, sp_x + int(round((door_x - sp_x) * 0.35))))
+            surf_apex = get_surface_at(level_data, jump_apex_x, sp_y)
+            if is_safe_distance(jump_apex_x, surf_apex['ceilY'], 22, 25):
                 add_synth_trap({
                     'type': 'dropping_spike',
                     'x': jump_apex_x,
-                    'y': ceil_y,
+                    'y': surf_apex['ceilY'],
                     'w': 22,
                     'h': 22,
-                    'groundY': sp_y,
+                    'groundY': surf_apex['floorY'],
                     'triggerRange': 48,
                     'zone': 'mid',
                     'purpose': 'hopper_anti_air'
                 })
-            landing_x = jump_apex_x + 55
-            if is_safe_distance(landing_x, sp_y, 26, 25):
+            landing_x = max(95, min(bounds['width'] - 95, jump_apex_x + 55))
+            surf_landing = get_surface_at(level_data, landing_x, sp_y)
+            if is_safe_distance(landing_x, surf_landing['floorY'], 26, 25):
                 add_synth_trap({
                     'type': 'hidden_spike',
                     'x': landing_x,
-                    'y': sp_y,
+                    'y': surf_landing['floorY'],
                     'w': 26,
                     'h': 16,
                     'triggerRange': 32,
@@ -430,14 +453,15 @@ class DevilPythonAI:
                     'purpose': 'hopper_landing_spike'
                 })
         elif profile in ("CAUTIOUS", "METHODICAL"):
-            chaser_x = (sp_x - 55) if sp_x >= 100 else (sp_x + 70)
-            chaser_vx = round(3.8 + diff_mult * 0.25, 2) if sp_x >= 100 else round(-3.8 - diff_mult * 0.25, 2)
-            if is_safe_distance(chaser_x, sp_y, 34, 30):
+            chaser_x = (sp_x - 55) if sp_x >= 150 else (sp_x + 85)
+            surf_chaser = get_surface_at(level_data, chaser_x, sp_y)
+            chaser_vx = round((3.8 + diff_mult * 0.25) if sp_x >= 150 else (-3.8 - diff_mult * 0.25), 2)
+            if is_safe_distance(chaser_x, surf_chaser['floorY'], 34, 30):
                 add_synth_trap({
                     'type': 'rolling_ball',
                     'x': chaser_x,
-                    'y': sp_y,
-                    'groundY': sp_y,
+                    'y': surf_chaser['floorY'],
+                    'groundY': surf_chaser['floorY'],
                     'radius': 16,
                     'vx': chaser_vx,
                     'triggerRange': 75,
@@ -445,12 +469,13 @@ class DevilPythonAI:
                     'purpose': 'camper_flusher_boulder'
                 })
         else: # CHAOTIC
-            spring_x = sp_x + int(round((door_x - sp_x) * 0.5))
-            if is_safe_distance(spring_x, sp_y, 32, 20):
+            spring_x = max(95, min(bounds['width'] - 95, sp_x + int(round((door_x - sp_x) * 0.5))))
+            surf_spring = get_surface_at(level_data, spring_x, sp_y)
+            if is_safe_distance(spring_x, surf_spring['floorY'], 32, 20):
                 add_synth_trap({
                     'type': 'spring_pad',
                     'x': spring_x,
-                    'y': sp_y,
+                    'y': surf_spring['floorY'],
                     'w': 32,
                     'h': 10,
                     'boostVy': -9.2,
@@ -463,18 +488,17 @@ class DevilPythonAI:
         if deaths:
             last_death = deaths[-1]
             ld_x = last_death.get('x')
-            ld_y = last_death.get('y', sp_y)
             if ld_x is not None:
-                counter_x = int(round(ld_x + 45))
-                ceil_y = max(30, ld_y - 115)
-                if is_safe_distance(counter_x, ceil_y, 22, 25):
+                counter_x = max(95, min(bounds['width'] - 95, int(round(ld_x + 45))))
+                surf_death = get_surface_at(level_data, counter_x)
+                if is_safe_distance(counter_x, surf_death['ceilY'], 22, 25):
                     add_synth_trap({
                         'type': 'dropping_spike',
                         'x': counter_x,
-                        'y': ceil_y,
+                        'y': surf_death['ceilY'],
                         'w': 22,
                         'h': 22,
-                        'groundY': ld_y,
+                        'groundY': surf_death['floorY'],
                         'triggerRange': 45,
                         'zone': 'mid',
                         'purpose': 'death_counter_trap'
@@ -502,6 +526,7 @@ class DevilPythonAI:
 
         classification = self.classify(telemetry or {})
         profile = classification['profile']
+        bounds = level_data.get('bounds', {'width': 950}) if level_data else {'width': 950}
 
         # Progressive Difficulty Multiplier D(L) — unbounded logarithmic growth
         if level_id <= 1:
@@ -515,21 +540,15 @@ class DevilPythonAI:
         else:
             diff_mult = round(1.55 + math.log2(max(1, level_id - 3)) * 0.65, 2)
 
-        # Aggressive Progressive Trap Budget: scales from 2 to 10 active traps
+        # Dense Progressive Trap Budget: scales up to empower AI across the entire level architecture
         if level_id <= 2:
             max_traps = 2
         elif level_id <= 4:
             max_traps = 3
-        elif level_id <= 6:
-            max_traps = 4
-        elif level_id <= 9:
-            max_traps = 5
-        elif level_id <= 12:
-            max_traps = 6
-        elif level_id <= 16:
-            max_traps = 7
         else:
-            max_traps = min(10, 7 + (level_id - 16) // 4)
+            lvl_w = bounds.get('width', 950)
+            length_bonus = (lvl_w - 800) // 110
+            max_traps = max(7, min(15, 6 + int((level_id - 4) * 0.75) + length_bonus))
 
         active_traps = list(static_traps or [])
 
@@ -677,9 +696,13 @@ class DevilPythonAI:
         if not slot or not active_list:
             return True
 
+        s_x = slot.get('x', 0)
+        # Never allow traps to spawn inside left perimeter wall or outside playable bounds
+        if s_x < 85:
+            return False
+
         s_type = slot.get('type')
         s_y = slot.get('groundY', slot.get('y', 345))
-        s_x = slot.get('x', 0)
         s_w = slot.get('w', 32)
 
         for act in active_list:
@@ -696,16 +719,16 @@ class DevilPythonAI:
             if s_type == 'rolling_ball' and a_type == 'rolling_ball' and same_elevation:
                 return False
 
-            # Boulder + low sawblade on same floor within rolling runway is impossible
+            # Boulder + sawblade clearance
             if ((s_type == 'rolling_ball' and a_type in ('spinning_saw', 'razor')) or
                 (a_type == 'rolling_ball' and s_type in ('spinning_saw', 'razor'))) and same_elevation:
-                if abs(s_x - a_x) < 220:
+                if abs(s_x - a_x) < 80:
                     return False
 
             # Minimum physical gap between traps on the same elevation
             if same_elevation:
                 gap = (s_x - (a_x + a_w)) if s_x >= a_x else (a_x - (s_x + s_w))
-                min_gap = 35 if (s_type == 'static_spike' or a_type == 'static_spike') else 20
+                min_gap = 25 if (s_type == 'static_spike' or a_type == 'static_spike') else 16
                 if gap < min_gap:
                     return False
 

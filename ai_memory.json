@@ -48,7 +48,7 @@
     "troll_portal": 1.0,
     "sliding_door": 1.0
   },
-  "learning_epochs": 6,
+  "learning_epochs": 8,
   "player_skill": 1.0,
   "creativity_level": 1.0,
   "total_deaths_recorded": 1

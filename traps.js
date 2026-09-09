@@ -1,4 +1,58 @@
 // traps.js - Seamless Devil's Trial Traps: Adaptive Shifting Door, Natural Crushers, Rolling Boulders, Emerging Spikes
+
+/**
+ * Canonical Surface Finder: computes the exact pixel-perfect floor and ceiling surface
+ * at any coordinate x across all 8 architectural topologies (steps, tiers, islands, high roads).
+ */
+function getSurfaceAt(level, x, preferredY = null) {
+    if (!level) return { floorY: 345, ceilY: 220, headroom: 125 };
+
+    const corridors = (level.pathwayCorridors || []).filter(c => x >= c.x - 2 && x <= c.x + c.w + 2);
+    if (corridors.length > 0) {
+        let best = corridors[0];
+        if (corridors.length > 1 && preferredY !== null) {
+            let minDiff = Infinity;
+            for (const c of corridors) {
+                const mid = c.y + c.h / 2;
+                const diff = Math.abs(mid - preferredY);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    best = c;
+                }
+            }
+        }
+        let ceilY = best.y;
+        let floorY = best.y + best.h;
+
+        // Check if there is a solid block defining the floor surface under this corridor
+        if (level.solids) {
+            const floorSolids = level.solids.filter(s => 
+                x >= s.x - 1 && x <= s.x + s.w + 1 && s.y >= ceilY && Math.abs(s.y - floorY) <= 35
+            );
+            if (floorSolids.length > 0) {
+                floorSolids.sort((a, b) => a.y - b.y);
+                floorY = floorSolids[0].y;
+            }
+        }
+        return { floorY, ceilY, headroom: floorY - ceilY };
+    }
+
+    if (level.solids) {
+        const matchingSolids = level.solids.filter(s => x >= s.x && x <= s.x + s.w);
+        if (matchingSolids.length > 0) {
+            matchingSolids.sort((a, b) => a.y - b.y);
+            const topSolid = matchingSolids[0];
+            const floorY = topSolid.y;
+            const ceilY = Math.max(30, floorY - 120);
+            return { floorY, ceilY, headroom: floorY - ceilY };
+        }
+    }
+
+    const fallbackFloor = (level.playerSpawn && level.playerSpawn.y) || 345;
+    return { floorY: fallbackFloor, ceilY: Math.max(30, fallbackFloor - 120), headroom: 120 };
+}
+if (typeof window !== 'undefined') window.getSurfaceAt = getSurfaceAt;
+
 class TrapManager {
     constructor() {
         this.traps = [];
@@ -40,7 +94,7 @@ class TrapManager {
                     if (!overlaps) {
                         this.createTrap(slot);
                         activeXSpans.push({ start: slotStart, end: slotEnd });
-                        if (activeXSpans.length >= 2) break;
+                        if (activeXSpans.length >= 8) break;
                     }
                 }
             } else {
@@ -54,49 +108,73 @@ class TrapManager {
     }
 
     createTrap(def) {
+        if (!def) return;
+        const d = { ...def };
+
+        // Surface alignment guarantee: clamp and snap coordinates so traps never spawn inside blocks
+        if (this.level && typeof getSurfaceAt === 'function') {
+            const centerX = d.x + (d.w || 26) / 2;
+            const surf = getSurfaceAt(this.level, centerX, d.y);
+            if (['hidden_spike', 'static_spike', 'collapsing_floor', 'spring_pad'].includes(d.type)) {
+                d.y = surf.floorY;
+            } else if (d.type === 'coin_trap') {
+                d.y = surf.floorY - 35;
+            } else if (d.type === 'dropping_spike') {
+                d.y = surf.ceilY;
+                d.groundY = surf.floorY;
+            } else if (d.type === 'rolling_ball') {
+                d.y = surf.floorY;
+                d.groundY = surf.floorY;
+            } else if (d.type === 'piston_crusher') {
+                d.startY = surf.ceilY - 25;
+                d.targetY = surf.ceilY + 15;
+            } else if (d.type === 'reversed_controls') {
+                d.y = surf.floorY - (d.h || 35);
+            }
+        }
         let trap = null;
-        switch (def.type) {
+        switch (d.type) {
             case 'collapsing_floor':
-                trap = new VanishingFloorTrap(def);
+                trap = new VanishingFloorTrap(d);
                 break;
             case 'piston_crusher':
             case 'falling_block':
             case 'sliding_block':
-                trap = new PistonCrusherTrap(def);
+                trap = new PistonCrusherTrap(d);
                 break;
             case 'rolling_ball':
-                trap = new RollingBallTrap(def);
+                trap = new RollingBallTrap(d);
                 break;
             case 'hidden_spike':
-                trap = new EmergingSpikeTrap(def);
+                trap = new EmergingSpikeTrap(d);
                 break;
             case 'dropping_spike':
-                trap = new DroppingCeilingSpikeTrap(def);
+                trap = new DroppingCeilingSpikeTrap(d);
                 break;
             case 'static_spike':
-                trap = new StaticSpikeTrap(def);
+                trap = new StaticSpikeTrap(d);
                 break;
             case 'troll_portal':
-                trap = new TrollPortalTrap(def);
+                trap = new TrollPortalTrap(d);
                 break;
             case 'spinning_saw':
             case 'razor':
-                trap = new SpinningSawbladeTrap(def);
+                trap = new SpinningSawbladeTrap(d);
                 break;
             case 'moving_platform':
-                trap = new MovingPlatformTrap(def);
+                trap = new MovingPlatformTrap(d);
                 break;
             case 'spring_pad':
-                trap = new SpringPadTrap(def);
+                trap = new SpringPadTrap(d);
                 break;
             case 'reversed_controls':
-                trap = new ReversedControlsTrap(def);
+                trap = new ReversedControlsTrap(d);
                 break;
             case 'falling_platform':
-                trap = new FallingPlatformTrap(def);
+                trap = new FallingPlatformTrap(d);
                 break;
             case 'coin_trap':
-                trap = new CoinBaitTrap(def);
+                trap = new CoinBaitTrap(d);
                 break;
         }
         if (trap) this.traps.push(trap);
@@ -1432,30 +1510,32 @@ class ReversedControlsTrap {
     constructor(def) {
         this.x = def.x;
         this.y = def.y;
-        this.w = def.w || 120;
-        this.h = def.h || 100;
+        this.w = def.w || 54;
+        this.h = def.h || 32;
         this.triggered = false;
+        this.pulse = 0;
     }
 
     update(player, particles, onTrigger) {
         if (!player) return;
+        this.pulse += 0.05;
+
         const pLeft = player.x - (player.width || 20) / 2;
         const pRight = player.x + (player.width || 20) / 2;
         const pBottom = player.y;
         const pTop = player.y - (player.height || 26);
 
+        // Broad foot-level trigger intersection
         const inZone = pRight > this.x && pLeft < this.x + this.w &&
-                       pBottom > this.y && pTop < this.y + this.h;
+                       pBottom > this.y - 12 && pTop < this.y + this.h + 20;
 
-        if (inZone) {
-            if (!this.triggered) {
-                this.triggered = true;
-                if (window.soundFX && window.soundFX.playWarp) window.soundFX.playWarp();
-                if (onTrigger) onTrigger(this);
-            }
+        if (inZone && !this.triggered) {
+            this.triggered = true;
+            if (window.soundFX && window.soundFX.playWarp) window.soundFX.playWarp();
+            if (onTrigger) onTrigger(this);
             if (window.gameInstance) {
                 window.gameInstance.reversedControls = true;
-                window.gameInstance.reversedTimer = 15;
+                window.gameInstance.reversedTimer = 360; // 6 seconds sustained inversion (holding LEFT lets player run RIGHT!)
             }
         }
     }
@@ -1465,19 +1545,26 @@ class ReversedControlsTrap {
 
     draw(ctx, theme) {
         ctx.save();
-        // Subtle dotted inverted indicator zone
-        ctx.strokeStyle = 'rgba(239, 83, 80, 0.28)';
-        ctx.lineWidth = 1.2;
-        ctx.setLineDash([4, 4]);
-        ctx.strokeRect(this.x, this.y, this.w, this.h);
+        // Authentic Level Devil floor sigil: NO dotted outlines, no invisible walls!
+        const midX = this.x + this.w / 2;
+        const groundY = this.y + this.h;
+        const glow = 0.35 + Math.sin(this.pulse) * 0.18;
+
+        // Ground mystic aura
+        ctx.beginPath();
+        ctx.ellipse(midX, groundY - 2, this.w * 0.45, 6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(239, 83, 80, ${glow * 0.35})`;
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(239, 83, 80, ${glow})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
 
         // Floor rune indicating flipped arrows
-        const midX = this.x + this.w / 2;
-        const botY = this.y + this.h - 6;
-        ctx.fillStyle = 'rgba(239, 83, 80, 0.45)';
-        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = `rgba(239, 83, 80, ${Math.min(1.0, glow + 0.35)})`;
+        ctx.font = 'bold 12px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('⮂ ⮃', midX, botY);
+        ctx.fillText('⮂ ⮃', midX, groundY - 6);
         ctx.restore();
     }
 }

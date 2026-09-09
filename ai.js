@@ -358,16 +358,49 @@ class DevilAI {
             synthTraps.push(trap);
         };
 
+        // Surface Finder to guarantee zero traps spawn inside solid blocks
+        const surfaceFinder = (typeof window !== 'undefined' && typeof window.getSurfaceAt === 'function')
+            ? window.getSurfaceAt
+            : function(level, x, preferredY = null) {
+                if (!level) return { floorY: 345, ceilY: 220, headroom: 125 };
+                const corridors = (level.pathwayCorridors || []).filter(c => x >= c.x - 2 && x <= c.x + c.w + 2);
+                if (corridors.length > 0) {
+                    let best = corridors[0];
+                    if (corridors.length > 1 && preferredY !== null && preferredY !== undefined) {
+                        let minDiff = Infinity;
+                        for (const c of corridors) {
+                            const mid = c.y + c.h / 2;
+                            const diff = Math.abs(mid - preferredY);
+                            if (diff < minDiff) { minDiff = diff; best = c; }
+                        }
+                    }
+                    let ceilY = best.y;
+                    let floorY = best.y + best.h;
+                    if (level.solids) {
+                        const floorSolids = level.solids.filter(s => 
+                            x >= s.x - 1 && x <= s.x + s.w + 1 && s.y >= ceilY && Math.abs(s.y - floorY) <= 35
+                        );
+                        if (floorSolids.length > 0) {
+                            floorSolids.sort((a, b) => a.y - b.y);
+                            floorY = floorSolids[0].y;
+                        }
+                    }
+                    return { floorY, ceilY, headroom: floorY - ceilY };
+                }
+                return { floorY: 345, ceilY: 220, headroom: 125 };
+            };
+
         // 1. DOOR DEFENSE PERIMETER — Authentic Level Devil hazards around door approach
         const doorFloorY = door.y + (door.h || 46);
-        const doorPreStepX = door.x - 70;
+        const doorPreStepX = (door.x > spawn.x) ? Math.max(95, door.x - 70) : Math.min(bounds.width - 95, door.x + 70);
 
         // A1: Door Step Threshold Trap: Vanishing floor right before the door!
-        if (isSafeDistance(doorPreStepX, doorFloorY, 48, 20)) {
+        const surfPre = surfaceFinder(levelData, doorPreStepX, doorFloorY);
+        if (isSafeDistance(doorPreStepX, surfPre.floorY, 48, 20)) {
             addSynthTrap({
                 type: 'collapsing_floor',
                 x: doorPreStepX,
-                y: doorFloorY,
+                y: surfPre.floorY,
                 w: 48,
                 h: 35,
                 dropSpeed: 2.4 + diffMult * 0.15,
@@ -377,39 +410,41 @@ class DevilAI {
         }
 
         // A2: Door Ceiling Ambush (Dropping spike above door approach)
-        const doorCeilY = Math.max(30, doorFloorY - 115);
-        const doorAmbushX = door.x - 110;
-        if (isSafeDistance(doorAmbushX, doorCeilY, 26, 25)) {
+        const doorAmbushX = (door.x > spawn.x) ? Math.max(95, door.x - 110) : Math.min(bounds.width - 95, door.x + 110);
+        const surfAmbush = surfaceFinder(levelData, doorAmbushX, doorFloorY);
+        if (isSafeDistance(doorAmbushX, surfAmbush.ceilY, 22, 25)) {
             addSynthTrap({
                 type: 'dropping_spike',
                 x: doorAmbushX,
-                y: doorCeilY,
+                y: surfAmbush.ceilY,
                 w: 22,
                 h: 22,
-                groundY: doorFloorY,
+                groundY: surfAmbush.floorY,
                 triggerRange: 55,
                 zone: 'exit',
                 purpose: 'door_anti_air'
             });
         }
 
-        // A3: Inverted Controls Zone on Approach (Levels 6+)
-        if (levelId >= 6 && isSafeDistance(door.x - 160, doorFloorY - 90, 110, 30)) {
+        // A3: Inverted Controls Sigil on Approach (Levels 6+)
+        const doorInvertX = (door.x > spawn.x) ? Math.max(95, door.x - 140) : Math.min(bounds.width - 95, door.x + 140);
+        const surfInvert = surfaceFinder(levelData, doorInvertX, doorFloorY);
+        if (levelId >= 6 && isSafeDistance(doorInvertX, surfInvert.floorY - 30, 50, 25)) {
             addSynthTrap({
                 type: 'reversed_controls',
-                x: door.x - 160,
-                y: doorFloorY - 90,
-                w: 110,
-                h: 90,
+                x: doorInvertX,
+                y: surfInvert.floorY - 30,
+                w: 50,
+                h: 30,
                 zone: 'exit',
                 purpose: 'door_inverted_approach'
             });
-        } else if (levelId >= 8 && isSafeDistance(door.x - 150, doorFloorY, 45, 30)) {
+        } else if (levelId >= 8 && isSafeDistance(doorInvertX, surfInvert.floorY, 45, 30)) {
             // A4: Troll Loop Portal (Levels 8+) — flings hasty players backward
             addSynthTrap({
                 type: 'troll_portal',
-                x: door.x - 150,
-                y: doorFloorY,
+                x: doorInvertX,
+                y: surfInvert.floorY,
                 w: 45,
                 h: 65,
                 exitX: Math.max(160, spawn.x + 140),
@@ -422,20 +457,19 @@ class DevilAI {
 
         // 2. ARCHITECTURAL LEVEL DEVIL HAZARDS — Natural traps built into level geography
         for (const corr of corridors) {
-            if (corr.w >= 140 && corr.x > spawn.x + 50 && corr.x + corr.w < door.x + 50) {
-                const ceilY = corr.y;
-                const floorY = corr.y + corr.h;
+            if (corr.w >= 120 && corr.x > spawn.x + 40 && corr.x + corr.w < door.x + 40) {
                 const midX = Math.round(corr.x + corr.w * 0.5);
+                const surfMid = surfaceFinder(levelData, midX, corr.y + corr.h / 2);
 
                 // Dropping stalactite from open ceiling
-                if (isSafeDistance(midX, ceilY, 22, 30)) {
+                if (midX >= 95 && midX <= bounds.width - 95 && isSafeDistance(midX, surfMid.ceilY, 22, 25)) {
                     addSynthTrap({
                         type: 'dropping_spike',
                         x: midX,
-                        y: ceilY,
+                        y: surfMid.ceilY,
                         w: 22,
                         h: 22,
-                        groundY: floorY,
+                        groundY: surfMid.floorY,
                         triggerRange: 48,
                         zone: 'mid',
                         purpose: 'arch_dropping_spike'
@@ -444,22 +478,23 @@ class DevilAI {
 
                 // Falling stepping platform or bait coin in corridor
                 const platX = Math.round(corr.x + corr.w * 0.25);
-                if (isSafeDistance(platX, floorY, 55, 25)) {
+                const surfPlat = surfaceFinder(levelData, platX, corr.y + corr.h / 2);
+                if (platX >= 95 && platX <= bounds.width - 95 && isSafeDistance(platX, surfPlat.floorY, 55, 20)) {
                     addSynthTrap({
                         type: 'falling_platform',
                         x: platX,
-                        y: floorY,
+                        y: surfPlat.floorY,
                         w: 55,
                         h: 14,
                         dropSpeed: 2.2,
                         zone: 'mid',
                         purpose: 'arch_falling_platform'
                     });
-                } else if (isSafeDistance(platX + 30, floorY - 35, 20, 20)) {
+                } else if (platX + 30 >= 95 && platX + 30 <= bounds.width - 95 && isSafeDistance(platX + 30, surfPlat.floorY - 35, 20, 20)) {
                     addSynthTrap({
                         type: 'coin_trap',
                         x: platX + 30,
-                        y: floorY - 35,
+                        y: surfPlat.floorY - 35,
                         r: 8,
                         zone: 'mid',
                         purpose: 'arch_bait_coin'
@@ -470,13 +505,13 @@ class DevilAI {
 
         // 3. TELEMETRY COUNTER-LEAN TRAPS
         if (profile === "RUSHER") {
-            const rushX = spawn.x + Math.round((door.x - spawn.x) * 0.4);
-            const rushY = spawn.y;
-            if (isSafeDistance(rushX, rushY, 26, 25)) {
+            const rushX = Math.max(95, Math.min(bounds.width - 95, spawn.x + Math.round((door.x - spawn.x) * 0.4)));
+            const surfRush = surfaceFinder(levelData, rushX, spawn.y);
+            if (isSafeDistance(rushX, surfRush.floorY, 26, 25)) {
                 addSynthTrap({
                     type: 'hidden_spike',
                     x: rushX,
-                    y: rushY,
+                    y: surfRush.floorY,
                     w: 26,
                     h: 16,
                     triggerRange: 38,
@@ -484,42 +519,44 @@ class DevilAI {
                     purpose: 'rush_counter_spike'
                 });
             }
-            const boulderX = Math.min(bounds.width - 160, door.x - 60);
-            if (isSafeDistance(boulderX, spawn.y, 34, 40)) {
+            const boulderX = Math.max(95, Math.min(bounds.width - 95, door.x > spawn.x ? door.x - 60 : door.x + 60));
+            const surfBoulder = surfaceFinder(levelData, boulderX, doorFloorY);
+            if (isSafeDistance(boulderX, surfBoulder.floorY, 34, 30)) {
                 addSynthTrap({
                     type: 'rolling_ball',
                     x: boulderX,
-                    y: spawn.y,
-                    groundY: spawn.y,
+                    y: surfBoulder.floorY,
+                    groundY: surfBoulder.floorY,
                     radius: 17,
-                    vx: -4.6 - diffMult * 0.35,
+                    vx: (door.x > spawn.x ? -4.6 : 4.6) - diffMult * 0.35,
                     triggerRange: 95,
                     zone: 'mid',
                     purpose: 'rush_counter_boulder'
                 });
             }
         } else if (profile === "HOPPER") {
-            const jumpApexX = spawn.x + Math.round((door.x - spawn.x) * 0.35);
-            const ceilY = Math.max(30, spawn.y - 115);
-            if (isSafeDistance(jumpApexX, ceilY, 22, 25)) {
+            const jumpApexX = Math.max(95, Math.min(bounds.width - 95, spawn.x + Math.round((door.x - spawn.x) * 0.35)));
+            const surfApex = surfaceFinder(levelData, jumpApexX, spawn.y);
+            if (isSafeDistance(jumpApexX, surfApex.ceilY, 22, 25)) {
                 addSynthTrap({
                     type: 'dropping_spike',
                     x: jumpApexX,
-                    y: ceilY,
+                    y: surfApex.ceilY,
                     w: 22,
                     h: 22,
-                    groundY: spawn.y,
+                    groundY: surfApex.floorY,
                     triggerRange: 48,
                     zone: 'mid',
                     purpose: 'hopper_anti_air'
                 });
             }
-            const landingX = jumpApexX + 55;
-            if (isSafeDistance(landingX, spawn.y, 26, 25)) {
+            const landingX = Math.max(95, Math.min(bounds.width - 95, jumpApexX + 55));
+            const surfLanding = surfaceFinder(levelData, landingX, spawn.y);
+            if (isSafeDistance(landingX, surfLanding.floorY, 26, 25)) {
                 addSynthTrap({
                     type: 'hidden_spike',
                     x: landingX,
-                    y: spawn.y,
+                    y: surfLanding.floorY,
                     w: 26,
                     h: 16,
                     triggerRange: 32,
@@ -528,14 +565,15 @@ class DevilAI {
                 });
             }
         } else if (profile === "CAUTIOUS" || profile === "METHODICAL") {
-            const chaserX = spawn.x >= 100 ? (spawn.x - 55) : (spawn.x + 70);
-            const chaserVx = spawn.x >= 100 ? (3.8 + diffMult * 0.25) : (-3.8 - diffMult * 0.25);
-            if (isSafeDistance(chaserX, spawn.y, 34, 30)) {
+            const chaserX = (spawn.x >= 150) ? (spawn.x - 55) : (spawn.x + 85);
+            const surfChaser = surfaceFinder(levelData, chaserX, spawn.y);
+            const chaserVx = (spawn.x >= 150) ? (3.8 + diffMult * 0.25) : (-3.8 - diffMult * 0.25);
+            if (isSafeDistance(chaserX, surfChaser.floorY, 34, 30)) {
                 addSynthTrap({
                     type: 'rolling_ball',
                     x: chaserX,
-                    y: spawn.y,
-                    groundY: spawn.y,
+                    y: surfChaser.floorY,
+                    groundY: surfChaser.floorY,
                     radius: 16,
                     vx: chaserVx,
                     triggerRange: 75,
@@ -544,12 +582,13 @@ class DevilAI {
                 });
             }
         } else { // CHAOTIC
-            const springX = spawn.x + Math.round((door.x - spawn.x) * 0.5);
-            if (isSafeDistance(springX, spawn.y, 32, 20)) {
+            const springX = Math.max(95, Math.min(bounds.width - 95, spawn.x + Math.round((door.x - spawn.x) * 0.5)));
+            const surfSpring = surfaceFinder(levelData, springX, spawn.y);
+            if (isSafeDistance(springX, surfSpring.floorY, 32, 20)) {
                 addSynthTrap({
                     type: 'spring_pad',
                     x: springX,
-                    y: spawn.y,
+                    y: surfSpring.floorY,
                     w: 32,
                     h: 10,
                     boostVy: -9.2,
@@ -610,16 +649,17 @@ class DevilAI {
         // Progressive Difficulty Multiplier D(L) — unbounded logarithmic growth
         const difficultyMult = this.getDifficultyMultiplier(levelId);
 
-        // Aggressive Progressive Trap Budget: scales from 2 to 10 active traps
-        // Higher levels = more overlapping threats = genuine challenge
+        // Dense Progressive Trap Budget: scales up to empower AI across the entire level architecture
         let maxTraps = 2;
-        if (levelId <= 2) maxTraps = 2;
-        else if (levelId <= 4) maxTraps = 3;
-        else if (levelId <= 6) maxTraps = 4;
-        else if (levelId <= 9) maxTraps = 5;
-        else if (levelId <= 12) maxTraps = 6;
-        else if (levelId <= 16) maxTraps = 7;
-        else maxTraps = Math.min(10, 7 + Math.floor((levelId - 16) / 4));
+        if (levelId <= 2) {
+            maxTraps = 2;
+        } else if (levelId <= 4) {
+            maxTraps = 3;
+        } else {
+            const lvlWidth = (levelData && levelData.bounds && levelData.bounds.width) || 950;
+            const lengthBonus = Math.floor((lvlWidth - 800) / 110);
+            maxTraps = Math.max(7, Math.min(15, 6 + Math.floor((levelId - 4) * 0.75) + lengthBonus));
+        }
 
         // 0. Use pre-calculated Python ML prediction if available
         if (this.cachedPrediction && this.cachedPrediction.selectedTraps && this.cachedPrediction.selectedTraps.length > 0) {
@@ -937,15 +977,17 @@ class DevilAI {
      */
     isAntiCheckmateSafe(slot, deployedList) {
         if (!slot || !deployedList) return true;
-        const slotGroundY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
+        // Never allow traps to spawn inside left perimeter wall or outside playable bounds
+        if (slot.x < 85) return false;
 
+        const slotGroundY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
         const isSameCombo = (a, b) => a.comboId && b.comboId && a.comboId === b.comboId;
 
         // 1. Rolling Boulder Incompatibilities
         if (slot.type === 'rolling_ball') {
             const bTriggerX = slot.triggerX || (slot.x - 110);
-            const bJumpMinX = Math.min(slot.x, bTriggerX) - 50;
-            const bJumpMaxX = Math.max(slot.x, bTriggerX) + 50;
+            const bJumpMinX = Math.min(slot.x, bTriggerX) - 35;
+            const bJumpMaxX = Math.max(slot.x, bTriggerX) + 35;
 
             for (const act of deployedList) {
                 if (isSameCombo(slot, act)) continue;
@@ -955,23 +997,23 @@ class DevilAI {
                 // Never two rolling boulders in the same level section
                 if (act.type === 'rolling_ball' && isSameElevation) return false;
 
-                // In the same corridor, never pair a rolling boulder with sawblades within its rolling runway
+                // In the same corridor, allow saws as long as not directly on boulder runway
                 if ((act.type === 'spinning_saw' || act.type === 'razor') && isSameElevation) {
-                    if (Math.abs(act.x - slot.x) < 220 || (act.x >= bJumpMinX - 50 && act.x <= bJumpMaxX + 50)) {
+                    if (Math.abs(act.x - slot.x) < 80 || (act.x >= bJumpMinX - 30 && act.x <= bJumpMaxX + 30)) {
                         return false;
                     }
                 }
 
-                // Cannot pair with dropping ceiling spikes in the boulder jump-evasion runway
+                // Cannot pair with dropping ceiling spikes directly in the boulder jump-evasion runway
                 if (act.type === 'dropping_spike' && isSameElevation) {
-                    if (Math.abs(act.x - bTriggerX) < 140) return false;
-                    if (act.x >= bJumpMinX - 30 && act.x <= bJumpMaxX + 30) return false;
+                    if (Math.abs(act.x - bTriggerX) < 70) return false;
+                    if (act.x >= bJumpMinX - 20 && act.x <= bJumpMaxX + 20) return false;
                 }
 
                 // Cannot pair with floor spikes in jump takeoff / landing zones
                 if ((act.type === 'hidden_spike' || act.type === 'static_spike') && isSameElevation) {
                     if (act.x >= bJumpMinX && act.x <= bJumpMaxX) return false;
-                    if (Math.abs(act.x - bTriggerX) < 85) return false;
+                    if (Math.abs(act.x - bTriggerX) < 50) return false;
                 }
 
                 // Cannot collapse floor in boulder jump evasion zone
@@ -990,23 +1032,23 @@ class DevilAI {
 
                 if (isSameElevation) {
                     const bTriggerX = act.triggerX || (act.x - 110);
-                    const bJumpMinX = Math.min(act.x, bTriggerX) - 50;
-                    const bJumpMaxX = Math.max(act.x, bTriggerX) + 50;
+                    const bJumpMinX = Math.min(act.x, bTriggerX) - 35;
+                    const bJumpMaxX = Math.max(act.x, bTriggerX) + 35;
 
                     if (slot.type === 'spinning_saw' || slot.type === 'razor') {
-                        if (Math.abs(slot.x - act.x) < 220 || (slot.x >= bJumpMinX - 50 && slot.x <= bJumpMaxX + 50)) {
+                        if (Math.abs(slot.x - act.x) < 80 || (slot.x >= bJumpMinX - 30 && slot.x <= bJumpMaxX + 30)) {
                             return false;
                         }
                     }
 
                     if (slot.type === 'dropping_spike') {
-                        if (Math.abs(slot.x - bTriggerX) < 140) return false;
-                        if (slot.x >= bJumpMinX - 30 && slot.x <= bJumpMaxX + 30) return false;
+                        if (Math.abs(slot.x - bTriggerX) < 70) return false;
+                        if (slot.x >= bJumpMinX - 20 && slot.x <= bJumpMaxX + 20) return false;
                     }
 
                     if (slot.type === 'hidden_spike' || slot.type === 'static_spike') {
                         if (slot.x >= bJumpMinX && slot.x <= bJumpMaxX) return false;
-                        if (Math.abs(slot.x - bTriggerX) < 85) return false;
+                        if (Math.abs(slot.x - bTriggerX) < 50) return false;
                     }
 
                     if (slot.type === 'collapsing_floor') {
@@ -1022,7 +1064,7 @@ class DevilAI {
             for (const act of deployedList) {
                 if (isSameCombo(slot, act)) continue;
                 if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
-                    if (Math.abs(act.x - slot.x) < 60) return false;
+                    if (Math.abs(act.x - slot.x) < 45) return false;
                 }
             }
         }
@@ -1030,7 +1072,7 @@ class DevilAI {
             if (isSameCombo(slot, act)) continue;
             if (isCrawlSaw(act)) {
                 if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
-                    if (Math.abs(slot.x - act.x) < 60) return false;
+                    if (Math.abs(slot.x - act.x) < 45) return false;
                 }
             }
         }
@@ -1040,7 +1082,7 @@ class DevilAI {
             for (const act of deployedList) {
                 if (isSameCombo(slot, act)) continue;
                 if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
-                    if (Math.abs(act.x - slot.x) < 65) return false;
+                    if (Math.abs(act.x - slot.x) < 35) return false;
                 }
             }
         }
@@ -1048,7 +1090,7 @@ class DevilAI {
             for (const act of deployedList) {
                 if (isSameCombo(slot, act)) continue;
                 if (act.type === 'dropping_spike') {
-                    if (Math.abs(act.x - slot.x) < 65) return false;
+                    if (Math.abs(act.x - slot.x) < 35) return false;
                 }
             }
         }
@@ -1064,11 +1106,11 @@ class DevilAI {
 
             const actStart = act.x;
             const actEnd = act.x + (act.w || 28);
-            let minGap = 20;
+            let minGap = 16;
             if (act.type === 'static_spike' || slot.type === 'static_spike') {
-                minGap = 35;
+                minGap = 25;
             } else if (act.type === 'spring_pad' || slot.type === 'spring_pad') {
-                minGap = 16;
+                minGap = 14;
             }
             if (!(slotEnd <= actStart - minGap || slotStart >= actEnd + minGap)) {
                 return false;

@@ -15,14 +15,12 @@ console.log('=== 1. VERIFYING RADICALLY DIVERSE MAP TOPOLOGIES & AUTHENTIC HAZAR
 const gen = new window.AILevelGenerator();
 const ai = new window.DevilAI();
 
-function getExpectedTrapBudget(lvl) {
+function getExpectedTrapBudget(lvl, bounds) {
     if (lvl <= 2) return 2;
     if (lvl <= 4) return 3;
-    if (lvl <= 6) return 4;
-    if (lvl <= 9) return 5;
-    if (lvl <= 12) return 6;
-    if (lvl <= 16) return 7;
-    return Math.min(10, 7 + Math.floor((lvl - 16) / 4));
+    const lvlWidth = (bounds && bounds.width) || 950;
+    const lengthBonus = Math.floor((lvlWidth - 800) / 110);
+    return Math.max(7, Math.min(15, 6 + Math.floor((lvl - 4) * 0.75) + lengthBonus));
 }
 
 let totalAIGeneratedTrapsFound = 0;
@@ -32,6 +30,12 @@ const uniqueThemesUsed = new Set();
 const uniqueTopologiesUsed = new Set();
 let minWidth = Infinity, maxWidth = -Infinity;
 let minHeight = Infinity, maxHeight = -Infinity;
+
+// Check: Verify NO dotted lines in traps.js (which produce invisible wall sensation)
+const trapsSource = fs.readFileSync(path.join(__dirname, 'traps.js'), 'utf8');
+if (trapsSource.includes('setLineDash')) {
+    throw new Error('Found setLineDash in traps.js! Dotted lines create invisible wall sensation and are forbidden!');
+}
 
 for (let lvl = 5; lvl <= 25; lvl++) {
     const level = gen.generateLevel(lvl, ai);
@@ -84,8 +88,22 @@ for (let lvl = 5; lvl <= 25; lvl++) {
     const doorDefenses = aiGenSlots.filter(s => s.zone === 'exit' || ['door_sinkhole', 'door_anti_air', 'door_inverted_approach', 'door_loop_portal'].includes(s.purpose));
     totalDoorDefensesFound += doorDefenses.length;
 
+    // Check D2: Strict Surface Placement Guarantee (ZERO traps inside solid blocks)
+    const allLevelTraps = [...(level.staticTraps || []), ...(level.candidateTrapSlots || [])];
+    for (const t of allLevelTraps) {
+        const tx = t.x + (t.w || 26) / 2;
+        const ty = t.y;
+        for (const s of level.solids) {
+            if (tx > s.x + 2 && tx < s.x + s.w - 2) {
+                if (ty > s.y + 4 && ty < s.y + s.h - 4) {
+                    throw new Error(`Level ${lvl} (${level.topology}): trap ${t.type} at (${tx}, ${ty}) is INSIDE solid block [${s.x}, ${s.y}, ${s.w}, ${s.h}]!`);
+                }
+            }
+        }
+    }
+
     const activeTraps = ai.selectAdaptiveTraps(cSlots, level.staticTraps, lvl, level);
-    const maxBudget = getExpectedTrapBudget(lvl);
+    const maxBudget = getExpectedTrapBudget(lvl, level.bounds);
 
     console.log(`Level ${lvl} (${level.title}, Topology: ${level.topology}, ${level.bounds.width}x${level.bounds.height}, Theme: ${level.theme.name || level.theme}):`);
     console.log(`  - Candidate Traps: ${cSlots.length} (AI-Gen: ${aiGenSlots.length}, Authentic: ${authenticHazards.length})`);
@@ -100,9 +118,9 @@ for (let lvl = 5; lvl <= 25; lvl++) {
         throw new Error(`Level ${lvl} has NO generative AI traps synthesized in candidate slots!`);
     }
 
-    // Active traps should match or be close to budget
-    if (activeTraps.length < 3 || activeTraps.length > maxBudget) {
-        throw new Error(`Level ${lvl} has ${activeTraps.length} active traps, expected between 3 and ${maxBudget}!`);
+    // Active traps should match or be close to budget (at least 6 active traps for full gauntlet)
+    if (activeTraps.length < 6 || activeTraps.length > maxBudget) {
+        throw new Error(`Level ${lvl} has ${activeTraps.length} active traps, expected between 6 and ${maxBudget}!`);
     }
 
     // Check E: Vertical Spire must ALWAYS have moving_platform in staticTraps (infrastructure guarantee)
@@ -262,8 +280,8 @@ function makeRequest(path, method = 'GET', data = null) {
             traps: predictRes.data.selectedTraps?.map(t => t.type),
             classification: predictRes.data.classification
         });
-        if (!predictRes.data.selectedTraps || predictRes.data.selectedTraps.length < 3 || predictRes.data.selectedTraps.length > 4) {
-            throw new Error(`Predict returned ${predictRes.data.selectedTraps?.length} traps for Level 6, expected 3-4!`);
+        if (!predictRes.data.selectedTraps || predictRes.data.selectedTraps.length < 5 || predictRes.data.selectedTraps.length > 15) {
+            throw new Error(`Predict returned ${predictRes.data.selectedTraps?.length} traps for Level 6, expected 5-15!`);
         }
 
         // Test /api/ai-learn (death)

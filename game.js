@@ -1686,6 +1686,15 @@ class Game {
                 this.theme.playerColor,
                 this.player.isCrawling
             );
+
+            // Overhead reversed indicator above player's head in world space
+            if (this.reversedControls && this.player.alive) {
+                ctx.fillStyle = '#ff5252';
+                ctx.font = 'bold 13px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('⮂ ⮃', this.player.x, this.player.y - 32);
+            }
+
             ctx.restore();
         }
 
@@ -1699,10 +1708,18 @@ class Game {
         // 7b. Inverted Controls Indicator (in screen space)
         if (this.reversedControls) {
             ctx.save();
-            ctx.fillStyle = 'rgba(239, 83, 80, 0.9)';
+            const bannerText = '🔄 CONTROLS REVERSED! [HOLD ◀ TO RUN ▶] 🔄';
             ctx.font = 'bold 13px "Courier New", monospace';
+            const bannerW = ctx.measureText(bannerText).width + 28;
+            ctx.fillStyle = 'rgba(18, 5, 5, 0.85)';
+            ctx.fillRect(screenW / 2 - bannerW / 2, 12, bannerW, 28);
+            ctx.strokeStyle = '#ef5350';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(screenW / 2 - bannerW / 2, 12, bannerW, 28);
+
+            ctx.fillStyle = '#ff8a80';
             ctx.textAlign = 'center';
-            ctx.fillText('⚠️ CONTROLS INVERTED ⚠️', screenW / 2, 28);
+            ctx.fillText(bannerText, screenW / 2, 31);
             ctx.restore();
         }
 
