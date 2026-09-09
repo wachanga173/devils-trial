@@ -402,7 +402,8 @@ class AILevelGenerator {
         for (let b = 0; b < numBeams; b++) {
             const bX = Math.round(playableStart + b * span + rngInt(10, 30));
             const bW = rngInt(120, 190);
-            const dropH = rngInt(34, 44); // leaves 75-85px headroom (forces ducking under 12px!)
+            // Deduct headroom to leave 18px of low crawl duct space (forces crawling on all fours without clipping!)
+            const dropH = Math.max(20, normalHeadroom - 18);
             beamSegments.push({ x: bX, w: bW, dropH: dropH });
             solids.push({ x: bX, y: normalCeilY, w: bW, h: dropH });
         }
@@ -449,11 +450,11 @@ class AILevelGenerator {
         ];
 
         const candidateTrapSlots = [
-            // Head-height sawblade before first beam: bottom at y: floorY - 14 (crawl underneath!)
+            // Head-height sawblade before first beam: bottom at y: floorY - 18 (safe to crawl underneath with 6px margin!)
             {
                 type: 'spinning_saw',
                 x: firstBeam.x - 50,
-                y: floorY - 26,
+                y: floorY - 33,
                 radius: 15,
                 patrolAxis: 'x',
                 minX: firstBeam.x - 90,
@@ -733,11 +734,11 @@ class AILevelGenerator {
                 triggerRange: 45,
                 pauseDuration: 55
             },
-            // Crawl-under razor
+            // Crawl-under razor (bottom at tier3Floor - 18, safe for 12px crawl height)
             {
                 type: 'spinning_saw',
                 x: 260,
-                y: tier3Floor - 22,
+                y: tier3Floor - 33,
                 radius: 15,
                 patrolAxis: 'none'
             }
@@ -801,15 +802,15 @@ class AILevelGenerator {
 
         const staticTraps = [
             { type: 'static_spike', x: 80 + entryW + Math.round(midW * 0.4), y: dividerY, w: 28, h: 15 },
-            { type: 'spinning_saw', x: 80 + entryW + Math.round(midW * 0.3), y: groundFloor - 25, radius: 15, patrolAxis: 'none' }
+            { type: 'spinning_saw', x: 80 + entryW + Math.round(midW * 0.3), y: groundFloor - 33, radius: 15, patrolAxis: 'none' }
         ];
 
         const candidateTrapSlots = [
-            // Patrolling razor in Low Road
+            // Patrolling razor in Low Road (crawl underneath with safe 6px clearance)
             {
                 type: 'spinning_saw',
                 x: 80 + entryW + Math.round(midW * 0.7),
-                y: groundFloor - 25,
+                y: groundFloor - 33,
                 radius: 15,
                 patrolAxis: 'x',
                 minX: 80 + entryW + Math.round(midW * 0.55),
@@ -1122,11 +1123,11 @@ class AILevelGenerator {
                 vx: -4.0 - difficulty * 0.35,
                 triggerRange: 90
             },
-            // High razor in vault zone: crawl under!
+            // High razor in vault zone: crawl under (bottom at floorY - 18, safe 6px crawl clearance)
             {
                 type: 'spinning_saw',
                 x: 300,
-                y: floorY - 25,
+                y: floorY - 33,
                 radius: 15,
                 patrolAxis: 'x',
                 minX: 240,

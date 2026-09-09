@@ -265,8 +265,9 @@ class Physics {
     checkHazards(player, hazards) {
         this.lastCollidingHazard = null;
         if (!player.alive) return false;
-        const pLeft = player.x - player.width / 2 + 2;
-        const pRight = player.x + player.width / 2 - 2;
+        const padX = player.isCrawling ? 3.0 : 2.0;
+        const pLeft = player.x - player.width / 2 + padX;
+        const pRight = player.x + player.width / 2 - padX;
         const pTop = player.y - player.height + 2;
         const pBottom = player.y - 1;
 
