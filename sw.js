@@ -2,7 +2,7 @@
 // Network-First Strategy: Prioritizes live online requests to maintain real-time AI telemetry,
 // learning model synchronization, and dynamic level consistency across all browsers.
 
-const CACHE_NAME = 'devils-trial-v4';
+const CACHE_NAME = 'devils-trial-v5';
 const PRECACHE_ASSETS = [
     './',
     './index.html',
@@ -11,6 +11,7 @@ const PRECACHE_ASSETS = [
     './faq.html',
     './legal.html',
     './legal.css',
+    './LICENSE',
     './style.css',
     './manifest.json',
     './icon.svg',

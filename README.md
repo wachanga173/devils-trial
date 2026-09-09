@@ -89,13 +89,15 @@ An adaptive troll platformer where traps dynamically shuffle on every respawn us
 - **Free Streaming & Monetization:** You have full, royalty-free authorization to livestream and monetize Devil's Trial on YouTube, Twitch, TikTok, etc. Real-time procedural audio synthesis via Web Audio API guarantees **0 DMCA copyright strikes**.
 - **Anti-Checkmate Guarantee:** All dynamic trap placements adhere to semantic mutual exclusion rules; softlocks are mathematically impossible.
 - **Documentation:**
-  - [Terms & Conditions](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/terms.html)
-  - [Privacy Policy](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/privacy.html)
-  - [Frequently Asked Questions (FAQ)](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/faq.html)
-  - [Legal & Compliance Portal](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/legal.html)
+  - [Terms & Conditions](./terms.html)
+  - [Privacy Policy](./privacy.html)
+  - [Frequently Asked Questions (FAQ)](./faq.html)
+  - [Legal & Compliance Portal](./legal.html)
 
 ---
 
 ## 📄 License
 
-MIT License. Designed and built with ❤️.
+This repository and game are **Proprietary & Confidential** — Copyright © 2026 wachanga173. All Rights Reserved.
+
+See the canonical [LICENSE](./LICENSE) file for complete details. Players and content creators are granted permission to play, record, livestream, and monetize gameplay broadcasts. Redistribution, modification, or unauthorized commercial distribution of the source code and assets is strictly prohibited.
