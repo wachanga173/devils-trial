@@ -83,8 +83,28 @@ class Game {
         this.aiBadge = document.getElementById('aiBadge');
         this.pauseOverlay = document.getElementById('pauseOverlay');
         this.themeSelector = document.getElementById('themeSelector');
+        this.levelSelector = document.getElementById('levelSelector');
         this.resumeBtn = document.getElementById('resumeBtn');
         this.restartBtn = document.getElementById('restartBtn');
+
+        if (this.levelSelector) {
+            this.levelSelector.addEventListener('change', (e) => {
+                const targetIdx = parseInt(e.target.value, 10);
+                if (!isNaN(targetIdx)) {
+                    this.loadLevel(targetIdx);
+                    if (this.gameState === 'paused') this.togglePause();
+                }
+            });
+        }
+
+        const levelBadgeHud = document.querySelector('.level-badge-hud');
+        if (levelBadgeHud) {
+            levelBadgeHud.style.cursor = 'pointer';
+            levelBadgeHud.title = 'Click to open Pause & Level Select Menu';
+            levelBadgeHud.addEventListener('click', () => {
+                this.togglePause();
+            });
+        }
 
         if (this.modeToggleBtn) {
             this.modeToggleBtn.addEventListener('click', () => {
@@ -595,7 +615,13 @@ class Game {
             if (!data || typeof data !== 'object') return false;
 
             if (typeof data.currentLevelIndex === 'number' && data.currentLevelIndex >= 0) {
-                this.currentLevelIndex = data.currentLevelIndex;
+                // If saved progress is past canonical levels (e.g. from previously loaded broken level 6),
+                // reset to Level 1 so player immediately enjoys the authentic campaign levels!
+                if (data.currentLevelIndex >= 4) {
+                    this.currentLevelIndex = 0;
+                } else {
+                    this.currentLevelIndex = data.currentLevelIndex;
+                }
             }
             if (typeof data.deathCount === 'number' && data.deathCount >= 0) {
                 this.deathCount = data.deathCount;
@@ -1146,6 +1172,11 @@ class Game {
         const genTag = this.currentLevel.isAIGenerated ? " [AI GEN]" : "";
         if (this.levelDisplay) this.levelDisplay.innerText = `LEVEL ${this.currentLevel.id}${genTag}`;
         if (this.levelTitleDisplay) this.levelTitleDisplay.innerText = this.currentLevel.title;
+        if (this.levelSelector) {
+            if (this.currentLevelIndex < 4) {
+                this.levelSelector.value = String(this.currentLevelIndex);
+            }
+        }
 
         this.respawnPlayer(false);
         this.saveGame();

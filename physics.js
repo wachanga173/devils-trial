@@ -176,27 +176,45 @@ class Physics {
     }
 
     resolveXCollisions(player, solids) {
-        const pLeft = player.x - player.width / 2;
-        const pRight = player.x + player.width / 2;
+        const prevX = player.x - player.vx;
+        const prevLeft = prevX - player.width / 2;
+        const prevRight = prevX + player.width / 2;
         const pTop = player.y - player.height;
         const pBottom = player.y;
 
         for (const s of solids) {
             if (s.passthrough || s.isOneWay || s.isWallOnly) continue;
-            // Snag prevention: only collide horizontally if penetrating into the vertical wall face
-            // and within vertical corridor bounds of the wall
-            if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y + 3 && pTop < s.y + s.h - 1) {
-                const overlapLeft = pRight - s.x; // penetration into block's left face
-                const overlapRight = (s.x + s.w) - pLeft; // penetration through block's right face
 
-                if (overlapLeft < overlapRight) {
-                    // Player is colliding with block's LEFT face
+            // Only collide horizontally if within the vertical span of the solid
+            // (pBottom > s.y + 1 prevents snagging on flat floors under feet)
+            if (pBottom <= s.y + 1 || pTop >= s.y + s.h - 1) continue;
+
+            const pLeft = player.x - player.width / 2;
+            const pRight = player.x + player.width / 2;
+
+            // Check horizontal bounding overlap
+            if (pRight > s.x && pLeft < s.x + s.w) {
+                // Determine direction based on previous frame position
+                if (prevRight <= s.x + 1 || (player.vx > 0 && prevRight <= s.x + player.vx + 1)) {
+                    // Approached from the LEFT face
                     player.x = s.x - player.width / 2;
                     if (player.vx > 0) player.vx = 0;
-                } else {
-                    // Player is colliding with block's RIGHT face
+                } else if (prevLeft >= s.x + s.w - 1 || (player.vx < 0 && prevLeft >= s.x + s.w + player.vx - 1)) {
+                    // Approached from the RIGHT face
                     player.x = s.x + s.w + player.width / 2;
                     if (player.vx < 0) player.vx = 0;
+                } else {
+                    // Pre-existing overlap or crouch width expansion: use minimum penetration displacement
+                    const overlapLeft = pRight - s.x;
+                    const overlapRight = (s.x + s.w) - pLeft;
+
+                    if (overlapLeft < overlapRight) {
+                        player.x = s.x - player.width / 2;
+                        if (player.vx > 0) player.vx = 0;
+                    } else {
+                        player.x = s.x + s.w + player.width / 2;
+                        if (player.vx < 0) player.vx = 0;
+                    }
                 }
             }
         }
@@ -205,20 +223,18 @@ class Physics {
     resolveYCollisions(player, solids, bounds) {
         const pLeft = player.x - player.width / 2 + 1.5;
         const pRight = player.x + player.width / 2 - 1.5;
-        const pTop = player.y - player.height;
-        const pBottom = player.y;
         const boundsH = bounds ? bounds.height : 480;
+        const prevBottom = player.y - player.vy;
+        const prevTop = prevBottom - player.height;
 
         for (const s of solids) {
-            // isWallOnly blocks (like vertical slam crushers) DO NOT push or snap player Y!
+            // isWallOnly blocks DO NOT push or snap player Y
             if (s.passthrough || s.isWallOnly) continue;
 
-            // One-way moving platforms & elevators (only collide with feet from above when falling or landing!)
+            // One-way moving platforms & elevators (only collide from above when falling)
             if (s.isOneWay) {
-                // If player is moving upward (jumping), NEVER collide or force down!
-                if (player.vy < 0) continue;
+                if (player.vy < 0) continue; // Moving upward: pass through
 
-                const prevBottom = player.y - player.vy;
                 const platVy = s.vy || 0;
                 const landingTolerance = Math.max(16, player.vy + Math.abs(platVy) + 4);
 
@@ -233,37 +249,40 @@ class Physics {
                 continue;
             }
 
-            if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y && pTop < s.y + s.h) {
+            // Standard solid: check horizontal overlap first
+            if (pRight <= s.x || pLeft >= s.x + s.w) continue;
+
+            const pTop = player.y - player.height;
+            const pBottom = player.y;
+
+            // Check vertical overlap
+            if (pBottom > s.y && pTop < s.y + s.h) {
                 const isWorldBottom = (s.y + s.h >= boundsH - 10);
 
-                // Ceilings anchored at y: 0 with open corridor below:
+                // Ceiling anchored to top of world: always push down
                 if (s.y === 0 && !isWorldBottom) {
                     player.y = s.y + s.h + player.height;
-                    player.vy = Math.max(0, player.vy);
+                    if (player.vy < 0) player.vy = 0;
+                    player.isJumping = false;
                     continue;
                 }
 
-                const prevBottom = player.y - player.vy;
-                const prevTop = prevBottom - player.height;
-                const topOverlap = player.y - s.y;
-                const bottomOverlap = (s.y + s.h) - (player.y - player.height);
-
-                if (player.vy >= 0) {
-                    // Landing on top of solid floor:
-                    // Player arrived from above, or penetration is closer to top surface than bottom, or block reaches world bottom
-                    if (prevBottom <= s.y + Math.max(16, player.vy + 4) || topOverlap <= bottomOverlap || isWorldBottom) {
+                if (player.vy < 0) {
+                    // Moving upward into a ceiling or underside of a hanging beam/ledge
+                    if (!isWorldBottom && (prevBottom >= s.y + s.h || prevTop >= s.y + s.h + player.vy - 4)) {
+                        player.y = s.y + s.h + player.height;
+                        player.vy = 0;
+                        player.isJumping = false;
+                    }
+                } else {
+                    // Falling, landing, or standing on a floor
+                    if (prevBottom <= s.y + Math.max(16, player.vy + 4) || isWorldBottom) {
                         player.y = s.y;
                         player.vy = 0;
                         player.onGround = true;
                         player.isJumping = false;
-                    } else {
-                        // Truly hit bottom of a ceiling block hanging down: push down
-                        player.y = s.y + s.h + player.height;
-                        player.vy = 0;
-                    }
-                } else if (player.vy < 0) {
-                    // Moving upward: only push down if block is an actual hanging ceiling with an exposed underside
-                    if (!isWorldBottom && prevTop >= s.y + s.h - 6) {
+                    } else if (!isWorldBottom && pTop < s.y + s.h && prevTop >= s.y + s.h - 8) {
+                        // Head clipping underside of overhead block while vy >= 0
                         player.y = s.y + s.h + player.height;
                         player.vy = 0;
                     }

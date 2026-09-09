@@ -540,8 +540,9 @@ class AILevelGenerator {
         }
         tierFloors.reverse(); // Top tier is tierFloors[0], bottom is tierFloors[numTiers - 1]
 
+        const topCeilH = tierFloors[0] - cHeight;
         const solids = [
-            { x: 0, y: 0, w: boundsW, h: 50 },
+            { x: 0, y: 0, w: boundsW, h: topCeilH },
             { x: 0, y: 0, w: 80, h: boundsH },
             { x: boundsW - 80, y: 0, w: 80, h: boundsH },
             // Solid base floor
@@ -676,7 +677,7 @@ class AILevelGenerator {
         const tier3Floor = boundsH - 80;
 
         const solids = [
-            { x: 0, y: 0, w: boundsW, h: 50 },
+            { x: 0, y: 0, w: boundsW, h: tier1Floor - cHeight },
             { x: 0, y: 0, w: 80, h: boundsH },
             { x: boundsW - 80, y: 0, w: 80, h: boundsH },
             { x: 80, y: tier3Floor, w: boundsW - 160, h: boundsH - tier3Floor },
@@ -784,7 +785,8 @@ class AILevelGenerator {
 
         const solids = [
             { x: 0, y: 0, w: boundsW, h: 130 },
-            { x: 80, y: 130, w: entryW, h: 90 }, // Solid ceiling over entry chamber (prevents jumping into black rock!)
+            { x: 80, y: 130, w: entryW, h: dividerY - 130 }, // Solid ceiling over entry chamber
+            { x: 80 + entryW + midW + 80, y: 130, w: Math.max(0, exitW - 80), h: dividerY - 130 }, // Solid ceiling over exit chamber
             { x: 0, y: 130, w: 80, h: boundsH - 130 },
             { x: boundsW - 80, y: 0, w: 80, h: boundsH },
             { x: 80, y: groundFloor, w: boundsW - 160, h: boundsH - groundFloor }, // Continuous ground floor
