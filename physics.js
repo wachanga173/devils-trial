@@ -33,7 +33,10 @@ class Physics {
         const activeSolids = [...solids];
         if (traps) {
             for (const trap of traps) {
-                if (trap.isSolid && trap.active !== false) {
+                if (typeof trap.getSolidBox === 'function') {
+                    const box = trap.getSolidBox();
+                    if (box) activeSolids.push(box);
+                } else if (trap.isSolid && trap.active !== false) {
                     activeSolids.push(trap);
                 }
             }

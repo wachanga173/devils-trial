@@ -324,6 +324,17 @@ class AILevelGenerator {
 
         // Zone 1: Entry / Step 0 Traps
         candidateTrapSlots.push({
+            type: 'pop_up_wall',
+            x: wallL + Math.round(stepWidths[0] * 0.6),
+            y: stepFloors[0],
+            w: 32,
+            h: 32,
+            riseHeight: 34,
+            riseSpeed: 2.2,
+            triggerRange: 50,
+            zone: 'entry'
+        });
+        candidateTrapSlots.push({
             type: 'collapsing_floor',
             x: wallL + 50,
             y: stepFloors[0],
@@ -343,6 +354,29 @@ class AILevelGenerator {
         });
 
         // Zone 2: Mid-Altar Gauntlet Traps
+        candidateTrapSlots.push({
+            type: 'ceiling_squish',
+            x: highX + Math.round(stepWidths[highestStep] * 0.2),
+            y: Math.max(30, stepFloors[highestStep] - cHeadroom),
+            w: 48,
+            h: 28,
+            dropDistance: Math.max(25, cHeadroom - 24),
+            dropSpeed: 2.0,
+            triggerRange: 60,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'wall_ejector',
+            x: midX,
+            y: stepFloors[midStep] - 25,
+            w: 30,
+            h: 30,
+            punchDist: 36,
+            punchSpeed: 2.4,
+            direction: -1,
+            triggerRange: 55,
+            zone: 'mid'
+        });
         candidateTrapSlots.push({
             type: 'rolling_ball',
             x: highX + Math.round(stepWidths[highestStep] * 0.7),
@@ -387,6 +421,18 @@ class AILevelGenerator {
         });
 
         // Zone 3: Exit Climax Traps
+        candidateTrapSlots.push({
+            type: 'shifting_block',
+            x: doorX - 70,
+            y: doorFloor - 20,
+            w: 48,
+            h: 20,
+            shiftAxis: 'x',
+            shiftDistance: -45,
+            shiftSpeed: 2.0,
+            triggerRange: 60,
+            zone: 'exit'
+        });
         candidateTrapSlots.push({
             type: 'collapsing_floor',
             x: doorX - 60,
@@ -516,6 +562,17 @@ class AILevelGenerator {
         const candidateTrapSlots = [
             // Zone 1: Entry / Approach Traps
             {
+                type: 'pop_up_wall',
+                x: Math.max(160, firstBeam.x - 35),
+                y: floorY,
+                w: 30,
+                h: 30,
+                riseHeight: 32,
+                riseSpeed: 2.2,
+                triggerRange: 48,
+                zone: 'entry'
+            },
+            {
                 type: 'collapsing_floor',
                 x: 160,
                 y: floorY,
@@ -545,6 +602,29 @@ class AILevelGenerator {
             },
 
             // Zone 2: Mid Gauntlet Traps (Post-Crawl Ambush)
+            {
+                type: 'ceiling_squish',
+                x: firstBeam.x + firstBeam.w + 60,
+                y: normalCeilY,
+                w: 52,
+                h: 28,
+                dropDistance: Math.max(25, (floorY - normalCeilY) - 22),
+                dropSpeed: 2.0,
+                triggerRange: 55,
+                zone: 'mid'
+            },
+            {
+                type: 'wall_ejector',
+                x: firstBeam.x + firstBeam.w + 120,
+                y: floorY - 32,
+                w: 28,
+                h: 32,
+                punchDist: 34,
+                punchSpeed: 2.5,
+                direction: -1,
+                triggerRange: 50,
+                zone: 'mid'
+            },
             {
                 type: 'piston_crusher',
                 x: firstBeam.x + firstBeam.w + 35,
@@ -587,6 +667,18 @@ class AILevelGenerator {
             },
 
             // Zone 3: Exit Climax Traps
+            {
+                type: 'shifting_block',
+                x: doorX - 60,
+                y: floorY - 18,
+                w: 44,
+                h: 18,
+                shiftAxis: 'y',
+                shiftDistance: -30,
+                shiftSpeed: 2.0,
+                triggerRange: 55,
+                zone: 'exit'
+            },
             {
                 type: 'collapsing_floor',
                 x: doorX - 105,
@@ -744,6 +836,17 @@ class AILevelGenerator {
 
         // Zone 1: Base / Entry Traps
         candidateTrapSlots.push({
+            type: 'pop_up_wall',
+            x: spawnX + 110,
+            y: bottomFloor,
+            w: 32,
+            h: 30,
+            riseHeight: 34,
+            riseSpeed: 2.2,
+            triggerRange: 50,
+            zone: 'entry'
+        });
+        candidateTrapSlots.push({
             type: 'collapsing_floor',
             x: spawnX + 80,
             y: bottomFloor,
@@ -764,6 +867,41 @@ class AILevelGenerator {
 
         // Zone 2: Mid-Story Climb Traps
         const midFloor = tierFloors[1] || bottomFloor;
+        candidateTrapSlots.push({
+            type: 'shifting_block',
+            x: Math.round(boundsW * 0.35),
+            y: midFloor - 15,
+            w: 48,
+            h: 20,
+            shiftAxis: 'x',
+            shiftDistance: 45,
+            shiftSpeed: 2.0,
+            triggerRange: 55,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'wall_ejector',
+            x: 80,
+            y: midFloor - 35,
+            w: 30,
+            h: 32,
+            punchDist: 38,
+            punchSpeed: 2.4,
+            direction: 1,
+            triggerRange: 55,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'ceiling_squish',
+            x: Math.round(boundsW * 0.55),
+            y: midFloor - cHeight,
+            w: 46,
+            h: 26,
+            dropDistance: Math.max(25, cHeight - 24),
+            dropSpeed: 2.0,
+            triggerRange: 55,
+            zone: 'mid'
+        });
         candidateTrapSlots.push({
             type: 'spinning_saw',
             x: 320,
@@ -799,6 +937,17 @@ class AILevelGenerator {
         });
 
         // Zone 3: Summit Climax Traps
+        candidateTrapSlots.push({
+            type: 'pop_up_wall',
+            x: doorX + 40,
+            y: topFloor,
+            w: 30,
+            h: 30,
+            riseHeight: 32,
+            riseSpeed: 2.2,
+            triggerRange: 45,
+            zone: 'exit'
+        });
         candidateTrapSlots.push({
             type: 'rolling_ball',
             x: boundsW - 130,
@@ -902,6 +1051,17 @@ class AILevelGenerator {
         const candidateTrapSlots = [
             // Zone 1: Upper Tier Traps
             {
+                type: 'pop_up_wall',
+                x: 180,
+                y: tier1Floor,
+                w: 30,
+                h: 30,
+                riseHeight: 34,
+                riseSpeed: 2.2,
+                triggerRange: 50,
+                zone: 'entry'
+            },
+            {
                 type: 'collapsing_floor',
                 x: boundsW - 250,
                 y: tier1Floor,
@@ -922,6 +1082,41 @@ class AILevelGenerator {
             },
 
             // Zone 2: Mid Chasm / Shaft Traps
+            {
+                type: 'shifting_block',
+                x: Math.round(boundsW * 0.4),
+                y: tier2Floor - 10,
+                w: 50,
+                h: 20,
+                shiftAxis: 'y',
+                shiftDistance: -35,
+                shiftSpeed: 2.0,
+                triggerRange: 55,
+                zone: 'mid'
+            },
+            {
+                type: 'wall_ejector',
+                x: 80,
+                y: tier2Floor - 30,
+                w: 30,
+                h: 32,
+                punchDist: 36,
+                punchSpeed: 2.4,
+                direction: 1,
+                triggerRange: 55,
+                zone: 'mid'
+            },
+            {
+                type: 'ceiling_squish',
+                x: Math.round(boundsW * 0.6),
+                y: tier2Floor - cHeight,
+                w: 48,
+                h: 26,
+                dropDistance: Math.max(25, cHeight - 24),
+                dropSpeed: 2.0,
+                triggerRange: 55,
+                zone: 'mid'
+            },
             {
                 type: 'moving_platform',
                 x: 300,
@@ -958,6 +1153,17 @@ class AILevelGenerator {
             },
 
             // Zone 3: Bottom Crypt & Exit Traps
+            {
+                type: 'pop_up_wall',
+                x: boundsW - 220,
+                y: tier3Floor,
+                w: 32,
+                h: 30,
+                riseHeight: 32,
+                riseSpeed: 2.2,
+                triggerRange: 48,
+                zone: 'exit'
+            },
             {
                 type: 'rolling_ball',
                 x: boundsW - 140,
@@ -1094,6 +1300,29 @@ class AILevelGenerator {
 
             // Zone 2: High Road Traps
             {
+                type: 'pop_up_wall',
+                x: 80 + entryW + Math.round(midW * 0.4),
+                y: dividerY,
+                w: 30,
+                h: 30,
+                riseHeight: 32,
+                riseSpeed: 2.2,
+                triggerRange: 50,
+                zone: 'mid'
+            },
+            {
+                type: 'shifting_block',
+                x: 80 + entryW + Math.round(midW * 0.75),
+                y: dividerY - 10,
+                w: 46,
+                h: 20,
+                shiftAxis: 'x',
+                shiftDistance: -40,
+                shiftSpeed: 2.0,
+                triggerRange: 55,
+                zone: 'mid'
+            },
+            {
                 type: 'rolling_ball',
                 x: 80 + entryW + midW - 30,
                 y: dividerY,
@@ -1127,6 +1356,17 @@ class AILevelGenerator {
 
             // Zone 2: Low Road Crawlway Traps
             {
+                type: 'ceiling_squish',
+                x: 80 + entryW + Math.round(midW * 0.35),
+                y: dividerY + dividerH,
+                w: 50,
+                h: 24,
+                dropDistance: Math.max(18, (groundFloor - (dividerY + dividerH)) - 22),
+                dropSpeed: 2.0,
+                triggerRange: 50,
+                zone: 'mid'
+            },
+            {
                 type: 'spinning_saw',
                 x: 80 + entryW + Math.round(midW * 0.7),
                 y: groundFloor - 33,
@@ -1150,6 +1390,18 @@ class AILevelGenerator {
             },
 
             // Zone 3: Exit Chamber Traps
+            {
+                type: 'wall_ejector',
+                x: boundsW - exitW - 20,
+                y: groundFloor - 30,
+                w: 28,
+                h: 30,
+                punchDist: 36,
+                punchSpeed: 2.4,
+                direction: -1,
+                triggerRange: 55,
+                zone: 'exit'
+            },
             {
                 type: 'collapsing_floor',
                 x: boundsW - 180,
@@ -1272,6 +1524,17 @@ class AILevelGenerator {
 
         // Zone 1: Entry / Approach Traps
         candidateTrapSlots.push({
+            type: 'pop_up_wall',
+            x: 80 + Math.round(entryW * 0.5),
+            y: floorY,
+            w: 30,
+            h: 30,
+            riseHeight: 32,
+            riseSpeed: 2.2,
+            triggerRange: 50,
+            zone: 'entry'
+        });
+        candidateTrapSlots.push({
             type: 'collapsing_floor',
             x: 80 + Math.round(entryW * 0.35),
             y: floorY,
@@ -1301,6 +1564,29 @@ class AILevelGenerator {
         });
 
         // Zone 2: Mid Chasm & Island Traps
+        candidateTrapSlots.push({
+            type: 'shifting_block',
+            x: 80 + entryW + chasmW + 10,
+            y: floorY - 15,
+            w: Math.min(48, islandW - 15),
+            h: 20,
+            shiftAxis: 'x',
+            shiftDistance: 40,
+            shiftSpeed: 2.0,
+            triggerRange: 55,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'ceiling_squish',
+            x: 80 + entryW + chasmW + Math.round(islandW * 0.3),
+            y: ceilY,
+            w: 48,
+            h: 26,
+            dropDistance: Math.max(25, (floorY - ceilY) - 24),
+            dropSpeed: 2.0,
+            triggerRange: 55,
+            zone: 'mid'
+        });
         candidateTrapSlots.push({
             type: 'spinning_saw',
             x: 80 + entryW + Math.round(chasmW * 0.5),
@@ -1344,6 +1630,18 @@ class AILevelGenerator {
         });
 
         // Zone 3: Exit Platform Climax Traps
+        candidateTrapSlots.push({
+            type: 'wall_ejector',
+            x: boundsW - 80,
+            y: floorY - 32,
+            w: 30,
+            h: 32,
+            punchDist: 36,
+            punchSpeed: 2.4,
+            direction: -1,
+            triggerRange: 55,
+            zone: 'exit'
+        });
         candidateTrapSlots.push({
             type: 'spinning_saw',
             x: boundsW - 160,
@@ -1435,6 +1733,17 @@ class AILevelGenerator {
         const candidateTrapSlots = [
             // Zone 1: Entry / Approach Traps
             {
+                type: 'pop_up_wall',
+                x: 180,
+                y: floorY,
+                w: 32,
+                h: 30,
+                riseHeight: 34,
+                riseSpeed: 2.2,
+                triggerRange: 50,
+                zone: 'entry'
+            },
+            {
                 type: 'collapsing_floor',
                 x: 170,
                 y: floorY,
@@ -1507,7 +1816,30 @@ class AILevelGenerator {
             }
         }
 
-        // Zone 2 additional: surprise rolling ball through crusher alley
+        // Zone 2 additional: Living block traps + surprise rolling ball through crusher alley
+        candidateTrapSlots.push({
+            type: 'ceiling_squish',
+            x: Math.round(240 + span * 0.5),
+            y: ceilY,
+            w: 48,
+            h: 26,
+            dropDistance: Math.max(25, (floorY - ceilY) - 22),
+            dropSpeed: 2.0,
+            triggerRange: 50,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'shifting_block',
+            x: Math.round(240 + span * 1.5),
+            y: floorY - 18,
+            w: 46,
+            h: 20,
+            shiftAxis: 'y',
+            shiftDistance: -32,
+            shiftSpeed: 2.0,
+            triggerRange: 55,
+            zone: 'mid'
+        });
         candidateTrapSlots.push({
             type: 'rolling_ball',
             x: Math.min(boundsW - 200, 240 + Math.round((numCrushers - 1) * span) + 80),
@@ -1520,6 +1852,18 @@ class AILevelGenerator {
         });
 
         // Zone 3: Exit Climax Traps
+        candidateTrapSlots.push({
+            type: 'wall_ejector',
+            x: boundsW - 75,
+            y: floorY - 32,
+            w: 28,
+            h: 32,
+            punchDist: 36,
+            punchSpeed: 2.4,
+            direction: -1,
+            triggerRange: 55,
+            zone: 'exit'
+        });
         candidateTrapSlots.push({
             type: 'collapsing_floor',
             x: boundsW - 170,
@@ -1613,6 +1957,17 @@ class AILevelGenerator {
         const candidateTrapSlots = [
             // Zone 1: Entry / Approach Traps
             {
+                type: 'pop_up_wall',
+                x: 180,
+                y: floorY,
+                w: 32,
+                h: 30,
+                riseHeight: 34,
+                riseSpeed: 2.2,
+                triggerRange: 50,
+                zone: 'entry'
+            },
+            {
                 type: 'collapsing_floor',
                 x: 170,
                 y: floorY,
@@ -1642,6 +1997,29 @@ class AILevelGenerator {
             },
 
             // Zone 2: Mid Ramp & Vault Shelf Traps
+            {
+                type: 'shifting_block',
+                x: Math.round(300 + shelfSpan * 0.5),
+                y: floorY - 18,
+                w: 48,
+                h: 20,
+                shiftAxis: 'x',
+                shiftDistance: -45,
+                shiftSpeed: 2.0,
+                triggerRange: 55,
+                zone: 'mid'
+            },
+            {
+                type: 'ceiling_squish',
+                x: Math.round(300 + shelfSpan * 0.8),
+                y: ceilY,
+                w: 46,
+                h: 26,
+                dropDistance: Math.max(25, (floorY - ceilY) - 22),
+                dropSpeed: 2.0,
+                triggerRange: 50,
+                zone: 'mid'
+            },
             {
                 type: 'rolling_ball',
                 x: boundsW - 140,
@@ -1705,6 +2083,18 @@ class AILevelGenerator {
             },
 
             // Zone 3: Exit Climax Traps
+            {
+                type: 'wall_ejector',
+                x: boundsW - 75,
+                y: floorY - 32,
+                w: 28,
+                h: 32,
+                punchDist: 36,
+                punchSpeed: 2.4,
+                direction: -1,
+                triggerRange: 55,
+                zone: 'exit'
+            },
             {
                 type: 'collapsing_floor',
                 x: boundsW - 180,

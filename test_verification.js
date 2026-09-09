@@ -30,11 +30,20 @@ for (let lvl = 5; lvl <= 15; lvl++) {
     if (cSlots.length < 8) {
         throw new Error(`Level ${lvl} has only ${cSlots.length} candidate slots, expected >= 8!`);
     }
-    if (activeTraps.length < 4) {
-        throw new Error(`Level ${lvl} has only ${activeTraps.length} active traps, expected >= 4!`);
+
+    const expectedMin = lvl <= 7 ? 2 : 3;
+    const expectedMax = lvl <= 7 ? 3 : 4;
+    if (activeTraps.length < expectedMin || activeTraps.length > expectedMax) {
+        throw new Error(`Level ${lvl} has ${activeTraps.length} active traps, expected between ${expectedMin} and ${expectedMax}!`);
+    }
+
+    // Verify mathematical solvability guarantee
+    const solvable = ai.verifyLevelSolvability(level, activeTraps);
+    if (!solvable) {
+        throw new Error(`Level ${lvl} failed solvability check!`);
     }
 }
-console.log('✔ All generated levels verified with >= 8 candidate slots and progressive active traps!\n');
+console.log('✔ All generated levels verified: candidate slots >= 8, focused 2-4 trap budget, and 100% mathematically solvable!\n');
 
 console.log('=== 2. VERIFYING SERVER AI ENDPOINTS (PORT 3333) ===');
 
@@ -92,8 +101,8 @@ function makeRequest(path, method = 'GET', data = null) {
             traps: predictRes.data.selectedTraps?.map(t => t.type),
             classification: predictRes.data.classification
         });
-        if (!predictRes.data.selectedTraps || predictRes.data.selectedTraps.length < 5) {
-            throw new Error(`Predict returned ${predictRes.data.selectedTraps?.length} traps for Level 6, expected 5!`);
+        if (!predictRes.data.selectedTraps || predictRes.data.selectedTraps.length < 2 || predictRes.data.selectedTraps.length > 3) {
+            throw new Error(`Predict returned ${predictRes.data.selectedTraps?.length} traps for Level 6, expected 2-3!`);
         }
 
         // Test /api/ai-learn (death)
@@ -101,8 +110,8 @@ function makeRequest(path, method = 'GET', data = null) {
             type: 'death',
             event: {
                 levelId: 6,
-                reason: 'collapsing_floor',
-                fatal_trap: 'collapsing_floor',
+                reason: 'pop_up_wall',
+                fatal_trap: 'pop_up_wall',
                 telemetry: { totalFrames: 600, rushDistance: 4500 }
             }
         });

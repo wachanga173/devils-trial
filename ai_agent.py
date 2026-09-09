@@ -206,31 +206,31 @@ class DevilPythonAI:
         classification = self.classify(telemetry or {})
         profile = classification['profile']
 
-        # Progressive Difficulty Multiplier D(L)
+        # Progressive Difficulty Multiplier D(L) and Focused Psychological Trap Budget (2 to 4 traps)
         if level_id <= 1:
             diff_mult = 1.0
-            max_traps = 2
+            max_traps = 1
         elif level_id == 2:
             diff_mult = 1.15
             max_traps = 2
         elif level_id == 3:
             diff_mult = 1.35
-            max_traps = 3
+            max_traps = 2
         elif level_id == 4:
             diff_mult = 1.55
             max_traps = 3
         elif level_id == 5:
-            diff_mult = 1.75
-            max_traps = 4
+            diff_mult = 1.70
+            max_traps = 3
         elif level_id == 6:
-            diff_mult = 2.0
-            max_traps = 5
+            diff_mult = 1.85
+            max_traps = 3
         elif level_id == 7:
-            diff_mult = 2.25
-            max_traps = 6
+            diff_mult = 2.0
+            max_traps = 3
         else:
-            diff_mult = min(3.2, 2.25 + (level_id - 7) * 0.20)
-            max_traps = min(8, 6 + (level_id - 7))
+            diff_mult = min(2.5, 2.0 + (level_id - 7) * 0.10)
+            max_traps = min(4, 3 + (level_id % 2))
 
         active_traps = list(static_traps or [])
 
@@ -243,26 +243,32 @@ class DevilPythonAI:
             efficacy = self.trap_efficacy.get(t_type, 1.0)
 
             if profile == "RUSHER":
-                if t_type in ('collapsing_floor', 'piston_crusher'):
-                    affinity += 2.0
-                elif t_type in ('rolling_ball', 'hidden_spike'):
-                    affinity += 1.3
-            elif profile == "CAUTIOUS":
-                if t_type == 'rolling_ball':
+                if t_type in ('pop_up_wall', 'ceiling_squish'):
                     affinity += 2.4
-                elif t_type in ('piston_crusher', 'spinning_saw'):
-                    affinity += 1.4
-            elif profile == "HOPPER":
-                if t_type == 'dropping_spike':
-                    affinity += 2.6
-                elif t_type in ('spinning_saw', 'hidden_spike'):
+                elif t_type in ('collapsing_floor', 'piston_crusher'):
+                    affinity += 1.8
+                elif t_type in ('rolling_ball', 'hidden_spike'):
+                    affinity += 1.2
+            elif profile == "CAUTIOUS":
+                if t_type in ('wall_ejector', 'rolling_ball'):
+                    affinity += 2.4
+                elif t_type in ('shifting_block', 'piston_crusher'):
                     affinity += 1.5
+            elif profile == "HOPPER":
+                if t_type in ('pop_up_wall', 'shifting_block'):
+                    affinity += 2.5
+                elif t_type == 'dropping_spike':
+                    affinity += 2.2
+                elif t_type in ('spinning_saw', 'hidden_spike'):
+                    affinity += 1.3
             elif profile == "CHAOTIC":
-                if t_type in ('troll_portal', 'sliding_door', 'spring_pad'):
+                if t_type in ('troll_portal', 'wall_ejector', 'sliding_door'):
                     affinity += 2.2
             elif profile == "METHODICAL":
-                if t_type in ('collapsing_floor', 'piston_crusher', 'rolling_ball'):
-                    affinity += 1.6
+                if t_type in ('ceiling_squish', 'pop_up_wall', 'shifting_block'):
+                    affinity += 2.0
+                elif t_type in ('collapsing_floor', 'piston_crusher'):
+                    affinity += 1.4
 
             # Zone variety weighting
             zone = slot.get('zone', 'mid')

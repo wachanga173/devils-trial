@@ -89,6 +89,18 @@ class TrapManager {
             case 'spring_pad':
                 trap = new SpringPadTrap(def);
                 break;
+            case 'pop_up_wall':
+                trap = new PopUpWallTrap(def);
+                break;
+            case 'ceiling_squish':
+                trap = new CeilingSquishTrap(def);
+                break;
+            case 'shifting_block':
+                trap = new ShiftingBlockTrap(def);
+                break;
+            case 'wall_ejector':
+                trap = new WallEjectorTrap(def);
+                break;
         }
         if (trap) this.traps.push(trap);
     }
@@ -423,22 +435,54 @@ class AdaptiveDoor {
     }
 
     findSafeLandingSpot(targetX, dir) {
-        const minX = 140;
-        const maxX = 720;
-        let safeX = Math.max(minX, Math.min(maxX, targetX));
+        const boundsW = (this.level && this.level.bounds) ? this.level.bounds.width : 840;
+        const minX = 80;
+        const maxX = boundsW - 80 - this.w;
 
+        // Find the solid floor supporting the door at its base
+        const floorY = this.baseY + this.h;
+        let supportingSolid = null;
+        if (this.level && this.level.solids) {
+            supportingSolid = this.level.solids.find(s => 
+                Math.abs(s.y - floorY) <= 5 && 
+                s.x <= this.baseX + 10 && 
+                (s.x + s.w) >= this.baseX + this.w - 10
+            );
+        }
+
+        let floorLeft = minX;
+        let floorRight = maxX;
+        if (supportingSolid) {
+            floorLeft = Math.max(minX, supportingSolid.x + 10);
+            floorRight = Math.min(maxX, supportingSolid.x + supportingSolid.w - this.w - 10);
+        }
+
+        // Clamp targetX strictly to valid solid ground on the current story
+        let safeX = Math.max(floorLeft, Math.min(floorRight, targetX));
+
+        // If target was too close or cramped, pick a safe landing at least 65px away along the same floor
+        if (Math.abs(safeX - this.x) < 55) {
+            const shiftAttempt = dir !== 0 ? dir : -1;
+            const cand1 = this.x + shiftAttempt * 85;
+            const cand2 = this.x - shiftAttempt * 85;
+
+            if (cand1 >= floorLeft && cand1 <= floorRight) {
+                safeX = cand1;
+            } else if (cand2 >= floorLeft && cand2 <= floorRight) {
+                safeX = cand2;
+            }
+        }
+
+        // Avoid landing directly on static spikes
         if (this.level && this.level.staticTraps) {
             for (const trap of this.level.staticTraps) {
                 if (Math.abs(safeX - trap.x) < 36) {
-                    safeX += dir * 42;
+                    safeX = safeX > trap.x ? Math.min(floorRight, trap.x + 42) : Math.max(floorLeft, trap.x - 42 - this.w);
                 }
             }
         }
 
-        if (safeX < minX || safeX > maxX) {
-            safeX = this.x - dir * 75;
-        }
-        return Math.max(minX, Math.min(maxX, safeX));
+        return Math.max(floorLeft, Math.min(floorRight, safeX));
     }
 
     draw(ctx, theme) {
@@ -455,15 +499,6 @@ class AdaptiveDoor {
             isAlert: this.isAlert,
             shutProgress: this.shutProgress
         });
-
-        // Welcoming golden beacon glow when door settles
-        if (this.state === 'settled' && !this.isShifting) {
-            const glow = Math.sin(Date.now() * 0.006) * 0.18 + 0.18;
-            ctx.fillStyle = `rgba(255, 202, 40, ${glow})`;
-            ctx.beginPath();
-            ctx.arc(0, 0, this.w / 2 + 5, 0, Math.PI * 2);
-            ctx.fill();
-        }
 
         ctx.restore();
     }
@@ -1551,11 +1586,324 @@ class SpringPadTrap {
     }
 }
 
+// --- 11. LIVING POP-UP WALL BLOCK TRAP ---
+class PopUpWallTrap {
+    constructor(def) {
+        this.x = def.x;
+        this.y = def.y; // Base floor line
+        this.w = def.w || 32;
+        this.maxH = def.h || 40;
+        this.currentH = 0;
+        this.state = 'dormant'; // 'dormant', 'rising', 'risen'
+        this.triggerRange = def.triggerRange || 70;
+        this.speed = def.speed || 3.5;
+        this.isSolid = true;
+        this.isDynamicBlock = true;
+    }
+
+    update(player, particles, onTrigger) {
+        const pCenterX = player.x;
+        const pBottom = player.y;
+        const dist = Math.abs(pCenterX - (this.x + this.w / 2));
+        const isNearFloor = Math.abs(pBottom - this.y) < 32;
+
+        if (this.state === 'dormant') {
+            if (dist < this.triggerRange && isNearFloor) {
+                this.state = 'rising';
+                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
+                if (onTrigger) onTrigger(this);
+            }
+        } else if (this.state === 'rising') {
+            this.currentH = Math.min(this.maxH, this.currentH + this.speed);
+            if (this.currentH >= this.maxH) {
+                this.state = 'risen';
+            }
+        }
+    }
+
+    getSolidBox() {
+        if (this.currentH <= 2) return null;
+        return {
+            x: this.x,
+            y: this.y - this.currentH,
+            w: this.w,
+            h: this.currentH
+        };
+    }
+
+    getHazardBox() {
+        return null; // Physical barrier to bonk / block
+    }
+
+    draw(ctx, theme) {
+        if (this.currentH <= 1) return;
+        ctx.save();
+        const drawY = this.y - this.currentH;
+        ctx.fillStyle = theme.groundColor || '#2c221e';
+        ctx.fillRect(this.x, drawY, this.w, this.currentH);
+
+        ctx.fillStyle = theme.groundTopColor || '#3d3029';
+        ctx.fillRect(this.x, drawY, this.w, Math.min(4, this.currentH));
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(this.x, drawY, this.w, this.currentH);
+
+        if (this.currentH > 18) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.beginPath();
+            ctx.moveTo(this.x, drawY + this.currentH / 2);
+            ctx.lineTo(this.x + this.w, drawY + this.currentH / 2);
+            ctx.stroke();
+        }
+        ctx.restore();
+    }
+}
+
+// --- 12. LIVING CEILING SQUISH BLOCK TRAP ---
+class CeilingSquishTrap {
+    constructor(def) {
+        this.x = def.x;
+        this.y = def.y; // Base ceiling level
+        this.w = def.w || 60;
+        this.maxDrop = def.dropH || 38;
+        this.currentDrop = 0;
+        this.floorY = def.floorY || (def.y + 115);
+        this.state = 'dormant';
+        this.triggerRange = def.triggerRange || 75;
+        this.speed = def.speed || 3.0;
+        this.isSolid = true;
+        this.isDynamicBlock = true;
+    }
+
+    update(player, particles, onTrigger) {
+        const pCenterX = player.x;
+        const dist = Math.abs(pCenterX - (this.x + this.w / 2));
+
+        if (this.state === 'dormant') {
+            if (dist < this.triggerRange && player.y > this.y) {
+                this.state = 'dropping';
+                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
+                if (onTrigger) onTrigger(this);
+            }
+        } else if (this.state === 'dropping') {
+            this.currentDrop = Math.min(this.maxDrop, this.currentDrop + this.speed);
+            if (this.currentDrop >= this.maxDrop) {
+                this.state = 'dropped';
+            }
+        }
+    }
+
+    getSolidBox() {
+        if (this.currentDrop <= 1) return null;
+        return {
+            x: this.x,
+            y: this.y,
+            w: this.w,
+            h: this.currentDrop
+        };
+    }
+
+    getHazardBox() {
+        return null; // Crawl underneath safely!
+    }
+
+    draw(ctx, theme) {
+        if (this.currentDrop <= 1) return;
+        ctx.save();
+        ctx.fillStyle = theme.ceilingColor || theme.groundColor || '#2c221e';
+        ctx.fillRect(this.x, this.y, this.w, this.currentDrop);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        ctx.fillRect(this.x, this.y + this.currentDrop - 4, this.w, 4);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(this.x, this.y, this.w, this.currentDrop);
+        ctx.restore();
+    }
+}
+
+// --- 13. LIVING SHIFTING STEPPING BLOCK TRAP ---
+class ShiftingBlockTrap {
+    constructor(def) {
+        this.baseX = def.x;
+        this.baseY = def.y;
+        this.x = def.x;
+        this.y = def.y;
+        this.w = def.w || 55;
+        this.h = def.h || 20;
+        this.shiftDist = def.shiftDist || 50;
+        this.shiftAxis = def.axis || 'x';
+        this.state = 'dormant';
+        this.progress = 0;
+        this.speed = def.speed || 0.055;
+        this.triggerRange = def.triggerRange || 70;
+        this.isSolid = true;
+        this.isDynamicBlock = true;
+    }
+
+    update(player, particles, onTrigger) {
+        if (this.state === 'dormant') {
+            const pCenterX = player.x;
+            const dist = Math.abs(pCenterX - (this.baseX + this.w / 2));
+            if (dist < this.triggerRange) {
+                this.state = 'shifting';
+                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
+                if (onTrigger) onTrigger(this);
+            }
+        } else if (this.state === 'shifting') {
+            this.progress = Math.min(1, this.progress + this.speed);
+            if (this.shiftAxis === 'x') {
+                this.x = this.baseX + this.shiftDist * Math.sin(this.progress * Math.PI / 2);
+            } else {
+                this.y = this.baseY + this.shiftDist * Math.sin(this.progress * Math.PI / 2);
+            }
+            if (this.progress >= 1) {
+                this.state = 'shifted';
+            }
+        }
+    }
+
+    getSolidBox() {
+        return {
+            x: this.x,
+            y: this.y,
+            w: this.w,
+            h: this.h
+        };
+    }
+
+    getHazardBox() {
+        return null;
+    }
+
+    draw(ctx, theme) {
+        ctx.save();
+        ctx.fillStyle = theme.platformColor || theme.groundColor || '#3d3029';
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.fillStyle = theme.groundTopColor || '#4e3f36';
+        ctx.fillRect(this.x, this.y, this.w, 3.5);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(this.x, this.y, this.w, this.h);
+        ctx.restore();
+    }
+}
+
+// --- 14. LIVING WALL EJECTOR BLOCK TRAP ---
+class WallEjectorTrap {
+    constructor(def) {
+        this.x = def.x;
+        this.y = def.y;
+        this.w = def.w || 24;
+        this.h = def.h || 32;
+        this.ejectDist = def.ejectDist || 36;
+        this.direction = def.direction || 1;
+        this.currentEject = 0;
+        this.state = 'dormant';
+        this.triggerRange = def.triggerRange || 65;
+        this.speed = def.speed || 4.5;
+        this.pauseTimer = 0;
+        this.isSolid = true;
+        this.isDynamicBlock = true;
+    }
+
+    update(player, particles, onTrigger) {
+        const pCenterX = player.x;
+        const dist = Math.abs(pCenterX - this.x);
+        const pNearY = Math.abs(player.y - (this.y + this.h / 2)) < 35;
+
+        if (this.state === 'dormant') {
+            if (dist < this.triggerRange && pNearY) {
+                this.state = 'punching';
+                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
+                if (onTrigger) onTrigger(this);
+            }
+        } else if (this.state === 'punching') {
+            this.currentEject = Math.min(this.ejectDist, this.currentEject + this.speed);
+            if (this.currentEject >= this.ejectDist) {
+                this.state = 'extended';
+                this.pauseTimer = 35;
+            }
+        } else if (this.state === 'extended') {
+            this.pauseTimer--;
+            if (this.pauseTimer <= 0) {
+                this.state = 'retracting';
+            }
+        } else if (this.state === 'retracting') {
+            this.currentEject = Math.max(0, this.currentEject - 1.5);
+            if (this.currentEject <= 0) {
+                this.state = 'dormant';
+            }
+        }
+    }
+
+    getSolidBox() {
+        if (this.currentEject <= 2) return null;
+        const blockX = this.direction > 0 ? this.x : (this.x - this.currentEject);
+        return {
+            x: blockX,
+            y: this.y,
+            w: this.currentEject,
+            h: this.h
+        };
+    }
+
+    getHazardBox() {
+        return null;
+    }
+
+    draw(ctx, theme) {
+        if (this.currentEject <= 2) return;
+        ctx.save();
+        const blockX = this.direction > 0 ? this.x : (this.x - this.currentEject);
+        ctx.fillStyle = theme.groundColor || '#2c221e';
+        ctx.fillRect(blockX, this.y, this.currentEject, this.h);
+        ctx.fillStyle = 'rgba(255, 202, 40, 0.4)';
+        ctx.fillRect(this.direction > 0 ? (blockX + this.currentEject - 3) : blockX, this.y, 3, this.h);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(blockX, this.y, this.currentEject, this.h);
+        ctx.restore();
+    }
+}
+
 function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
     const { eyeLookX = 0, state = 'idle', isAlert = false, shutProgress = 0 } = options;
 
     ctx.save();
-    // Outer arch frame
+
+    // 1. SETTLED STATE: The door will not jump again -> TURNS COMPLETELY PITCH BLACK!
+    if (state === 'settled' || state === 'entering') {
+        // Deep matte black outer arched frame
+        ctx.fillStyle = '#050505';
+        ctx.beginPath();
+        ctx.moveTo(x, y + h);
+        ctx.lineTo(x, y + w / 2);
+        ctx.arc(x + w / 2, y + w / 2, w / 2, Math.PI, 0);
+        ctx.lineTo(x + w, y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Pitch black inner doorway void
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.moveTo(x + 2.5, y + h);
+        ctx.lineTo(x + 2.5, y + w / 2 + 2);
+        ctx.arc(x + w / 2, y + w / 2 + 2, w / 2 - 2.5, Math.PI, 0);
+        ctx.lineTo(x + w - 2.5, y + h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Subtle dark crisp silhouette edge
+        ctx.strokeStyle = '#222222';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+        return;
+    }
+
+    // Outer arch frame for active/hopping door
     ctx.fillStyle = theme.doorFrameColor || '#473628';
     ctx.beginPath();
     ctx.moveTo(x, y + h);
@@ -1566,24 +1914,7 @@ function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
     ctx.fill();
 
     // Inner doorway rendering
-    if (state === 'settled' || state === 'entering') {
-        // Deep passage void: open dark portal leading to next stage!
-        ctx.fillStyle = '#0a0705';
-        ctx.beginPath();
-        ctx.moveTo(x + 3.5, y + h);
-        ctx.lineTo(x + 3.5, y + w / 2 + 2);
-        ctx.arc(x + w / 2, y + w / 2 + 2, w / 2 - 3.5, Math.PI, 0);
-        ctx.lineTo(x + w - 3.5, y + h);
-        ctx.closePath();
-        ctx.fill();
-
-        // Golden threshold light glow
-        const glow = ctx.createLinearGradient(x + w / 2, y + h, x + w / 2, y + w / 2);
-        glow.addColorStop(0, 'rgba(255, 202, 40, 0.45)');
-        glow.addColorStop(1, 'rgba(255, 202, 40, 0.0)');
-        ctx.fillStyle = glow;
-        ctx.fill();
-    } else if (state === 'shutting' || state === 'shut') {
+    if (state === 'shutting' || state === 'shut') {
         // First draw the dark inner passage behind
         ctx.fillStyle = '#0a0705';
         ctx.beginPath();
@@ -1713,4 +2044,8 @@ window.EmergingSpikeTrap = EmergingSpikeTrap;
 window.SpinningSawbladeTrap = SpinningSawbladeTrap;
 window.MovingPlatformTrap = MovingPlatformTrap;
 window.SpringPadTrap = SpringPadTrap;
+window.PopUpWallTrap = PopUpWallTrap;
+window.CeilingSquishTrap = CeilingSquishTrap;
+window.ShiftingBlockTrap = ShiftingBlockTrap;
+window.WallEjectorTrap = WallEjectorTrap;
 window.drawArchedDoor = drawArchedDoor;
