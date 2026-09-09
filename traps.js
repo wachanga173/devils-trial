@@ -19,7 +19,7 @@ class TrapManager {
         const candidateSlots = levelData.candidateTrapSlots || [];
         if (candidateSlots.length > 0) {
             if (this.chaosMode && aiModel) {
-                const adaptiveTraps = aiModel.selectAdaptiveTraps(candidateSlots, levelData.staticTraps, levelData.id || 1);
+                const adaptiveTraps = aiModel.selectAdaptiveTraps(candidateSlots, levelData.staticTraps, levelData.id || 1, levelData);
                 for (const slot of adaptiveTraps) {
                     this.createTrap(slot);
                 }

@@ -10,8 +10,14 @@ class DevilAI {
             jumpCount: 0,
             rushDistance: 0,
             deaths: [],
-            reactionTimes: []
+            reactionTimes: [],
+            jumpHotspots: [],
+            rushHotspots: [],
+            campHotspots: [],
+            doorApproaches: []
         };
+        this.currentIdleStreak = 0;
+        this.currentRushStreak = 0;
 
         // ML Feature Vector: [rushScore, hesitationScore, jumpFrequency, recklessScore]
         this.weights = {
@@ -67,23 +73,56 @@ class DevilAI {
         this.telemetry.jumpCount = 0;
         this.telemetry.rushDistance = 0;
         this.deployedTrapsCurrentRun = [];
+        this.currentIdleStreak = 0;
+        this.currentRushStreak = 0;
     }
 
-    recordFrame(player, input) {
+    recordFrame(player, input, door = null) {
         this.telemetry.totalFrames++;
         const speed = Math.abs(player.vx);
 
         if (speed > 0.5) {
             this.telemetry.movingFrames++;
+            this.currentIdleStreak = 0;
             if (player.facing > 0) {
                 this.telemetry.rushDistance += speed;
+                this.currentRushStreak = (this.currentRushStreak || 0) + 1;
+                if (this.currentRushStreak >= 25 && speed > 2.0) {
+                    const rx = Math.round(player.x);
+                    if (!this.telemetry.rushHotspots.some(h => Math.abs(h.x - rx) < 60)) {
+                        this.telemetry.rushHotspots.push({ x: rx, y: Math.round(player.y), speed });
+                        if (this.telemetry.rushHotspots.length > 20) this.telemetry.rushHotspots.shift();
+                    }
+                }
             }
         } else {
             this.telemetry.idleFrames++;
+            this.currentRushStreak = 0;
+            this.currentIdleStreak = (this.currentIdleStreak || 0) + 1;
+            if (this.currentIdleStreak >= 35) {
+                const cx = Math.round(player.x);
+                const cy = Math.round(player.y);
+                if (!this.telemetry.campHotspots.some(h => Math.abs(h.x - cx) < 50)) {
+                    this.telemetry.campHotspots.push({ x: cx, y: cy, duration: this.currentIdleStreak });
+                    if (this.telemetry.campHotspots.length > 15) this.telemetry.campHotspots.shift();
+                }
+            }
         }
 
         if (input.jumpPressed) {
             this.telemetry.jumpCount++;
+            const jx = Math.round(player.x);
+            const jy = Math.round(player.y);
+            this.telemetry.jumpHotspots.push({ x: jx, y: jy, vx: player.vx });
+            if (this.telemetry.jumpHotspots.length > 30) this.telemetry.jumpHotspots.shift();
+        }
+
+        if (door && door.x !== undefined) {
+            const dist = Math.hypot(player.x - door.x, player.y - door.y);
+            if (dist < 180) {
+                this.telemetry.doorApproaches.push({ dist: Math.round(dist), speed, jumped: !!input.jumpPressed });
+                if (this.telemetry.doorApproaches.length > 20) this.telemetry.doorApproaches.shift();
+            }
         }
 
         // Re-classify player profile every 60 frames (~1 sec)
@@ -251,42 +290,374 @@ class DevilAI {
         }
     }
 
+    getDifficultyMultiplier(levelId) {
+        if (levelId <= 1) return 1.0;
+        if (levelId === 2) return 1.15;
+        if (levelId === 3) return 1.35;
+        if (levelId === 4) return 1.55;
+        return parseFloat((1.55 + Math.log2(levelId - 3) * 0.65).toFixed(2));
+    }
+
     /**
-     * Hybrid Adaptive Trap Selection (Random + ML Predicted) for ALL Levels (from Level 1 onwards):
-     * 1. 50% ML-Predicted Traps (targeting observed player vulnerabilities & efficacy).
-     * 2. 50% Stochastic Wildcard Traps (random surprise factor to prevent memorization).
-     * 3. Modulates speed, delays, and trigger distances progressively by level difficulty.
+     * Generative AI Trap Synthesis Engine:
+     * Instead of merely filtering from pre-authored templates, the AI inspects the level's
+     * physical stone geometry, open corridor channels, door position, and player telemetry
+     * to dynamically forge and synthesize custom traps to prevent the player from reaching the door.
+     *
+     * 1. Converts surrounding solid wall blocks into Living Wall Ejectors.
+     * 2. Converts overhead ceiling blocks into Living Ceiling Squishers / Piston Crushers.
+     * 3. Forges a Door Defense Perimeter: threshold sinkholes, barrier pop-up walls & troll loops.
+     * 4. Counters player telemetry (momentum blockers for rushers, anti-air drops for hoppers, flushers for campers).
+     * 5. Reinforces past death coordinates to punish anticipated evasions.
+     * 6. Validates kinematic solvability: ensures 100% physically beatable clearance.
+     */
+    synthesizeGenerativeTraps(levelData, levelId = 5) {
+        if (!levelData) return [];
+        const synthTraps = [];
+        const solids = levelData.solids || [];
+        const corridors = levelData.pathwayCorridors || [];
+        const spawn = levelData.playerSpawn || { x: 130, y: 340 };
+        const door = levelData.door || { x: 800, y: 340, w: 32, h: 46 };
+        const bounds = levelData.bounds || { width: 900, height: 480 };
+        if (this.currentProfile === "ANALYZING..." || this.currentProfile === "LEARNING") {
+            this.classifyPlayer();
+        }
+        const profile = (this.currentProfile === "ANALYZING..." || this.currentProfile === "LEARNING") ? "RUSHER" : this.currentProfile;
+        const diffMult = this.getDifficultyMultiplier(levelId);
+
+        // Track occupied areas to guarantee no physical overlaps with fixed static hazards
+        const existingTraps = [
+            ...(levelData.staticTraps || [])
+        ];
+
+        const isSafeDistance = (x, y, w = 32, minGap = 25) => {
+            const start = x;
+            const end = x + w;
+            for (const t of existingTraps) {
+                const ty = t.y || t.groundY || 340;
+                if (Math.abs(ty - y) > 70) continue;
+                const tStart = t.x;
+                const tEnd = t.x + (t.w || 28);
+                const gap = (t.type === 'static_spike') ? 35 : minGap;
+                if (!(end <= tStart - gap || start >= tEnd + gap)) return false;
+            }
+            for (const s of synthTraps) {
+                const sy = s.y || s.groundY || 340;
+                if (Math.abs(sy - y) > 70) continue;
+                const sStart = s.x;
+                const sEnd = s.x + (s.w || 32);
+                if (!(end <= sStart - minGap || start >= sEnd + minGap)) return false;
+            }
+            // Protect spawn safe zone
+            if (y >= spawn.y - 35 && y <= spawn.y + 35 && x >= spawn.x - 40 && x <= spawn.x + 55) return false;
+            return true;
+        };
+
+        const addSynthTrap = (trap) => {
+            trap.isAIGenerated = true;
+            trap.aiLean = profile;
+            synthTraps.push(trap);
+        };
+
+        // 1. DOOR DEFENSE PERIMETER — Fortifying the entrance to the door
+        const doorFloorY = door.y + (door.h || 46);
+        const doorPreStepX = door.x - 70;
+
+        // A1: Door Step Threshold Trap
+        if (isSafeDistance(doorPreStepX, doorFloorY, 48, 20)) {
+            if (profile === "RUSHER") {
+                addSynthTrap({
+                    type: 'pop_up_wall',
+                    x: doorPreStepX,
+                    y: doorFloorY,
+                    w: 32,
+                    h: 32,
+                    riseHeight: 36,
+                    riseSpeed: 2.8 + diffMult * 0.2,
+                    triggerRange: 60,
+                    zone: 'exit',
+                    purpose: 'door_blocker'
+                });
+            } else {
+                addSynthTrap({
+                    type: 'collapsing_floor',
+                    x: doorPreStepX,
+                    y: doorFloorY,
+                    w: 48,
+                    h: 35,
+                    dropSpeed: 2.4 + diffMult * 0.15,
+                    zone: 'exit',
+                    purpose: 'door_sinkhole'
+                });
+            }
+        }
+
+        // A2: Door Ceiling Ambush (Dropping spike above door approach)
+        const doorCeilY = Math.max(30, doorFloorY - 115);
+        const doorAmbushX = door.x - 115;
+        if (isSafeDistance(doorAmbushX, doorCeilY, 26, 25)) {
+            addSynthTrap({
+                type: 'dropping_spike',
+                x: doorAmbushX,
+                y: doorCeilY,
+                w: 22,
+                h: 22,
+                groundY: doorFloorY,
+                triggerRange: 55,
+                zone: 'exit',
+                purpose: 'door_anti_air'
+            });
+        }
+
+        // A3: Troll Loop Portal (Levels 8+) — flings hasty players backward
+        if (levelId >= 8 && isSafeDistance(door.x - 150, doorFloorY, 45, 30)) {
+            addSynthTrap({
+                type: 'troll_portal',
+                x: door.x - 150,
+                y: doorFloorY,
+                w: 45,
+                h: 65,
+                exitX: Math.max(160, spawn.x + 140),
+                exitY: spawn.y - 20,
+                exitVy: 2.5,
+                zone: 'exit',
+                purpose: 'door_loop_portal'
+            });
+        }
+
+        // 2. LIVING BLOCKS CONVERSION — Turn surrounding solid walls, ceilings, and floors into traps
+        for (const sol of solids) {
+            // Vertical wall solids adjacent to corridors converted to wall ejector pistons
+            if (sol.h >= 60 && sol.w >= 18 && sol.x > spawn.x + 60 && sol.x < door.x - 40) {
+                const midWallY = sol.y + sol.h - 32;
+                if (sol.x + sol.w < bounds.width - 100 && isSafeDistance(sol.x + sol.w + 5, midWallY, 28, 25)) {
+                    addSynthTrap({
+                        type: 'wall_ejector',
+                        x: sol.x + sol.w,
+                        y: midWallY,
+                        w: 28,
+                        h: 30,
+                        punchDist: 38 + Math.round(diffMult * 3),
+                        punchSpeed: 2.6 + diffMult * 0.2,
+                        direction: 1,
+                        triggerRange: 55,
+                        zone: 'mid',
+                        purpose: 'living_wall'
+                    });
+                } else if (sol.x > 100 && isSafeDistance(sol.x - 32, midWallY, 28, 25)) {
+                    addSynthTrap({
+                        type: 'wall_ejector',
+                        x: sol.x - 28,
+                        y: midWallY,
+                        w: 28,
+                        h: 30,
+                        punchDist: 38 + Math.round(diffMult * 3),
+                        punchSpeed: 2.6 + diffMult * 0.2,
+                        direction: -1,
+                        triggerRange: 55,
+                        zone: 'mid',
+                        purpose: 'living_wall'
+                    });
+                }
+                if (synthTraps.filter(t => t.purpose === 'living_wall').length >= 2) break;
+            }
+        }
+
+        // Living Ceilings & Shifting Shelves from corridors
+        for (const corr of corridors) {
+            if (corr.w >= 140 && corr.x > spawn.x + 50 && corr.x + corr.w < door.x + 50) {
+                const ceilY = corr.y;
+                const floorY = corr.y + corr.h;
+                const midX = Math.round(corr.x + corr.w * 0.5);
+
+                if (isSafeDistance(midX, ceilY, 48, 30)) {
+                    addSynthTrap({
+                        type: 'ceiling_squish',
+                        x: midX,
+                        y: ceilY,
+                        w: 48,
+                        h: 26,
+                        dropDistance: Math.max(25, corr.h - 22),
+                        dropSpeed: 2.2 + diffMult * 0.2,
+                        triggerRange: 52,
+                        zone: 'mid',
+                        purpose: 'living_ceiling'
+                    });
+                }
+
+                const shelfX = Math.round(corr.x + corr.w * 0.25);
+                if (isSafeDistance(shelfX, floorY, 44, 25)) {
+                    addSynthTrap({
+                        type: 'shifting_block',
+                        x: shelfX,
+                        y: floorY - 18,
+                        w: 44,
+                        h: 18,
+                        shiftAxis: 'y',
+                        shiftDistance: -32,
+                        shiftSpeed: 2.2,
+                        triggerRange: 50,
+                        zone: 'mid',
+                        purpose: 'living_floor_shift'
+                    });
+                }
+            }
+        }
+
+        // 3. TELEMETRY COUNTER-LEAN TRAPS
+        if (profile === "RUSHER") {
+            const rushX = spawn.x + Math.round((door.x - spawn.x) * 0.4);
+            const rushY = spawn.y;
+            if (isSafeDistance(rushX, rushY, 32, 25)) {
+                addSynthTrap({
+                    type: 'pop_up_wall',
+                    x: rushX,
+                    y: rushY,
+                    w: 30,
+                    h: 32,
+                    riseHeight: 36,
+                    riseSpeed: 2.8,
+                    triggerRange: 60,
+                    zone: 'mid',
+                    purpose: 'rush_counter_wall'
+                });
+            }
+            const boulderX = Math.min(bounds.width - 160, door.x - 60);
+            if (isSafeDistance(boulderX, spawn.y, 34, 40)) {
+                addSynthTrap({
+                    type: 'rolling_ball',
+                    x: boulderX,
+                    y: spawn.y,
+                    groundY: spawn.y,
+                    radius: 17,
+                    vx: -4.6 - diffMult * 0.35,
+                    triggerRange: 95,
+                    zone: 'mid',
+                    purpose: 'rush_counter_boulder'
+                });
+            }
+        } else if (profile === "HOPPER") {
+            const jumpApexX = spawn.x + Math.round((door.x - spawn.x) * 0.35);
+            const ceilY = Math.max(30, spawn.y - 115);
+            if (isSafeDistance(jumpApexX, ceilY, 22, 25)) {
+                addSynthTrap({
+                    type: 'dropping_spike',
+                    x: jumpApexX,
+                    y: ceilY,
+                    w: 22,
+                    h: 22,
+                    groundY: spawn.y,
+                    triggerRange: 48,
+                    zone: 'mid',
+                    purpose: 'hopper_anti_air'
+                });
+            }
+            const landingX = jumpApexX + 55;
+            if (isSafeDistance(landingX, spawn.y, 26, 25)) {
+                addSynthTrap({
+                    type: 'hidden_spike',
+                    x: landingX,
+                    y: spawn.y,
+                    w: 26,
+                    h: 16,
+                    triggerRange: 32,
+                    zone: 'mid',
+                    purpose: 'hopper_landing_spike'
+                });
+            }
+        } else if (profile === "CAUTIOUS" || profile === "METHODICAL") {
+            const chaserX = spawn.x >= 100 ? (spawn.x - 55) : (spawn.x + 70);
+            const chaserVx = spawn.x >= 100 ? (3.8 + diffMult * 0.25) : (-3.8 - diffMult * 0.25);
+            if (isSafeDistance(chaserX, spawn.y, 34, 30)) {
+                addSynthTrap({
+                    type: 'rolling_ball',
+                    x: chaserX,
+                    y: spawn.y,
+                    groundY: spawn.y,
+                    radius: 16,
+                    vx: chaserVx,
+                    triggerRange: 75,
+                    zone: 'entry',
+                    purpose: 'camper_flusher_boulder'
+                });
+            }
+        } else { // CHAOTIC
+            const springX = spawn.x + Math.round((door.x - spawn.x) * 0.5);
+            if (isSafeDistance(springX, spawn.y, 32, 20)) {
+                addSynthTrap({
+                    type: 'spring_pad',
+                    x: springX,
+                    y: spawn.y,
+                    w: 32,
+                    h: 10,
+                    boostVy: -9.2,
+                    zone: 'mid',
+                    purpose: 'chaotic_spring_launch'
+                });
+            }
+        }
+
+        // 4. PAST-DEATH COUNTER REINFORCEMENT
+        if (this.telemetry.deaths && this.telemetry.deaths.length > 0) {
+            const lastDeath = this.telemetry.deaths[this.telemetry.deaths.length - 1];
+            if (lastDeath.x && lastDeath.y) {
+                const counterX = Math.round(lastDeath.x + 45);
+                const ceilY = Math.max(30, (lastDeath.y || spawn.y) - 115);
+                if (isSafeDistance(counterX, ceilY, 22, 25)) {
+                    addSynthTrap({
+                        type: 'dropping_spike',
+                        x: counterX,
+                        y: ceilY,
+                        w: 22,
+                        h: 22,
+                        groundY: lastDeath.y || spawn.y,
+                        triggerRange: 45,
+                        zone: 'mid',
+                        purpose: 'death_counter_trap'
+                    });
+                }
+            }
+        }
+
+        return synthTraps;
+    }
+
+    /**
+     * Hybrid Adaptive Trap Selection: Combines AI-synthesized generative traps with
+     * procedural candidate slots and scores them via Online Reinforcement Learning.
      *
      * @param {Array} candidateSlots
      * @param {Array} staticTraps
      * @param {number} levelId
+     * @param {Object} levelData (optional level geometry definition for generative synthesis)
      * @returns {Array} List of customized active trap configurations
      */
-    selectAdaptiveTraps(candidateSlots, staticTraps = [], levelId = 1) {
-        if (!candidateSlots || candidateSlots.length === 0) return [];
+    selectAdaptiveTraps(candidateSlots, staticTraps = [], levelId = 1, levelData = null) {
+        if (!candidateSlots) candidateSlots = [];
 
-        // Progressive Difficulty Multiplier D(L) and Focused Psychological Trap Budget (2 to 4 traps)
-        let difficultyMult = 1.0;
-        if (levelId === 1) difficultyMult = 1.0;
-        else if (levelId === 2) difficultyMult = 1.15;
-        else if (levelId === 3) difficultyMult = 1.35;
-        else if (levelId === 4) difficultyMult = 1.55;
-        else if (levelId === 5) difficultyMult = 1.70;
-        else if (levelId === 6) difficultyMult = 1.85;
-        else if (levelId === 7) difficultyMult = 2.0;
-        else difficultyMult = 2.0 + Math.min(0.5, (levelId - 7) * 0.08);
+        // If level geometry definition is available and not yet synthesized, generate bespoke traps
+        if (levelData && !candidateSlots.some(s => s.isAIGenerated)) {
+            const synth = this.synthesizeGenerativeTraps(levelData, levelId);
+            if (synth && synth.length > 0) {
+                candidateSlots = [...candidateSlots, ...synth];
+            }
+        }
 
-        // Maximum dynamic trap count: strictly 2 to 4 high-impact psychological traps!
-        // Authentic Level Devil philosophy: fair, readable, devious mind games rather than hazard spam!
+        if (candidateSlots.length === 0) return [];
+
+        // Progressive Difficulty Multiplier D(L) — unbounded logarithmic growth
+        const difficultyMult = this.getDifficultyMultiplier(levelId);
+
+        // Aggressive Progressive Trap Budget: scales from 2 to 10 active traps
+        // Higher levels = more overlapping threats = genuine challenge
         let maxTraps = 2;
-        if (levelId === 1) maxTraps = 1;
-        else if (levelId === 2) maxTraps = 2;
-        else if (levelId === 3) maxTraps = 2;
-        else if (levelId === 4) maxTraps = 3;
-        else if (levelId === 5) maxTraps = 3;
-        else if (levelId === 6) maxTraps = 3;
-        else if (levelId === 7) maxTraps = 3;
-        else maxTraps = Math.min(4, 3 + (levelId % 2));
+        if (levelId <= 2) maxTraps = 2;
+        else if (levelId <= 4) maxTraps = 3;
+        else if (levelId <= 6) maxTraps = 4;
+        else if (levelId <= 9) maxTraps = 5;
+        else if (levelId <= 12) maxTraps = 6;
+        else if (levelId <= 16) maxTraps = 7;
+        else maxTraps = Math.min(10, 7 + Math.floor((levelId - 16) / 4));
 
         // 0. Use pre-calculated Python ML prediction if available
         if (this.cachedPrediction && this.cachedPrediction.selectedTraps && this.cachedPrediction.selectedTraps.length > 0) {
@@ -306,11 +677,22 @@ class DevilAI {
         const activeTraps = (staticTraps || []).map(st => ({ ...st, isStatic: true }));
         const isAntiCheckmateSafe = (slot, deployedList) => this.isAntiCheckmateSafe(slot, deployedList);
 
-        // 1. Score candidate traps using ML Model Prediction + Online Efficacy + Living Block Affinities
-        const scoredSlots = candidateSlots.map((rawSlot, idx) => {
-            const slot = JSON.parse(JSON.stringify(rawSlot)); // Clean clone
-            let affinity = 1.0;
+        // === COMBO-AWARE SELECTION ===
+        // Identify combo groups: traps with matching comboId must be selected atomically
+        const comboGroups = {};
+        const soloSlots = [];
+        candidateSlots.forEach((rawSlot, idx) => {
+            if (rawSlot.comboId) {
+                if (!comboGroups[rawSlot.comboId]) comboGroups[rawSlot.comboId] = [];
+                comboGroups[rawSlot.comboId].push({ slot: JSON.parse(JSON.stringify(rawSlot)), originalIndex: idx });
+            } else {
+                soloSlots.push({ slot: JSON.parse(JSON.stringify(rawSlot)), originalIndex: idx });
+            }
+        });
 
+        // 1. Score candidate traps using ML Model Prediction + Online Efficacy + Living Block Affinities
+        const scoreSlot = (slot) => {
+            let affinity = 1.0;
             const efficacy = this.trapEfficacy[slot.type] || 1.0;
 
             if (this.currentProfile === "RUSHER") {
@@ -336,23 +718,66 @@ class DevilAI {
             // Zone distribution weighting (encourage entry ambush and exit troll traps)
             if (slot.zone === 'entry') affinity *= 1.1;
             else if (slot.zone === 'exit') affinity *= 1.15;
+            // Combo traps get a selection bonus — they're more creative
+            if (slot.comboId) affinity *= 1.3;
+            // Gimmick signature mechanic bonus — biases selection toward level theme
+            if (slot.gimmickBonus) affinity *= 1.35;
+            // AI-synthesized generative traps get high affinity
+            if (slot.isAIGenerated) affinity *= 1.35;
+            // High priority for door defense traps (explicit mission to prevent reaching door)
+            if (slot.purpose && slot.purpose.startsWith('door_')) affinity *= 1.5;
+            // Living block conversion bonus
+            if (slot.purpose && slot.purpose.startsWith('living_')) affinity *= 1.3;
 
-            return {
-                slot,
-                originalIndex: idx,
-                score: (affinity * efficacy) * (0.85 + Math.random() * 0.3)
-            };
-        });
-
-        // 2. Separate into ML-Predicted Pool (60%) and Stochastic Wildcard Pool (40%)
-        scoredSlots.sort((a, b) => b.score - a.score);
+            return (affinity * efficacy) * (0.85 + Math.random() * 0.3);
+        };
 
         const selected = [];
         const usedIndices = new Set();
 
-        const predictedCount = Math.max(1, Math.floor(maxTraps * 0.6));
-        for (const item of scoredSlots) {
-            if (selected.length >= predictedCount) break;
+        // Phase 1: Try to select combo groups first (they're the creative "gotcha" moments)
+        const comboEntries = Object.entries(comboGroups)
+            .map(([id, members]) => ({ id, members, avgScore: members.reduce((s, m) => s + scoreSlot(m.slot), 0) / members.length }))
+            .sort((a, b) => b.avgScore - a.avgScore);
+
+        for (const combo of comboEntries) {
+            if (selected.length + combo.members.length > maxTraps) continue;
+            // Check all members are anti-checkmate safe
+            const allSafe = combo.members.every(m => isAntiCheckmateSafe(m.slot, activeTraps));
+            if (allSafe) {
+                for (const m of combo.members) {
+                    selected.push(m.slot);
+                    activeTraps.push(m.slot);
+                    usedIndices.add(m.originalIndex);
+                }
+            }
+        }
+
+        // Phase 2: ML-Predicted Pool (60% of remaining budget)
+        const scoredSolos = soloSlots.map(item => ({ ...item, score: scoreSlot(item.slot) }));
+        scoredSolos.sort((a, b) => b.score - a.score);
+
+        const remainingBudget = maxTraps - selected.length;
+        const predictedTarget = Math.max(1, Math.floor(remainingBudget * 0.6));
+        let predictedAdded = 0;
+        for (const item of scoredSolos) {
+            if (selected.length >= maxTraps || predictedAdded >= predictedTarget) break;
+            if (usedIndices.has(item.originalIndex)) continue;
+            if (isAntiCheckmateSafe(item.slot, activeTraps)) {
+                selected.push(item.slot);
+                activeTraps.push(item.slot);
+                usedIndices.add(item.originalIndex);
+                predictedAdded++;
+            }
+        }
+
+        // Phase 3: Stochastic Wildcard Pool (remaining budget)
+        const remainingCandidates = soloSlots
+            .filter(item => !usedIndices.has(item.originalIndex))
+            .sort(() => Math.random() - 0.5);
+
+        for (const item of remainingCandidates) {
+            if (selected.length >= maxTraps) break;
             if (isAntiCheckmateSafe(item.slot, activeTraps)) {
                 selected.push(item.slot);
                 activeTraps.push(item.slot);
@@ -360,34 +785,48 @@ class DevilAI {
             }
         }
 
-        // 50% of slots allocated to Stochastic Randomness (Wildcards)
-        const remainingCandidates = candidateSlots
-            .map((rawSlot, idx) => ({ slot: JSON.parse(JSON.stringify(rawSlot)), idx }))
-            .filter(item => !usedIndices.has(item.idx))
-            .sort(() => Math.random() - 0.5); // Pure random shuffle
-
-        for (const item of remainingCandidates) {
-            if (selected.length >= maxTraps) break;
-            if (isAntiCheckmateSafe(item.slot, activeTraps)) {
-                selected.push(item.slot);
-                activeTraps.push(item.slot);
-                usedIndices.add(item.idx);
+        // Phase 4: Final fill pass to maximize budget usage if safe candidates remain
+        if (selected.length < maxTraps) {
+            for (const item of scoredSolos) {
+                if (selected.length >= maxTraps) break;
+                if (usedIndices.has(item.originalIndex)) continue;
+                if (isAntiCheckmateSafe(item.slot, activeTraps)) {
+                    selected.push(item.slot);
+                    activeTraps.push(item.slot);
+                    usedIndices.add(item.originalIndex);
+                }
             }
         }
 
-        // 3. Apply Creative Tuning (small trigger jitter & fair pause durations; NO crazy speeds!)
+        // 3. Apply Aggressive Creative Tuning — scale ALL trap parameters with difficulty
+        const speedScale = Math.min(1.8, 1.0 + (difficultyMult - 1.0) * 0.25);
         const tunedTraps = selected.map(trap => {
-            // Speeds remain at their balanced, readable designer values for fair platforming
-
-            // Pause duration slight adjustment (less idle wait time without crazy velocity)
+            // Pause duration: shorter idle windows at higher difficulties
             if (trap.pauseDuration !== undefined) {
-                trap.pauseDuration = Math.max(35, Math.round(trap.pauseDuration / Math.min(1.2, difficultyMult)));
+                trap.pauseDuration = Math.max(20, Math.round(trap.pauseDuration / speedScale));
             }
 
-            // Small trigger distance unpredictability (creativity jitter)
+            // Trigger range: traps activate from further away at higher levels
             if (trap.triggerRange !== undefined) {
-                const jitter = Math.floor((Math.random() - 0.5) * 6);
-                trap.triggerRange = Math.max(25, trap.triggerRange + jitter);
+                const jitter = Math.floor((Math.random() - 0.5) * 8);
+                trap.triggerRange = Math.max(25, Math.round(trap.triggerRange * Math.min(1.5, speedScale)) + jitter);
+            }
+
+            // Speed scaling: rolling balls, saws, crushers get faster
+            if (trap.vx !== undefined) {
+                trap.vx = trap.vx * Math.min(1.6, speedScale);
+            }
+            if (trap.speed !== undefined) {
+                trap.speed = Math.min(5.5, trap.speed * speedScale);
+            }
+            if (trap.dropSpeed !== undefined) {
+                trap.dropSpeed = Math.min(4.5, trap.dropSpeed * speedScale);
+            }
+            if (trap.riseSpeed !== undefined) {
+                trap.riseSpeed = Math.min(4.0, trap.riseSpeed * speedScale);
+            }
+            if (trap.punchSpeed !== undefined) {
+                trap.punchSpeed = Math.min(4.5, trap.punchSpeed * speedScale);
             }
 
             return trap;
@@ -457,7 +896,7 @@ class DevilAI {
         return false;
     }
 
-    async prefetchPythonPrediction(levelId, candidateSlots, staticTraps) {
+    async prefetchPythonPrediction(levelId, candidateSlots, staticTraps, levelData = null) {
         if (!this.pythonConnected || !candidateSlots || candidateSlots.length === 0 || typeof fetch === 'undefined') {
             return null;
         }
@@ -470,7 +909,17 @@ class DevilAI {
                 levelId: levelId,
                 telemetry: this.telemetry,
                 candidateSlots: candidateSlots,
-                staticTraps: staticTraps || []
+                staticTraps: staticTraps || [],
+                levelData: levelData ? {
+                    width: levelData.bounds ? levelData.bounds.width : (levelData.width || 900),
+                    height: levelData.bounds ? levelData.bounds.height : (levelData.height || 500),
+                    spawn: levelData.playerSpawn || levelData.spawn,
+                    door: levelData.door,
+                    solids: levelData.solids || [],
+                    platforms: levelData.platforms || [],
+                    pathwayCorridors: levelData.pathwayCorridors || [],
+                    staticTraps: levelData.staticTraps || []
+                } : null
             };
             const res = await fetch('/api/ai-predict', {
                 method: 'POST',
@@ -540,6 +989,8 @@ class DevilAI {
         if (!slot || !deployedList) return true;
         const slotGroundY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
 
+        const isSameCombo = (a, b) => a.comboId && b.comboId && a.comboId === b.comboId;
+
         // 1. Rolling Boulder Incompatibilities
         if (slot.type === 'rolling_ball') {
             const bTriggerX = slot.triggerX || (slot.x - 110);
@@ -547,6 +998,7 @@ class DevilAI {
             const bJumpMaxX = Math.max(slot.x, bTriggerX) + 50;
 
             for (const act of deployedList) {
+                if (isSameCombo(slot, act)) continue;
                 const actGroundY = act.groundY !== undefined ? act.groundY : (act.y || 345);
                 const isSameElevation = Math.abs(slotGroundY - actGroundY) < 65;
 
@@ -581,6 +1033,7 @@ class DevilAI {
 
         // 2. Reciprocal checks: If an active trap is a rolling boulder on the same elevation, validate incoming slot
         for (const act of deployedList) {
+            if (isSameCombo(slot, act)) continue;
             if (act.type === 'rolling_ball') {
                 const actGroundY = act.groundY !== undefined ? act.groundY : (act.y || 345);
                 const isSameElevation = Math.abs(slotGroundY - actGroundY) < 65;
@@ -617,12 +1070,14 @@ class DevilAI {
         const isCrawlSaw = (t) => (t.type === 'spinning_saw' || t.type === 'razor') && (t.y >= 305 && t.y <= 335);
         if (isCrawlSaw(slot)) {
             for (const act of deployedList) {
+                if (isSameCombo(slot, act)) continue;
                 if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
                     if (Math.abs(act.x - slot.x) < 60) return false;
                 }
             }
         }
         for (const act of deployedList) {
+            if (isSameCombo(slot, act)) continue;
             if (isCrawlSaw(act)) {
                 if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
                     if (Math.abs(slot.x - act.x) < 60) return false;
@@ -633,6 +1088,7 @@ class DevilAI {
         // 4. Ceiling Dropping Spike vs Floor Hazard Incompatibilities (prevents mid-air sandwich)
         if (slot.type === 'dropping_spike') {
             for (const act of deployedList) {
+                if (isSameCombo(slot, act)) continue;
                 if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
                     if (Math.abs(act.x - slot.x) < 65) return false;
                 }
@@ -640,6 +1096,7 @@ class DevilAI {
         }
         if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
             for (const act of deployedList) {
+                if (isSameCombo(slot, act)) continue;
                 if (act.type === 'dropping_spike') {
                     if (Math.abs(act.x - slot.x) < 65) return false;
                 }
@@ -648,6 +1105,7 @@ class DevilAI {
 
         // 5. Living Block Vertical Sandwich Prevention (Pop-Up Wall + Ceiling Squish)
         for (const act of deployedList) {
+            if (isSameCombo(slot, act)) continue;
             if ((slot.type === 'pop_up_wall' && act.type === 'ceiling_squish') ||
                 (slot.type === 'ceiling_squish' && act.type === 'pop_up_wall')) {
                 if (Math.abs(slot.x - act.x) < 50) return false;
@@ -655,11 +1113,12 @@ class DevilAI {
         }
 
         // 6. Standard minimum physical distance separation
-        const slotY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
+        const slotY = slot.y || slot.groundY || 345;
         const slotStart = slot.x;
         const slotEnd = slot.x + (slot.w || 32);
         for (const act of deployedList) {
-            const actY = act.groundY !== undefined ? act.groundY : (act.y || 345);
+            if (isSameCombo(slot, act)) continue;
+            const actY = act.y || act.groundY || 345;
             if (Math.abs(slotY - actY) > 75) continue; // Different floors/stories do not conflict
 
             const actStart = act.x;

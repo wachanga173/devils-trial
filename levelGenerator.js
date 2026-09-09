@@ -70,7 +70,8 @@ class AILevelGenerator {
         if (levelNumber === 2) return 1.15;
         if (levelNumber === 3) return 1.35;
         if (levelNumber === 4) return 1.55;
-        return parseFloat((1.55 + Math.min(2.5, (levelNumber - 4) * 0.15)).toFixed(2));
+        // Unbounded logarithmic growth: keeps scaling forever but decelerates
+        return parseFloat((1.55 + Math.log2(levelNumber - 3) * 0.65).toFixed(2));
     }
 
     /**
@@ -139,7 +140,193 @@ class AILevelGenerator {
             level.candidateTrapSlots = safeSlots;
         }
 
+        // Inject creative trap combos ("gotcha" moments) into candidate slots
+        this.injectTrapCombos(level, levelNumber, rngInt, rngChoice, difficulty);
+
+        // Apply level gimmick bias: tag slots matching this level's signature mechanic
+        const gimmick = this.getLevelGimmick(levelNumber);
+        if (gimmick && level.candidateTrapSlots) {
+            for (const slot of level.candidateTrapSlots) {
+                if (gimmick.types.includes(slot.type)) {
+                    slot.gimmickBonus = true;
+                }
+            }
+        }
+
+        // Generative AI Trap Synthesis Engine — AI dynamically crafts custom traps from level architecture & player telemetry
+        if (aiModel && aiModel.synthesizeGenerativeTraps) {
+            const synthTraps = aiModel.synthesizeGenerativeTraps(level, levelNumber);
+            if (synthTraps && synthTraps.length > 0) {
+                level.candidateTrapSlots = (level.candidateTrapSlots || []).concat(synthTraps);
+            }
+        }
+
+        // Scale door shifts with difficulty (more devious at higher levels)
+        if (level.door && levelNumber >= 10) {
+            level.door.shiftsMax = Math.min(4, 2 + Math.floor((levelNumber - 8) / 5));
+        }
+
         return level;
+    }
+
+    /**
+     * Injects creative trap combos — synergistic trap pairs that create "gotcha" moments.
+     * Each combo is tagged with a comboId so the AI selects them as atomic units.
+     */
+    injectTrapCombos(level, levelNumber, rngInt, rngChoice, difficulty) {
+        if (!level.candidateTrapSlots) return;
+        if (levelNumber < 6) return; // Combos start at level 6
+
+        const slots = level.candidateTrapSlots;
+        const statics = level.staticTraps || [];
+        const bounds = level.bounds;
+        const comboId = 'combo_' + levelNumber + '_' + rngInt(1000, 9999);
+
+        // Find floor Y from existing traps or statics
+        const floorTraps = slots.filter(s => s.y && s.type === 'collapsing_floor');
+        const floorY = floorTraps.length > 0 ? floorTraps[0].y : 340;
+        const ceilY = Math.max(30, floorY - 120);
+
+        // Number of combos based on level
+        const numCombos = levelNumber < 10 ? 1 : (levelNumber < 18 ? 2 : 3);
+
+        const comboTypes = [
+            'vanish_over_spikes',    // Floor drops revealing spikes
+            'boulder_wall_block',    // Boulder chases toward pop-up wall
+            'portal_saw_gauntlet',   // Portal sends into saw zone
+            'fake_door_bait',        // Door runs + spike where you land
+            'ceiling_crush_wave',    // Sequential ceiling crushers
+            'spring_into_spike',     // Spring pad launches into dropping spike
+            'wall_squeeze'           // Two wall ejectors facing each other
+        ];
+
+        const spanStart = 240;
+        const spanEnd = Math.max(340, bounds.width - 260);
+        const segmentW = (spanEnd - spanStart) / numCombos;
+
+        for (let ci = 0; ci < numCombos; ci++) {
+            const cid = comboId + '_' + ci;
+            const comboType = comboTypes[(levelNumber + ci) % comboTypes.length];
+            const maxOffset = Math.max(15, Math.floor(segmentW - 140));
+            const baseX = Math.round(spanStart + ci * segmentW + rngInt(10, maxOffset));
+
+            switch (comboType) {
+                case 'vanish_over_spikes':
+                    // Collapsing floor with a hidden spike revealed underneath when player triggers it!
+                    slots.push({
+                        type: 'collapsing_floor', x: baseX, y: floorY, w: 48, h: 35,
+                        dropSpeed: 2.0 + difficulty * 0.15, comboId: cid, zone: 'mid'
+                    });
+                    slots.push({
+                        type: 'hidden_spike', x: baseX + 8, y: floorY, w: 26, h: 16,
+                        triggerRange: 30, comboId: cid, zone: 'mid'
+                    });
+                    break;
+
+                case 'boulder_wall_block':
+                    // Boulder chases player toward a pop-up wall that blocks escape
+                    slots.push({
+                        type: 'rolling_ball', x: baseX + 200, y: floorY, groundY: floorY,
+                        radius: 17, vx: -4.5 - difficulty * 0.3, triggerRange: 90,
+                        comboId: cid, zone: 'mid'
+                    });
+                    slots.push({
+                        type: 'pop_up_wall', x: baseX - 20, y: floorY, w: 32, h: 32,
+                        riseHeight: 36, riseSpeed: 2.5, triggerRange: 45,
+                        comboId: cid, zone: 'mid'
+                    });
+                    break;
+
+                case 'portal_saw_gauntlet':
+                    // Troll portal sends you back into a sawblade patrol zone
+                    slots.push({
+                        type: 'troll_portal', x: baseX + 120, y: floorY, w: 55, h: 75,
+                        exitX: baseX - 60, exitY: floorY - 20, exitVy: 2.5,
+                        comboId: cid, zone: 'mid'
+                    });
+                    slots.push({
+                        type: 'spinning_saw', x: baseX - 40, y: floorY - 30, radius: 18,
+                        patrolAxis: 'x', minX: baseX - 80, maxX: baseX + 40, speed: 2.5,
+                        comboId: cid, zone: 'mid'
+                    });
+                    break;
+
+                case 'fake_door_bait':
+                    // Sliding door runs away + hidden spike where you chase to
+                    slots.push({
+                        type: 'sliding_door', x: baseX, y: floorY - 46, w: 32, h: 46,
+                        shiftX: -100, triggerRange: 70, comboId: cid, zone: 'exit'
+                    });
+                    slots.push({
+                        type: 'hidden_spike', x: baseX - 100, y: floorY, w: 26, h: 16,
+                        triggerRange: 25, comboId: cid, zone: 'exit'
+                    });
+                    break;
+
+                case 'ceiling_crush_wave':
+                    // Sequential ceiling crushers that activate in a wave
+                    for (let w = 0; w < 2; w++) {
+                        slots.push({
+                            type: 'ceiling_squish', x: baseX + w * 70, y: ceilY,
+                            w: 46, h: 26, dropDistance: Math.max(25, (floorY - ceilY) - 24),
+                            dropSpeed: 2.0 + w * 0.3, triggerRange: 50 + w * 15,
+                            comboId: cid, zone: 'mid'
+                        });
+                    }
+                    break;
+
+                case 'spring_into_spike':
+                    // Spring pad launches you into a dropping spike from ceiling
+                    slots.push({
+                        type: 'spring_pad', x: baseX, y: floorY, w: 32, h: 10,
+                        boostVy: -9.0, comboId: cid, zone: 'mid'
+                    });
+                    slots.push({
+                        type: 'dropping_spike', x: baseX + 15, y: ceilY, w: 22, h: 22,
+                        groundY: floorY, triggerRange: 50, comboId: cid, zone: 'mid'
+                    });
+                    break;
+
+                case 'wall_squeeze':
+                    // Two wall ejectors facing each other = narrowing corridor
+                    slots.push({
+                        type: 'wall_ejector', x: baseX - 40, y: floorY - 30, w: 30, h: 32,
+                        punchDist: 40, punchSpeed: 2.5, direction: 1, triggerRange: 50,
+                        comboId: cid, zone: 'mid'
+                    });
+                    slots.push({
+                        type: 'wall_ejector', x: baseX + 80, y: floorY - 30, w: 30, h: 32,
+                        punchDist: 40, punchSpeed: 2.5, direction: -1, triggerRange: 50,
+                        comboId: cid, zone: 'mid'
+                    });
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Returns the signature gimmick mechanic for a level number.
+     * Ensures progressive introduction of mechanics and gives each level a unique identity.
+     */
+    getLevelGimmick(levelNumber) {
+        if (levelNumber <= 4) return null; // Manual levels handle their own gimmicks
+
+        const gimmicks = [
+            { name: 'Boulder Rush',      types: ['rolling_ball', 'collapsing_floor'] },
+            { name: 'Wall Ambush',       types: ['wall_ejector', 'pop_up_wall', 'shifting_block'] },
+            { name: 'Portal Trickery',   types: ['troll_portal', 'sliding_door'] },
+            { name: 'Crusher Gauntlet',  types: ['piston_crusher', 'ceiling_squish'] },
+            { name: 'Sawblade Maze',     types: ['spinning_saw', 'spring_pad'] },
+            { name: 'Spike Ambush',      types: ['dropping_spike', 'hidden_spike'] },
+            { name: 'Living Blocks',     types: ['shifting_block', 'pop_up_wall', 'wall_ejector'] },
+            { name: 'Total Chaos',       types: ['troll_portal', 'ceiling_squish', 'rolling_ball', 'spinning_saw'] }
+        ];
+
+        // Cycle through gimmicks, with 'Total Chaos' dominating at very high levels
+        if (levelNumber >= 20) {
+            return levelNumber % 3 === 0 ? gimmicks[7] : gimmicks[(levelNumber - 5) % 7];
+        }
+        return gimmicks[(levelNumber - 5) % gimmicks.length];
     }
 
     generateTitle(topology, levelNumber, rngChoice) {
@@ -316,6 +503,18 @@ class AILevelGenerator {
             w: 28,
             h: 15
         });
+
+        // Step 1 chokepoint spike
+        if (numSteps >= 3) {
+            let step1X = wallL + stepWidths[0];
+            staticTraps.push({
+                type: 'static_spike',
+                x: step1X + Math.round(stepWidths[1] * 0.5),
+                y: stepFloors[1],
+                w: 28,
+                h: 15
+            });
+        }
 
         // Rolling boulder from higher tier
         const highestStep = isPyramid ? Math.floor(numSteps / 2) : numSteps - 1;
@@ -555,26 +754,20 @@ class AILevelGenerator {
         const doorY = floorY - 46;
 
         const firstBeam = beamSegments[0];
+        const midStart = firstBeam.x + firstBeam.w + 30;
+        const midEnd = doorX - 140;
+        const midSpan = Math.max(300, midEnd - midStart);
+
         const staticTraps = [
-            { type: 'static_spike', x: firstBeam.x + firstBeam.w + 90, y: floorY, w: 28, h: 15 }
+            { type: 'static_spike', x: Math.round(midStart + midSpan * 0.35), y: floorY, w: 28, h: 15 },
+            { type: 'static_spike', x: Math.round(midStart + midSpan * 0.75), y: floorY, w: 28, h: 15 }
         ];
 
         const candidateTrapSlots = [
             // Zone 1: Entry / Approach Traps
             {
-                type: 'pop_up_wall',
-                x: Math.max(160, firstBeam.x - 35),
-                y: floorY,
-                w: 30,
-                h: 30,
-                riseHeight: 32,
-                riseSpeed: 2.2,
-                triggerRange: 48,
-                zone: 'entry'
-            },
-            {
                 type: 'collapsing_floor',
-                x: 160,
+                x: 155,
                 y: floorY,
                 w: 48,
                 h: 35,
@@ -583,7 +776,7 @@ class AILevelGenerator {
             },
             {
                 type: 'hidden_spike',
-                x: Math.max(150, firstBeam.x - 45),
+                x: Math.max(160, firstBeam.x - 60),
                 y: floorY,
                 w: 26,
                 h: 16,
@@ -592,7 +785,7 @@ class AILevelGenerator {
             },
             {
                 type: 'dropping_spike',
-                x: Math.max(150, firstBeam.x - 15),
+                x: Math.max(170, firstBeam.x - 30),
                 y: normalCeilY,
                 w: 22,
                 h: 22,
@@ -600,11 +793,33 @@ class AILevelGenerator {
                 triggerRange: 38,
                 zone: 'entry'
             },
+            {
+                type: 'pop_up_wall',
+                x: Math.max(180, firstBeam.x),
+                y: floorY,
+                w: 30,
+                h: 30,
+                riseHeight: 32,
+                riseSpeed: 2.2,
+                triggerRange: 48,
+                zone: 'entry'
+            },
 
-            // Zone 2: Mid Gauntlet Traps (Post-Crawl Ambush)
+            // Zone 2: Mid Gauntlet Traps (Distributed evenly across open corridor)
+            {
+                type: 'piston_crusher',
+                x: Math.round(midStart + midSpan * 0.08),
+                startY: normalCeilY - 35,
+                targetY: normalCeilY + 15,
+                w: 38,
+                h: 105,
+                triggerRange: 45,
+                pauseDuration: 50,
+                zone: 'mid'
+            },
             {
                 type: 'ceiling_squish',
-                x: firstBeam.x + firstBeam.w + 60,
+                x: Math.round(midStart + midSpan * 0.22),
                 y: normalCeilY,
                 w: 52,
                 h: 28,
@@ -615,7 +830,7 @@ class AILevelGenerator {
             },
             {
                 type: 'wall_ejector',
-                x: firstBeam.x + firstBeam.w + 120,
+                x: Math.round(midStart + midSpan * 0.48),
                 y: floorY - 32,
                 w: 28,
                 h: 32,
@@ -626,19 +841,8 @@ class AILevelGenerator {
                 zone: 'mid'
             },
             {
-                type: 'piston_crusher',
-                x: firstBeam.x + firstBeam.w + 35,
-                startY: normalCeilY - 35,
-                targetY: normalCeilY + 15,
-                w: 38,
-                h: 105,
-                triggerRange: 45,
-                pauseDuration: 50,
-                zone: 'mid'
-            },
-            {
                 type: 'dropping_spike',
-                x: firstBeam.x + firstBeam.w + 150,
+                x: Math.round(midStart + midSpan * 0.62),
                 y: normalCeilY,
                 w: 22,
                 h: 22,
@@ -648,7 +852,7 @@ class AILevelGenerator {
             },
             {
                 type: 'hidden_spike',
-                x: firstBeam.x + firstBeam.w + 200,
+                x: Math.round(midStart + midSpan * 0.88),
                 y: floorY,
                 w: 26,
                 h: 16,
@@ -657,7 +861,7 @@ class AILevelGenerator {
             },
             {
                 type: 'rolling_ball',
-                x: Math.min(boundsW - 200, firstBeam.x + firstBeam.w + 270),
+                x: Math.min(boundsW - 180, Math.round(midStart + midSpan * 0.95)),
                 y: floorY,
                 groundY: floorY,
                 radius: 16,
@@ -668,8 +872,27 @@ class AILevelGenerator {
 
             // Zone 3: Exit Climax Traps
             {
+                type: 'collapsing_floor',
+                x: doorX - 130,
+                y: floorY,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'exit'
+            },
+            {
+                type: 'dropping_spike',
+                x: doorX - 75,
+                y: normalCeilY,
+                w: 22,
+                h: 22,
+                groundY: floorY,
+                triggerRange: 38,
+                zone: 'exit'
+            },
+            {
                 type: 'shifting_block',
-                x: doorX - 60,
+                x: doorX - 45,
                 y: floorY - 18,
                 w: 44,
                 h: 18,
@@ -680,32 +903,13 @@ class AILevelGenerator {
                 zone: 'exit'
             },
             {
-                type: 'collapsing_floor',
-                x: doorX - 105,
-                y: floorY,
-                w: 48,
-                h: 35,
-                dropSpeed: 2.2,
-                zone: 'exit'
-            },
-            {
-                type: 'dropping_spike',
-                x: doorX - 45,
-                y: normalCeilY,
-                w: 22,
-                h: 22,
-                groundY: floorY,
-                triggerRange: 40,
-                zone: 'exit'
-            },
-            {
                 type: 'sliding_door',
                 x: doorX,
                 y: doorY,
                 w: 32,
                 h: 46,
-                shiftX: -85,
-                triggerRange: 75,
+                shiftX: -80,
+                triggerRange: 60,
                 zone: 'exit'
             }
         ];
@@ -768,6 +972,7 @@ class AILevelGenerator {
 
         const pathwayCorridors = [];
         const candidateTrapSlots = [];
+        const staticTraps = [];
 
         // Procedural shafts alternating between right and left sides
         for (let t = 0; t < numTiers; t++) {
@@ -804,9 +1009,9 @@ class AILevelGenerator {
                     h: nextFlY - flY
                 });
 
-                // Elevator moving platform in shaft
+                // Elevator is INFRASTRUCTURE — always present, never filtered by AI
                 const elevSpeed = 1.8 + rngRange(-0.2, 0.3) + difficulty * 0.15;
-                candidateTrapSlots.push({
+                staticTraps.push({
                     type: 'moving_platform',
                     x: shaftX + 12,
                     y: nextFlY - 40,
@@ -815,7 +1020,8 @@ class AILevelGenerator {
                     axis: 'y',
                     min: flY - 5,
                     max: nextFlY - 30,
-                    speed: elevSpeed
+                    speed: elevSpeed,
+                    isInfrastructure: true
                 });
             }
         }
@@ -830,9 +1036,13 @@ class AILevelGenerator {
         const doorX = 140;
         const doorY = topFloor - 46;
 
-        const staticTraps = [
-            { type: 'static_spike', x: Math.round(boundsW * 0.5), y: tierFloors[1] || bottomFloor, w: 28, h: 15 }
-        ];
+        staticTraps.push(
+            { type: 'static_spike', x: Math.round(boundsW * 0.5), y: tierFloors[1] || bottomFloor, w: 28, h: 15 },
+            { type: 'static_spike', x: Math.round(boundsW * 0.35), y: bottomFloor, w: 28, h: 15 }
+        );
+        if (numTiers > 3 && tierFloors[2]) {
+            staticTraps.push({ type: 'static_spike', x: Math.round(boundsW * 0.6), y: tierFloors[2], w: 28, h: 15 });
+        }
 
         // Zone 1: Base / Entry Traps
         candidateTrapSlots.push({
@@ -1045,7 +1255,10 @@ class AILevelGenerator {
 
         const staticTraps = [
             { type: 'spinning_saw', x: boundsW - 130, y: Math.round((tier1Floor + tier2Floor) / 2), radius: 20, patrolAxis: 'none' },
-            { type: 'static_spike', x: 440, y: tier3Floor, w: 28, h: 15 }
+            { type: 'static_spike', x: 440, y: tier3Floor, w: 28, h: 15 },
+            { type: 'static_spike', x: 200, y: tier2Floor, w: 28, h: 15 },
+            // Ferry platform is INFRASTRUCTURE — always present
+            { type: 'moving_platform', x: 300, y: tier2Floor - 5, w: 75, h: 18, axis: 'x', min: 200, max: boundsW - 240, speed: 1.8 + difficulty * 0.15, isInfrastructure: true }
         ];
 
         const candidateTrapSlots = [
@@ -1117,18 +1330,7 @@ class AILevelGenerator {
                 triggerRange: 55,
                 zone: 'mid'
             },
-            {
-                type: 'moving_platform',
-                x: 300,
-                y: tier2Floor - 5,
-                w: 75,
-                h: 18,
-                axis: 'x',
-                min: 200,
-                max: boundsW - 240,
-                speed: 1.8 + difficulty * 0.15,
-                zone: 'mid'
-            },
+
             {
                 type: 'piston_crusher',
                 x: Math.round(boundsW * 0.45),
@@ -1265,7 +1467,8 @@ class AILevelGenerator {
 
         const staticTraps = [
             { type: 'static_spike', x: 80 + entryW + Math.round(midW * 0.4), y: dividerY, w: 28, h: 15 },
-            { type: 'spinning_saw', x: 80 + entryW + Math.round(midW * 0.3), y: groundFloor - 33, radius: 15, patrolAxis: 'none' }
+            { type: 'spinning_saw', x: 80 + entryW + Math.round(midW * 0.3), y: groundFloor - 33, radius: 15, patrolAxis: 'none' },
+            { type: 'static_spike', x: 80 + entryW + midW + Math.round(exitW * 0.3), y: groundFloor, w: 28, h: 15 }
         ];
 
         const candidateTrapSlots = [
@@ -1733,8 +1936,26 @@ class AILevelGenerator {
         const candidateTrapSlots = [
             // Zone 1: Entry / Approach Traps
             {
+                type: 'collapsing_floor',
+                x: 145,
+                y: floorY,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'entry'
+            },
+            {
+                type: 'hidden_spike',
+                x: 170,
+                y: floorY,
+                w: 26,
+                h: 16,
+                triggerRange: 35,
+                zone: 'entry'
+            },
+            {
                 type: 'pop_up_wall',
-                x: 180,
+                x: 195,
                 y: floorY,
                 w: 32,
                 h: 30,
@@ -1744,38 +1965,20 @@ class AILevelGenerator {
                 zone: 'entry'
             },
             {
-                type: 'collapsing_floor',
-                x: 170,
-                y: floorY,
-                w: 48,
-                h: 35,
-                dropSpeed: 2.2,
-                zone: 'entry'
-            },
-            {
                 type: 'dropping_spike',
-                x: 200,
+                x: 220,
                 y: ceilY,
                 w: 22,
                 h: 22,
                 groundY: floorY,
                 triggerRange: 38,
                 zone: 'entry'
-            },
-            {
-                type: 'hidden_spike',
-                x: 150,
-                y: floorY,
-                w: 26,
-                h: 16,
-                triggerRange: 35,
-                zone: 'entry'
             }
         ];
 
         const span = (boundsW - 400) / numCrushers;
         for (let c = 0; c < numCrushers; c++) {
-            const cX = Math.round(240 + c * span + rngInt(-15, 15));
+            const cX = Math.round(250 + c * span + rngInt(-10, 10));
             candidateTrapSlots.push({
                 type: 'piston_crusher',
                 x: cX,
@@ -1793,16 +1996,6 @@ class AILevelGenerator {
                 const midX = cX + Math.round(span * 0.5);
                 if (c % 2 === 0) {
                     staticTraps.push({ type: 'static_spike', x: midX, y: floorY, w: 28, h: 15 });
-                    candidateTrapSlots.push({
-                        type: 'dropping_spike',
-                        x: midX,
-                        y: ceilY,
-                        w: 22,
-                        h: 22,
-                        groundY: floorY,
-                        triggerRange: 38,
-                        zone: 'mid'
-                    });
                 } else {
                     candidateTrapSlots.push({
                         type: 'spinning_saw',
@@ -1819,7 +2012,7 @@ class AILevelGenerator {
         // Zone 2 additional: Living block traps + surprise rolling ball through crusher alley
         candidateTrapSlots.push({
             type: 'ceiling_squish',
-            x: Math.round(240 + span * 0.5),
+            x: Math.round(250 + span * 0.25),
             y: ceilY,
             w: 48,
             h: 26,
@@ -1830,7 +2023,7 @@ class AILevelGenerator {
         });
         candidateTrapSlots.push({
             type: 'shifting_block',
-            x: Math.round(240 + span * 1.5),
+            x: Math.round(250 + span * 1.25),
             y: floorY - 18,
             w: 46,
             h: 20,
@@ -1951,7 +2144,9 @@ class AILevelGenerator {
         ];
 
         const staticTraps = [
-            { type: 'static_spike', x: Math.round(boundsW * 0.55), y: floorY, w: 28, h: 15 }
+            { type: 'static_spike', x: Math.round(boundsW * 0.55), y: floorY, w: 26, h: 15 },
+            { type: 'static_spike', x: Math.round(boundsW * 0.3), y: floorY, w: 26, h: 15 },
+            { type: 'spinning_saw', x: Math.round(boundsW * 0.75), y: floorY - 30, radius: 14, patrolAxis: 'none' }
         ];
 
         const candidateTrapSlots = [

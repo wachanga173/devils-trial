@@ -1192,7 +1192,7 @@ class Game {
 
         // Background prefetch next trap configuration from Python RL model
         if (this.currentLevel && this.currentLevel.candidateTrapSlots && this.ai && this.ai.prefetchPythonPrediction) {
-            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps);
+            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps, this.currentLevel);
         }
     }
 
@@ -1253,7 +1253,7 @@ class Game {
 
         // Prefetch counter-traps for the upcoming respawn
         if (this.currentLevel && this.currentLevel.candidateTrapSlots && this.ai && this.ai.prefetchPythonPrediction) {
-            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps);
+            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps, this.currentLevel);
         }
 
         this.shake(12, 6);
@@ -1354,7 +1354,7 @@ class Game {
 
         // AI Telemetry Learning
         if (this.gameState === 'playing') {
-            this.ai.recordFrame(this.player, this.input);
+            this.ai.recordFrame(this.player, this.input, this.door);
         }
 
         // Particle updates

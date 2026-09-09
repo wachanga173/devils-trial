@@ -194,7 +194,336 @@ class DevilPythonAI:
             "creativity": round(self.creativity_level, 2)
         }
 
-    def select_adaptive_traps(self, candidate_slots, static_traps, level_id, telemetry):
+    def synthesize_generative_traps(self, level_data, level_id=1, telemetry=None):
+        """
+        Dynamically craft bespoke traps directly from level geometry and player telemetry.
+        Transforms surrounding blocks into living hazards and builds targeted defense perimeters.
+        """
+        if not level_data:
+            return []
+
+        synth_traps = []
+        spawn = level_data.get('spawn', {'x': 80, 'y': 345})
+        door = level_data.get('door', {'x': 750, 'y': 340, 'w': 34, 'h': 46})
+        bounds = {'width': level_data.get('width', 900), 'height': level_data.get('height', 500)}
+        solids = level_data.get('solids', [])
+        corridors = level_data.get('pathwayCorridors', [])
+        static_traps = level_data.get('staticTraps', [])
+
+        classification = self.classify(telemetry or {})
+        profile = classification.get('profile', 'RUSHER')
+
+        # Progressive Difficulty Multiplier
+        if level_id <= 1:
+            diff_mult = 1.0
+        elif level_id == 2:
+            diff_mult = 1.15
+        elif level_id == 3:
+            diff_mult = 1.35
+        elif level_id == 4:
+            diff_mult = 1.55
+        else:
+            diff_mult = round(1.55 + math.log2(max(1, level_id - 3)) * 0.65, 2)
+
+        def is_safe_distance(x, y, w=32, min_gap=25):
+            start = x
+            end = x + w
+            for t in static_traps:
+                ty = t.get('y', t.get('groundY', 340))
+                if abs(ty - y) > 70:
+                    continue
+                t_start = t.get('x', 0)
+                t_end = t_start + t.get('w', 32)
+                gap = min_gap + 10 if t.get('type') == 'static_spike' else min_gap
+                if not (end <= t_start - gap or start >= t_end + gap):
+                    return False
+
+            for s in synth_traps:
+                sy = s.get('y', s.get('groundY', 340))
+                if abs(sy - y) > 70:
+                    continue
+                s_start = s.get('x', 0)
+                s_end = s_start + s.get('w', 32)
+                if not (end <= s_start - min_gap or start >= s_end + min_gap):
+                    return False
+
+            # Protect spawn safe zone
+            sp_x = spawn.get('x', 80)
+            sp_y = spawn.get('y', 345)
+            if (sp_y - 35 <= y <= sp_y + 35) and (sp_x - 40 <= x <= sp_x + 55):
+                return False
+
+            return True
+
+        def add_synth_trap(trap):
+            trap['isAIGenerated'] = True
+            trap['aiLean'] = profile
+            synth_traps.append(trap)
+
+        # 1. DOOR DEFENSE PERIMETER
+        door_x = door.get('x', 750)
+        door_floor_y = door.get('y', 340) + door.get('h', 46)
+        door_pre_step_x = door_x - 70
+
+        if is_safe_distance(door_pre_step_x, door_floor_y, 48, 20):
+            if profile == "RUSHER":
+                add_synth_trap({
+                    'type': 'pop_up_wall',
+                    'x': door_pre_step_x,
+                    'y': door_floor_y,
+                    'w': 32,
+                    'h': 32,
+                    'riseHeight': 36,
+                    'riseSpeed': round(2.8 + diff_mult * 0.2, 2),
+                    'triggerRange': 60,
+                    'zone': 'exit',
+                    'purpose': 'door_blocker'
+                })
+            else:
+                add_synth_trap({
+                    'type': 'collapsing_floor',
+                    'x': door_pre_step_x,
+                    'y': door_floor_y,
+                    'w': 48,
+                    'h': 35,
+                    'dropSpeed': round(2.4 + diff_mult * 0.15, 2),
+                    'zone': 'exit',
+                    'purpose': 'door_sinkhole'
+                })
+
+        # Door ceiling ambush
+        door_ceil_y = max(30, door_floor_y - 115)
+        door_ambush_x = door_x - 115
+        if is_safe_distance(door_ambush_x, door_ceil_y, 26, 25):
+            add_synth_trap({
+                'type': 'dropping_spike',
+                'x': door_ambush_x,
+                'y': door_ceil_y,
+                'w': 22,
+                'h': 22,
+                'groundY': door_floor_y,
+                'triggerRange': 55,
+                'zone': 'exit',
+                'purpose': 'door_anti_air'
+            })
+
+        # Troll Loop Portal (Level 8+)
+        if level_id >= 8 and is_safe_distance(door_x - 150, door_floor_y, 45, 30):
+            sp_x = spawn.get('x', 80)
+            sp_y = spawn.get('y', 345)
+            add_synth_trap({
+                'type': 'troll_portal',
+                'x': door_x - 150,
+                'y': door_floor_y,
+                'w': 45,
+                'h': 65,
+                'exitX': max(160, sp_x + 140),
+                'exitY': sp_y - 20,
+                'exitVy': 2.5,
+                'zone': 'exit',
+                'purpose': 'door_loop_portal'
+            })
+
+        # 2. LIVING BLOCKS CONVERSION
+        sp_x = spawn.get('x', 80)
+        sp_y = spawn.get('y', 345)
+        for sol in solids:
+            s_h = sol.get('h', 0)
+            s_w = sol.get('w', 0)
+            s_x = sol.get('x', 0)
+            s_y = sol.get('y', 0)
+            if s_h >= 60 and s_w >= 18 and (sp_x + 60 < s_x < door_x - 40):
+                mid_wall_y = s_y + s_h - 32
+                if s_x + s_w < bounds['width'] - 100 and is_safe_distance(s_x + s_w + 5, mid_wall_y, 28, 25):
+                    add_synth_trap({
+                        'type': 'wall_ejector',
+                        'x': s_x + s_w,
+                        'y': mid_wall_y,
+                        'w': 28,
+                        'h': 30,
+                        'punchDist': 38 + int(round(diff_mult * 3)),
+                        'punchSpeed': round(2.6 + diff_mult * 0.2, 2),
+                        'direction': 1,
+                        'triggerRange': 55,
+                        'zone': 'mid',
+                        'purpose': 'living_wall'
+                    })
+                elif s_x > 100 and is_safe_distance(s_x - 32, mid_wall_y, 28, 25):
+                    add_synth_trap({
+                        'type': 'wall_ejector',
+                        'x': s_x - 28,
+                        'y': mid_wall_y,
+                        'w': 28,
+                        'h': 30,
+                        'punchDist': 38 + int(round(diff_mult * 3)),
+                        'punchSpeed': round(2.6 + diff_mult * 0.2, 2),
+                        'direction': -1,
+                        'triggerRange': 55,
+                        'zone': 'mid',
+                        'purpose': 'living_wall'
+                    })
+                if sum(1 for t in synth_traps if t.get('purpose') == 'living_wall') >= 2:
+                    break
+
+        for corr in corridors:
+            c_w = corr.get('w', 0)
+            c_h = corr.get('h', 0)
+            c_x = corr.get('x', 0)
+            c_y = corr.get('y', 0)
+            if c_w >= 140 and (c_x > sp_x + 50) and (c_x + c_w < door_x + 50):
+                ceil_y = c_y
+                floor_y = c_y + c_h
+                mid_x = int(round(c_x + c_w * 0.5))
+
+                if is_safe_distance(mid_x, ceil_y, 48, 30):
+                    add_synth_trap({
+                        'type': 'ceiling_squish',
+                        'x': mid_x,
+                        'y': ceil_y,
+                        'w': 48,
+                        'h': 26,
+                        'dropDistance': max(25, c_h - 22),
+                        'dropSpeed': round(2.2 + diff_mult * 0.2, 2),
+                        'triggerRange': 52,
+                        'zone': 'mid',
+                        'purpose': 'living_ceiling'
+                    })
+
+                shelf_x = int(round(c_x + c_w * 0.25))
+                if is_safe_distance(shelf_x, floor_y, 44, 25):
+                    add_synth_trap({
+                        'type': 'shifting_block',
+                        'x': shelf_x,
+                        'y': floor_y - 18,
+                        'w': 44,
+                        'h': 18,
+                        'shiftAxis': 'y',
+                        'shiftDistance': -32,
+                        'shiftSpeed': 2.2,
+                        'triggerRange': 50,
+                        'zone': 'mid',
+                        'purpose': 'living_floor_shift'
+                    })
+
+        # 3. TELEMETRY COUNTER-LEAN TRAPS
+        if profile == "RUSHER":
+            rush_x = sp_x + int(round((door_x - sp_x) * 0.4))
+            if is_safe_distance(rush_x, sp_y, 32, 25):
+                add_synth_trap({
+                    'type': 'pop_up_wall',
+                    'x': rush_x,
+                    'y': sp_y,
+                    'w': 30,
+                    'h': 32,
+                    'riseHeight': 36,
+                    'riseSpeed': 2.8,
+                    'triggerRange': 60,
+                    'zone': 'mid',
+                    'purpose': 'rush_counter_wall'
+                })
+            boulder_x = min(bounds['width'] - 160, door_x - 60)
+            if is_safe_distance(boulder_x, sp_y, 34, 40):
+                add_synth_trap({
+                    'type': 'rolling_ball',
+                    'x': boulder_x,
+                    'y': sp_y,
+                    'groundY': sp_y,
+                    'radius': 17,
+                    'vx': round(-4.6 - diff_mult * 0.35, 2),
+                    'triggerRange': 95,
+                    'zone': 'mid',
+                    'purpose': 'rush_counter_boulder'
+                })
+        elif profile == "HOPPER":
+            jump_apex_x = sp_x + int(round((door_x - sp_x) * 0.35))
+            ceil_y = max(30, sp_y - 115)
+            if is_safe_distance(jump_apex_x, ceil_y, 22, 25):
+                add_synth_trap({
+                    'type': 'dropping_spike',
+                    'x': jump_apex_x,
+                    'y': ceil_y,
+                    'w': 22,
+                    'h': 22,
+                    'groundY': sp_y,
+                    'triggerRange': 48,
+                    'zone': 'mid',
+                    'purpose': 'hopper_anti_air'
+                })
+            landing_x = jump_apex_x + 55
+            if is_safe_distance(landing_x, sp_y, 26, 25):
+                add_synth_trap({
+                    'type': 'hidden_spike',
+                    'x': landing_x,
+                    'y': sp_y,
+                    'w': 26,
+                    'h': 16,
+                    'triggerRange': 32,
+                    'zone': 'mid',
+                    'purpose': 'hopper_landing_spike'
+                })
+        elif profile in ("CAUTIOUS", "METHODICAL"):
+            chaser_x = (sp_x - 55) if sp_x >= 100 else (sp_x + 70)
+            chaser_vx = round(3.8 + diff_mult * 0.25, 2) if sp_x >= 100 else round(-3.8 - diff_mult * 0.25, 2)
+            if is_safe_distance(chaser_x, sp_y, 34, 30):
+                add_synth_trap({
+                    'type': 'rolling_ball',
+                    'x': chaser_x,
+                    'y': sp_y,
+                    'groundY': sp_y,
+                    'radius': 16,
+                    'vx': chaser_vx,
+                    'triggerRange': 75,
+                    'zone': 'entry',
+                    'purpose': 'camper_flusher_boulder'
+                })
+        else: # CHAOTIC
+            spring_x = sp_x + int(round((door_x - sp_x) * 0.5))
+            if is_safe_distance(spring_x, sp_y, 32, 20):
+                add_synth_trap({
+                    'type': 'spring_pad',
+                    'x': spring_x,
+                    'y': sp_y,
+                    'w': 32,
+                    'h': 10,
+                    'boostVy': -9.2,
+                    'zone': 'mid',
+                    'purpose': 'chaotic_spring_launch'
+                })
+
+        # 4. PAST-DEATH COUNTER REINFORCEMENT
+        deaths = (telemetry or {}).get('deaths', [])
+        if deaths:
+            last_death = deaths[-1]
+            ld_x = last_death.get('x')
+            ld_y = last_death.get('y', sp_y)
+            if ld_x is not None:
+                counter_x = int(round(ld_x + 45))
+                ceil_y = max(30, ld_y - 115)
+                if is_safe_distance(counter_x, ceil_y, 22, 25):
+                    add_synth_trap({
+                        'type': 'dropping_spike',
+                        'x': counter_x,
+                        'y': ceil_y,
+                        'w': 22,
+                        'h': 22,
+                        'groundY': ld_y,
+                        'triggerRange': 45,
+                        'zone': 'mid',
+                        'purpose': 'death_counter_trap'
+                    })
+
+        return synth_traps
+
+    def select_adaptive_traps(self, candidate_slots, static_traps, level_id, telemetry, level_data=None):
+        if candidate_slots is None:
+            candidate_slots = []
+
+        # If level_data is provided and candidate_slots has no AI-synthesized traps yet, synthesize them
+        if level_data and not any(s.get('isAIGenerated') for s in candidate_slots):
+            synth = self.synthesize_generative_traps(level_data, level_id, telemetry)
+            if synth:
+                candidate_slots = list(candidate_slots) + synth
+
         if not candidate_slots:
             return {
                 "selectedTraps": [],
@@ -206,38 +535,50 @@ class DevilPythonAI:
         classification = self.classify(telemetry or {})
         profile = classification['profile']
 
-        # Progressive Difficulty Multiplier D(L) and Focused Psychological Trap Budget (2 to 4 traps)
+        # Progressive Difficulty Multiplier D(L) — unbounded logarithmic growth
         if level_id <= 1:
             diff_mult = 1.0
-            max_traps = 1
         elif level_id == 2:
             diff_mult = 1.15
-            max_traps = 2
         elif level_id == 3:
             diff_mult = 1.35
-            max_traps = 2
         elif level_id == 4:
             diff_mult = 1.55
-            max_traps = 3
-        elif level_id == 5:
-            diff_mult = 1.70
-            max_traps = 3
-        elif level_id == 6:
-            diff_mult = 1.85
-            max_traps = 3
-        elif level_id == 7:
-            diff_mult = 2.0
-            max_traps = 3
         else:
-            diff_mult = min(2.5, 2.0 + (level_id - 7) * 0.10)
-            max_traps = min(4, 3 + (level_id % 2))
+            diff_mult = round(1.55 + math.log2(max(1, level_id - 3)) * 0.65, 2)
+
+        # Aggressive Progressive Trap Budget: scales from 2 to 10 active traps
+        if level_id <= 2:
+            max_traps = 2
+        elif level_id <= 4:
+            max_traps = 3
+        elif level_id <= 6:
+            max_traps = 4
+        elif level_id <= 9:
+            max_traps = 5
+        elif level_id <= 12:
+            max_traps = 6
+        elif level_id <= 16:
+            max_traps = 7
+        else:
+            max_traps = min(10, 7 + (level_id - 16) // 4)
 
         active_traps = list(static_traps or [])
 
-        # Score candidate slots
-        scored = []
+        # Group candidate slots by comboId
+        combo_groups = {}
+        solo_slots = []
         for idx, raw_slot in enumerate(candidate_slots):
             slot = json.loads(json.dumps(raw_slot))
+            cid = slot.get('comboId')
+            if cid:
+                if cid not in combo_groups:
+                    combo_groups[cid] = []
+                combo_groups[cid].append({'slot': slot, 'idx': idx})
+            else:
+                solo_slots.append({'slot': slot, 'idx': idx})
+
+        def score_slot(slot):
             t_type = slot.get('type')
             affinity = 1.0
             efficacy = self.trap_efficacy.get(t_type, 1.0)
@@ -270,39 +611,58 @@ class DevilPythonAI:
                 elif t_type in ('collapsing_floor', 'piston_crusher'):
                     affinity += 1.4
 
-            # Zone variety weighting
             zone = slot.get('zone', 'mid')
             if zone == 'entry':
                 affinity *= 1.1
             elif zone == 'exit':
                 affinity *= 1.15
 
-            score = (affinity * efficacy) * (0.80 + random.random() * 0.40)
-            scored.append({
-                'slot': slot,
-                'idx': idx,
-                'score': score
-            })
+            if slot.get('comboId'):
+                affinity *= 1.3
+            if slot.get('gimmickBonus'):
+                affinity *= 1.35
 
-        scored.sort(key=lambda s: s['score'], reverse=True)
+            return (affinity * efficacy) * (0.80 + random.random() * 0.40)
 
         selected = []
         used_indices = set()
 
-        # 60% ML predicted selection
-        ml_budget = max(2, int(round(max_traps * 0.6)))
-        for item in scored:
-            if len(selected) >= ml_budget:
+        # Phase 1: Try to select combo groups first (atomic units)
+        combo_items = []
+        for cid, members in combo_groups.items():
+            avg_score = sum(score_slot(m['slot']) for m in members) / len(members)
+            combo_items.append({'cid': cid, 'members': members, 'score': avg_score})
+        combo_items.sort(key=lambda c: c['score'], reverse=True)
+
+        for combo in combo_items:
+            if len(selected) + len(combo['members']) > max_traps:
+                continue
+            if all(self.is_safe(m['slot'], active_traps) for m in combo['members']):
+                for m in combo['members']:
+                    selected.append(m['slot'])
+                    active_traps.append(m['slot'])
+                    used_indices.add(m['idx'])
+
+        # Phase 2: ML-predicted selection for remaining solo slots
+        scored_solos = [{'slot': item['slot'], 'idx': item['idx'], 'score': score_slot(item['slot'])} for item in solo_slots]
+        scored_solos.sort(key=lambda s: s['score'], reverse=True)
+
+        remaining_budget = max_traps - len(selected)
+        ml_budget = max(1, int(round(remaining_budget * 0.6)))
+        for item in scored_solos:
+            if len(selected) >= max_traps - int(remaining_budget * 0.4) or len(selected) >= max_traps:
                 break
+            if item['idx'] in used_indices:
+                continue
             if self.is_safe(item['slot'], active_traps):
                 selected.append(item['slot'])
                 active_traps.append(item['slot'])
                 used_indices.add(item['idx'])
 
-        # 40% Wildcard surprise selection
-        remaining = [s for s in scored if s['idx'] not in used_indices]
-        random.shuffle(remaining)
-        for item in remaining:
+        # Phase 3: Stochastic Wildcard surprise selection
+        remaining_wildcards = [s for s in solo_slots if s['idx'] not in used_indices]
+        random.shuffle(remaining_wildcards)
+        for item in remaining_wildcards:
             if len(selected) >= max_traps:
                 break
             if self.is_safe(item['slot'], active_traps):
@@ -311,23 +671,25 @@ class DevilPythonAI:
                 used_indices.add(item['idx'])
 
         # Fine-tune selected traps with progressive parameters
+        speed_scale = min(1.8, 1.0 + (diff_mult - 1.0) * 0.25)
         tuned = []
         for trap in selected:
             t = json.loads(json.dumps(trap))
-            # Modulate pause duration
             if 'pauseDuration' in t:
-                t['pauseDuration'] = max(30, int(round(t['pauseDuration'] / min(1.3, diff_mult))))
-            # Modulate trigger range with creative jitter
+                t['pauseDuration'] = max(20, int(round(t['pauseDuration'] / speed_scale)))
             if 'triggerRange' in t:
-                jitter = random.randint(-4, 6)
-                t['triggerRange'] = max(28, t['triggerRange'] + jitter)
-            # Modulate speeds slightly for higher levels while staying readable
-            if 'speed' in t and level_id >= 5:
-                speed_scale = min(1.35, 1.0 + (level_id - 4) * 0.05)
-                t['speed'] = round(t['speed'] * speed_scale, 2)
-            if 'vx' in t and level_id >= 5:
-                vx_scale = min(1.30, 1.0 + (level_id - 4) * 0.04)
-                t['vx'] = round(t['vx'] * vx_scale, 2)
+                jitter = random.randint(-4, 4)
+                t['triggerRange'] = max(25, int(round(t['triggerRange'] * min(1.5, speed_scale))) + jitter)
+            if 'vx' in t:
+                t['vx'] = round(t['vx'] * min(1.6, speed_scale), 2)
+            if 'speed' in t:
+                t['speed'] = min(5.5, round(t['speed'] * speed_scale, 2))
+            if 'dropSpeed' in t:
+                t['dropSpeed'] = min(4.5, round(t['dropSpeed'] * speed_scale, 2))
+            if 'riseSpeed' in t:
+                t['riseSpeed'] = min(4.0, round(t['riseSpeed'] * speed_scale, 2))
+            if 'punchSpeed' in t:
+                t['punchSpeed'] = min(4.5, round(t['punchSpeed'] * speed_scale, 2))
 
             tuned.append(t)
 
@@ -349,6 +711,8 @@ class DevilPythonAI:
         s_w = slot.get('w', 32)
 
         for act in active_list:
+            if slot.get('comboId') and act.get('comboId') and slot['comboId'] == act['comboId']:
+                continue
             a_type = act.get('type')
             a_y = act.get('groundY', act.get('y', 345))
             a_x = act.get('x', 0)
@@ -407,6 +771,17 @@ def run_cli():
                 payload.get('candidateSlots', []),
                 payload.get('staticTraps', []),
                 payload.get('levelId', 1),
+                payload.get('telemetry', {}),
+                payload.get('levelData') or payload.get('levelGeometry')
+            )
+            print(json.dumps(res))
+            return
+
+        if cmd == '--synthesize':
+            payload = json.loads(sys.argv[2] if len(sys.argv) > 2 else sys.stdin.read())
+            res = ai.synthesize_generative_traps(
+                payload.get('levelData') or payload.get('levelGeometry') or {},
+                payload.get('levelId', 1),
                 payload.get('telemetry', {})
             )
             print(json.dumps(res))
@@ -440,6 +815,14 @@ def run_cli():
                 res = ai.select_adaptive_traps(
                     req.get('candidateSlots', []),
                     req.get('staticTraps', []),
+                    req.get('levelId', 1),
+                    req.get('telemetry', {}),
+                    req.get('levelData') or req.get('levelGeometry')
+                )
+                print(json.dumps(res))
+            elif action == 'synthesize':
+                res = ai.synthesize_generative_traps(
+                    req.get('levelData') or req.get('levelGeometry') or {},
                     req.get('levelId', 1),
                     req.get('telemetry', {})
                 )
