@@ -72,6 +72,9 @@
             <button id="headerStorageBtn" class="storage-hud-btn" title="View Device Storage Location & Save Data">
                 💾 DATA
             </button>
+            <button id="headerLegalBtn" class="storage-hud-btn" title="View Terms, Privacy Policy & FAQs">
+                📜 LEGAL
+            </button>
         </div>
     </header>
 
@@ -114,6 +117,7 @@
                     <button id="restartBtn" class="btn-secondary">RESTART LEVEL (R)</button>
                     <button id="pausePwaInstallBtn" class="btn-secondary btn-pwa-install">📲 INSTALL AS APP (PWA)</button>
                     <button id="openStorageBtn" class="btn-secondary btn-storage-action">💾 STORAGE & SAVE LOCATION</button>
+                    <button id="pauseLegalBtn" class="btn-secondary">📜 TERMS, PRIVACY & FAQS</button>
                 </div>
             </div>
         </div>
@@ -241,6 +245,232 @@
                 </div>
             </div>
         </div>
+
+        <!-- Interactive Legal, Privacy & FAQ Center Modal -->
+        <div id="legalOverlay" class="overlay-modal" aria-hidden="true">
+            <div class="modal-content legal-modal-content">
+                <div class="storage-modal-header">
+                    <h2 class="modal-title">📜 LEGAL &amp; FAQ CENTER</h2>
+                    <button id="closeLegalBtn" class="close-modal-btn" aria-label="Close Legal Menu">✕</button>
+                </div>
+
+                <!-- Category Tab Switcher -->
+                <div class="legal-modal-tabs">
+                    <button class="modal-tab-btn active" data-tab="terms">📜 Terms</button>
+                    <button class="modal-tab-btn" data-tab="privacy">🔒 Privacy</button>
+                    <button class="modal-tab-btn" data-tab="faq">❓ FAQs</button>
+                    <button class="modal-tab-btn" data-tab="ai">🧠 AI &amp; Fair Play</button>
+                </div>
+
+                <!-- In-Modal Quick Search -->
+                <div class="modal-search-box">
+                    <span class="modal-search-icon">🔍</span>
+                    <input type="text" id="inModalLegalSearch" class="modal-search-input" placeholder="Quick search terms, privacy, FAQs, crawling, AI..." aria-label="Search Legal &amp; FAQs">
+                </div>
+
+                <!-- Scrollable Body with Tab Panels -->
+                <div class="legal-modal-scroll" id="legalModalScroll">
+                    
+                    <!-- TAB 1: TERMS & CONDITIONS -->
+                    <div id="tabContentTerms" class="tab-panel active">
+                        <div class="legal-mini-card">
+                            <div class="mini-card-title">📜 Open Source MIT License &amp; Terms</div>
+                            <p>Devil's Trial is free, open-source software under the MIT License. You are free to play, fork, stream, modify, and distribute with attribution.</p>
+                        </div>
+                        <div class="legal-accordion-group">
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Troll Mechanics &amp; Rage Game Nature</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>The game intentionally features dynamic shuffling traps, fake collapsing floors, and moving exit doors. Frequent deaths are an intended design pillar. Take frequent breaks if you feel frustration rising!</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Epilepsy &amp; Photosensitivity Warning</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>A small percentage of players may experience seizures when exposed to flashing visual patterns, rapid camera resets, and contrasting geometric lights. Cease playing immediately if you feel dizzy or disoriented.</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>100% Free Streaming &amp; Video Monetization</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>You have full, royalty-free rights to broadcast and monetize gameplay on Twitch, YouTube, TikTok, or anywhere else. All audio is procedurally synthesized via Web Audio API—zero DMCA copyright strikes!</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Disclaimer of Warranties ("AS IS")</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>The software is provided "as is" without warranty. The authors are not liable for lost local save progress, hardware damage, or rage-quit desk smashes.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-footer-note">
+                            <a href="./terms.html" target="_blank" class="full-doc-link">Read Full Terms of Service &amp; EULA (14 Sections) ↗</a>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: PRIVACY POLICY -->
+                    <div id="tabContentPrivacy" class="tab-panel">
+                        <div class="legal-mini-card">
+                            <div class="mini-card-title">🔒 Zero-Telemetry &amp; Zero-Cookie Guarantee</div>
+                            <p>Devil's Trial does not collect, track, or transmit any personal data. All progression and telemetry are saved exclusively on your device in HTML5 <span class="code-val">localStorage</span>.</p>
+                        </div>
+                        <div class="legal-accordion-group">
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>What data is stored on my device?</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Only your unlocked level index, death count, chosen visual theme, chaos mode state, last saved timestamp, and local AI telemetry feature weights (jump counts, rush speed). Total footprint: ~2 KB.</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Are there any cookies or tracking scripts?</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Zero cookies. Zero Google Analytics. Zero Facebook Pixels. Zero third-party ad networks. We do not track your IP address or fingerprint your device.</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Your Rights (GDPR &amp; CCPA Compliance)</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>You have full access to your data. Click 💾 DATA in the header to view the live JSON, export it as a file, or permanently obliterate all saved data with the in-game destruction button.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-footer-note">
+                            <a href="./privacy.html" target="_blank" class="full-doc-link">Read Full Privacy Policy &amp; GDPR Disclosures ↗</a>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: FAQS -->
+                    <div id="tabContentFaq" class="tab-panel">
+                        <div class="legal-mini-card">
+                            <div class="mini-card-title">❓ Frequently Asked Questions</div>
+                            <p>Quick answers to common questions about crawling mechanics, troll traps, AI adaptation, and save persistence.</p>
+                        </div>
+                        <div class="legal-accordion-group">
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Are the levels actually beatable?</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p><strong>Yes, 100%!</strong> The game features an Anti-Checkmate mutual exclusion solver that ensures every obstacle combination has a mathematically viable solution.</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>How do I crawl on all fours to duck razors?</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Hold <kbd>S</kbd> or <kbd>▼</kbd> (Down Arrow) to crouch onto all fours. Hold <kbd>S</kbd> + <kbd>D</kbd> or <kbd>▼</kbd> + <kbd>▶</kbd> to crawl forward under spinning sawblades!</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Why is landscape orientation required on mobile?</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Devil's Trial uses an authentic 840x480 widescreen ratio. Landscape mode ensures wide platforming viewports and comfortable on-screen D-pad controls.</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Does installing as a PWA keep my saved level progress?</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Yes! Installed PWA mode and your browser tab share the exact same origin LocalStorage partition (<span class="code-val">devils_trial_save_v1</span>).</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Can I play offline without internet?</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Yes! Once loaded once, our Service Worker caches all assets. You can play completely offline in airplane mode anytime.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-footer-note">
+                            <a href="./faq.html" target="_blank" class="full-doc-link">Browse Full Searchable FAQ Knowledge Base ↗</a>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: AI & FAIR PLAY -->
+                    <div id="tabContentAi" class="tab-panel">
+                        <div class="legal-mini-card">
+                            <div class="mini-card-title">🧠 AI Director &amp; Anti-Checkmate Guarantee</div>
+                            <p>Our client-side Machine Learning model analyzes your movement dynamics in real time to provide fair, personalized platforming challenge.</p>
+                        </div>
+                        <div class="legal-accordion-group">
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>The 4 Player Playstyle Profiles</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>• <strong style="color: #ffca28;">RUSHER:</strong> High horizontal speed, sprints blindly ➔ countered with delayed drop spikes &amp; roll boulders.<br>
+                                    • <strong style="color: #80d8ff;">CAUTIOUS:</strong> Hesitates before jumping ➔ countered with rhythmic piston crushers.<br>
+                                    • <strong style="color: #69f0ae;">HOPPER:</strong> Bunny-hops constantly ➔ countered with ceiling-mounted sawblades.<br>
+                                    • <strong style="color: #fff;">BALANCED:</strong> Mixed tactical player ➔ countered with hybrid trap selections.</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Anti-Checkmate Spatial Exclusion Matrix</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Traps pass through a strict compatibility algorithm: rolling boulders cannot share elevation corridors with floor collapses in evasion zones, and dropping spikes never sandwich players with floor spikes. Every obstacle is solvable!</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Switching to Static Trap Mode</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>Want a static platformer for speedrun route practice? Click the 🧠 AI DIRECTOR button in the game header to turn Adaptive AI off anytime.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-footer-note">
+                            <a href="./legal.html" target="_blank" class="full-doc-link">Visit Master Legal &amp; Architectural Portal ↗</a>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-buttons legal-bottom-actions">
+                    <a id="openFullLegalPageLink" href="./legal.html" target="_blank" class="btn-location-action btn-location-subtle" style="text-decoration: none; flex: 1;">
+                        🌐 OPEN FULL PORTAL ↗
+                    </a>
+                    <button id="backFromLegalBtn" class="btn-primary" style="flex: 1;">BACK TO GAME</button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Mobile On-Screen Controls (hidden on desktop) -->
@@ -260,6 +490,12 @@
         <div>Jump: <span class="key-badge">SPACE</span> or <span class="key-badge">▲</span> / <span class="key-badge">W</span></div>
         <div>Restart: <span class="key-badge">R</span></div>
         <div>Pause: <span class="key-badge">ESC</span></div>
+        <div class="footer-legal-links">
+            <button id="footerTermsBtn" class="footer-legal-btn" type="button">Terms</button> • 
+            <button id="footerPrivacyBtn" class="footer-legal-btn" type="button">Privacy</button> • 
+            <button id="footerFaqBtn" class="footer-legal-btn" type="button">FAQs</button> • 
+            <a href="./legal.html" target="_blank" class="footer-legal-btn" style="text-decoration: none;">Portal ↗</a>
+        </div>
     </footer>
 
     <!-- Scripts with cache busting -->

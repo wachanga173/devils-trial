@@ -33,6 +33,35 @@ class AILevelGenerator {
     }
 
     /**
+     * MurmurHash3 32-bit integer finalizer for uniform pseudo-random distributions
+     */
+    hashInt(x) {
+        x = Math.imul((x >>> 16) ^ x, 0x45d9f3b);
+        x = Math.imul((x >>> 16) ^ x, 0x45d9f3b);
+        x = (x >>> 16) ^ x;
+        return x >>> 0;
+    }
+
+    /**
+     * Determines the topology archetype for any level ensuring zero back-to-back repeats.
+     */
+    getTopology(levelNumber) {
+        const numTop = this.topologies.length;
+        let prevIdx = this.hashInt(4) % numTop;
+        let curIdx = prevIdx;
+        for (let l = 5; l <= levelNumber; l++) {
+            const h = this.hashInt(l);
+            curIdx = h % numTop;
+            if (curIdx === prevIdx) {
+                curIdx = (curIdx + 1 + ((h >>> 4) % (numTop - 1))) % numTop;
+                if (curIdx === prevIdx) curIdx = (curIdx + 1) % numTop;
+            }
+            prevIdx = curIdx;
+        }
+        return this.topologies[curIdx];
+    }
+
+    /**
      * Quantified Progressive Difficulty Rating D(L)
      * Scales variety and puzzle complexity without hypersonic speed spikes.
      */
@@ -45,24 +74,27 @@ class AILevelGenerator {
     }
 
     /**
-     * Generates an infinite variety of levels for any level number
+     * Generates an infinite variety of levels for any level number.
+     * Guarantees NO TWO MAPS ARE EVER THE SAME while preserving pixel-perfect alignment.
      * @param {number} levelNumber (5, 6, 7 ... 1000+)
      * @param {DevilAI} aiModel
      * @returns {Object} Complete level definition
      */
     generateLevel(levelNumber, aiModel) {
-        const seed = (levelNumber * 16807 + 7919) % 2147483647;
+        // High-entropy seed mixing levelNumber with prime factors for distinct pseudo-random sequences
+        const seed = (Math.imul(levelNumber, 1597334677) ^ (levelNumber * 16807 + 7919)) >>> 0;
         const rng = this.createRNG(seed);
 
         const rngRange = (min, max) => min + rng() * (max - min);
         const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
         const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
 
-        // Choose topology using a staggered cycle so adjacent levels have distinct feels
-        const topIndex = (levelNumber - 5 + Math.floor((levelNumber - 5) / this.topologies.length) * 3) % this.topologies.length;
-        const topology = this.topologies[(topIndex + this.topologies.length) % this.topologies.length];
+        // Dynamic non-repeating topology sequence with zero back-to-back repetitions
+        const topology = this.getTopology(levelNumber);
 
-        const theme = this.themes[(levelNumber - 1) % this.themes.length];
+        // Rotating thematic color scheme
+        const themeIndex = (levelNumber * 3 + rngInt(0, 5)) % this.themes.length;
+        const theme = this.themes[themeIndex];
         const title = this.generateTitle(topology, levelNumber, rngChoice);
         const difficulty = this.getDifficultyMultiplier(levelNumber);
         const profile = aiModel ? aiModel.currentProfile : 'BALANCED';
@@ -96,25 +128,38 @@ class AILevelGenerator {
                 break;
         }
 
+        // Anti-Checkmate mutual exclusion filter
+        if (aiModel && aiModel.validateTrapSafety && level.candidateTrapSlots) {
+            const safeSlots = [];
+            for (const slot of level.candidateTrapSlots) {
+                if (aiModel.validateTrapSafety(slot, safeSlots)) {
+                    safeSlots.push(slot);
+                }
+            }
+            level.candidateTrapSlots = safeSlots;
+        }
+
         return level;
     }
 
     generateTitle(topology, levelNumber, rngChoice) {
-        const prefixes = ["The", "Trial of", "Escape from", "Chamber of", "Return to", "Labyrinth of", "Path of"];
+        const prefixes = ["The", "Trial of", "Escape from", "Chamber of", "Return to", "Labyrinth of", "Path of", "Gauntlet of", "Crypt of", "Sanctum of"];
         const adjectives = [
             "Molten", "Cursed", "Treacherous", "Screaming", "Abyssal", "Iron", "Silent", "Shattered",
             "Gilded", "Spectral", "Venomous", "Frenzied", "Forbidden", "Perilous", "Bleeding",
-            "Sinister", "Clockwork", "Hollow", "Deceptive", "Savage", "Twilight", "Brutal", "Obsidian"
+            "Sinister", "Clockwork", "Hollow", "Deceptive", "Savage", "Twilight", "Brutal", "Obsidian",
+            "Infernal", "Vindictive", "Phantom", "Relentless", "Tortured", "Malevolent", "Glacial",
+            "Smoldering", "Dreadful", "Vicious", "Wicked", "Cataclysmic", "Spiteful", "Forsaken"
         ];
         const nouns = {
-            STEPPED_TEMPLE: ["Altar", "Pyramid", "Terrace", "Ziggurat", "Steps", "Sanctuary", "Bastion"],
-            CRAWL_DUCT: ["Duct", "Vents", "Low Ceiling", "Scramble", "Crawlway", "Shaft", "Passage"],
-            VERTICAL_SPIRE: ["Spire", "Tower", "Ascent", "Apex", "Steeple", "Pinnacle", "Peak"],
-            CAVERN_DESCENT: ["Crypt", "Abyss", "Descent", "Catacomb", "Drop", "Pit", "Chasm"],
-            TWIN_ROUTES: ["Divergence", "Fork", "Crossroads", "Split", "Choice", "Dichotomy", "Two Roads"],
-            CHASM_SPRINGS: ["Bouncer", "Springboards", "Leap", "Abyss", "Rebound", "Vault", "Chasm"],
-            CRUSHER_ALLEY: ["Crusher", "Pistons", "Press", "Gauntlet", "Slammer", "Pounder", "Grinder"],
-            BOULDER_RAMP: ["Boulder", "Avalanche", "Tumble", "Runaway", "Rockfall", "Roll", "Crag"]
+            STEPPED_TEMPLE: ["Altar", "Pyramid", "Terrace", "Ziggurat", "Steps", "Sanctuary", "Bastion", "Summit", "Plateau"],
+            CRAWL_DUCT: ["Duct", "Vents", "Low Ceiling", "Scramble", "Crawlway", "Shaft", "Passage", "Trench", "Conduit"],
+            VERTICAL_SPIRE: ["Spire", "Tower", "Ascent", "Apex", "Steeple", "Pinnacle", "Peak", "Belfry", "Citadel"],
+            CAVERN_DESCENT: ["Crypt", "Abyss", "Descent", "Catacomb", "Drop", "Pit", "Chasm", "Vault", "Fissure"],
+            TWIN_ROUTES: ["Divergence", "Fork", "Crossroads", "Split", "Choice", "Dichotomy", "Two Roads", "Forkway"],
+            CHASM_SPRINGS: ["Bouncer", "Springboards", "Leap", "Abyss", "Rebound", "Vault", "Chasm", "Archipelago"],
+            CRUSHER_ALLEY: ["Crusher", "Pistons", "Press", "Gauntlet", "Slammer", "Pounder", "Grinder", "Pneumatics"],
+            BOULDER_RAMP: ["Boulder", "Avalanche", "Tumble", "Runaway", "Rockfall", "Roll", "Crag", "Cascade"]
         };
 
         const prefix = rngChoice(prefixes);
@@ -131,215 +176,178 @@ class AILevelGenerator {
 
     // --- Backward compatibility wrapper methods ---
     generatePyramidTemple(levelNum = 7, profile = 'BALANCED', theme = 'inferno', title = 'The Stepped Altar') {
-        const seed = (levelNum * 16807 + 7919) % 2147483647;
-        const rng = this.createRNG(seed);
-        const rngRange = (min, max) => min + rng() * (max - min);
-        const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
-        const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
-        return this.buildProceduralSteppedTemple(levelNum, rng, rngRange, rngInt, rngChoice, 1.35, theme, title, profile);
+        return this.generateLevel(levelNum, { currentProfile: profile });
     }
-
     generateCrawlTunnel(levelNum = 5, profile = 'BALANCED', theme = 'inferno', title = 'The Razor Duct') {
-        const seed = (levelNum * 16807 + 7919) % 2147483647;
-        const rng = this.createRNG(seed);
-        const rngRange = (min, max) => min + rng() * (max - min);
-        const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
-        const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
-        return this.buildProceduralCrawlDuct(levelNum, rng, rngRange, rngInt, rngChoice, 1.35, theme, title, profile);
+        return this.generateLevel(levelNum, { currentProfile: profile });
     }
-
     generateTowerAscent(levelNum = 6, profile = 'BALANCED', theme = 'inferno', title = "The Devil's Spire") {
-        const seed = (levelNum * 16807 + 7919) % 2147483647;
-        const rng = this.createRNG(seed);
-        const rngRange = (min, max) => min + rng() * (max - min);
-        const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
-        const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
-        return this.buildProceduralVerticalSpire(levelNum, rng, rngRange, rngInt, rngChoice, 1.35, theme, title, profile);
+        return this.generateLevel(levelNum, { currentProfile: profile });
     }
-
     generateCavernDescent(levelNum = 8, profile = 'BALANCED', theme = 'inferno', title = 'The Abyssal Crypt') {
-        const seed = (levelNum * 16807 + 7919) % 2147483647;
-        const rng = this.createRNG(seed);
-        const rngRange = (min, max) => min + rng() * (max - min);
-        const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
-        const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
-        return this.buildProceduralCavernDescent(levelNum, rng, rngRange, rngInt, rngChoice, 1.35, theme, title, profile);
+        return this.generateLevel(levelNum, { currentProfile: profile });
     }
-
     generateTwinPaths(levelNum = 9, profile = 'BALANCED', theme = 'inferno', title = 'The Fork in the Dark') {
-        const seed = (levelNum * 16807 + 7919) % 2147483647;
-        const rng = this.createRNG(seed);
-        const rngRange = (min, max) => min + rng() * (max - min);
-        const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
-        const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
-        return this.buildProceduralTwinRoutes(levelNum, rng, rngRange, rngInt, rngChoice, 1.35, theme, title, profile);
+        return this.generateLevel(levelNum, { currentProfile: profile });
     }
-
     generateRazorGauntlet(levelNum = 10, profile = 'BALANCED', theme = 'inferno', title = "The Razor's Edge") {
-        const seed = (levelNum * 16807 + 7919) % 2147483647;
-        const rng = this.createRNG(seed);
-        const rngRange = (min, max) => min + rng() * (max - min);
-        const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
-        const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
-        return this.buildProceduralCrusherAlley(levelNum, rng, rngRange, rngInt, rngChoice, 1.35, theme, title, profile);
+        return this.generateLevel(levelNum, { currentProfile: profile });
     }
-
     generateDoubleTroll(levelNum = 11, profile = 'BALANCED', theme = 'inferno', title = 'The Double Bluff') {
-        const seed = (levelNum * 16807 + 7919) % 2147483647;
-        const rng = this.createRNG(seed);
-        const rngRange = (min, max) => min + rng() * (max - min);
-        const rngInt = (min, max) => Math.floor(rngRange(min, max + 1));
-        const rngChoice = (arr) => arr[Math.floor(rng() * arr.length)];
-        return this.buildProceduralBoulderRamp(levelNum, rng, rngRange, rngInt, rngChoice, 1.35, theme, title, profile);
+        return this.generateLevel(levelNum, { currentProfile: profile });
     }
 
     // =========================================================================
     // 1. STEPPED TEMPLE (Terraces, Springs, Boulders, 0 Floating Pixels)
     // =========================================================================
     buildProceduralSteppedTemple(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        let numSteps = (levelNum <= 6) ? 3 : (3 + (levelNum % 2)); // 3 or 4 steps depending on level
-        let boundsW = (levelNum <= 6) ? 840 : (960 + rngInt(0, 2) * 60);
+        const numSteps = 3 + ((levelNum + rngInt(0, 2)) % 3); // 3, 4, or 5 steps
+        const boundsW = 860 + rngInt(0, 380); // 860 to 1240px continuous
         const boundsH = 480;
 
-        const wallL = 60;
-        const wallR = 60;
-        let stepFloors = [];
-        let stepWidths = [];
+        const wallL = 50 + rngInt(0, 25);
+        const wallR = 50 + rngInt(0, 25);
+        const playableW = boundsW - wallL - wallR;
 
-        // Exact tiered floors for Level 7 to guarantee perfect alignment
-        if (levelNum === 7) {
-            numSteps = 3;
-            boundsW = 960;
-            stepFloors = [345, 290, 245];
-            stepWidths = [200, 200, 440];
-        } else {
-            const playableW = boundsW - wallL - wallR;
-            const baseFloor = 350 - rngInt(0, 10);
-            const stepRise = 48 + rngInt(0, 8);
-            for (let i = 0; i < numSteps; i++) {
+        const baseFloor = 340 + rngInt(-8, 8);
+        const cHeadroom = 115 + rngInt(0, 10);
+        const maxRise = Math.floor((baseFloor - cHeadroom - 35) / Math.max(1, numSteps - 1));
+        const stepRise = Math.min(maxRise, 30 + rngInt(0, 12)); // guarantees top step has at least 35px solid ceiling
+        const isPyramid = rng() > 0.55 && numSteps >= 4;
+
+        const stepFloors = [];
+        const stepWidths = [];
+
+        // Distribute step widths dynamically
+        let remainingW = playableW;
+        for (let i = 0; i < numSteps; i++) {
+            if (isPyramid) {
+                const mid = Math.floor(numSteps / 2);
+                const distFromMid = Math.abs(i - mid);
+                stepFloors.push(baseFloor - (mid - distFromMid) * stepRise);
+            } else {
                 stepFloors.push(baseFloor - i * stepRise);
-                if (i === 0) {
-                    stepWidths.push(Math.round(playableW * 0.28));
-                } else if (i === numSteps - 1) {
-                    stepWidths.push(Math.round(playableW * 0.40));
-                } else {
-                    stepWidths.push(Math.round(playableW * 0.32 / (numSteps - 2)));
-                }
             }
-            const sumW = stepWidths.reduce((a, b) => a + b, 0);
-            stepWidths[stepWidths.length - 1] += (playableW - sumW);
+
+            if (i === numSteps - 1) {
+                stepWidths.push(remainingW);
+            } else {
+                const wFrac = (0.8 / numSteps) + rngRange(-0.05, 0.05);
+                const w = Math.round(playableW * wFrac);
+                stepWidths.push(w);
+                remainingW -= w;
+            }
         }
 
         const pathwayCorridors = [];
         const solids = [];
 
-        // Perimeter boundary walls
-        solids.push({ x: 0, y: 0, w: wallL, h: boundsH }); // Left wall
-        solids.push({ x: boundsW - wallR, y: 0, w: wallR, h: boundsH }); // Right wall
+        // Outer boundary walls
+        solids.push({ x: 0, y: 0, w: wallL, h: boundsH });
+        solids.push({ x: boundsW - wallR, y: 0, w: wallR, h: boundsH });
 
         let currentX = wallL;
-        const cHeadroom = 125; // Clean open headroom for platforming
 
         for (let i = 0; i < numSteps; i++) {
             const sx = currentX;
             const sw = stepWidths[i];
             const floorY = stepFloors[i];
-            const ceilY = floorY - cHeadroom;
+            const ceilY = Math.max(30, floorY - cHeadroom);
 
-            // Solid ceiling above step
+            // Solid ceiling above step (guaranteed positive height >= 30px)
             solids.push({ x: sx, y: 0, w: sw, h: ceilY });
 
-            // Solid floor below step (matches floorY exactly! ZERO FLOATING)
+            // Solid floor below step: matches floorY to the pixel (ZERO FLOATING)
             solids.push({ x: sx, y: floorY, w: sw, h: boundsH - floorY });
 
-            // Open corridor between ceiling and floor
-            // Add slight X overlap on transitions so walls between steps are visually connected
-            const xOverlap = (i < numSteps - 1) ? 2 : 0;
-            // Also extend corridor downwards to the previous step's floor level at transition points
-            const hExtend = (i > 0) ? (stepFloors[i - 1] - floorY) : 0;
+            // Open corridor strictly between ceiling and floor
             pathwayCorridors.push({
-                x: sx - (i > 0 ? 2 : 0),
+                x: sx,
                 y: ceilY,
-                w: sw + xOverlap + (i > 0 ? 2 : 0),
-                h: cHeadroom + hExtend
+                w: sw,
+                h: floorY - ceilY
             });
+
+            // Transition shaft connecting step i-1 and step i
+            if (i > 0) {
+                const prevFloor = stepFloors[i - 1];
+                const prevCeil = prevFloor - cHeadroom;
+                const transitionCeil = Math.min(ceilY, prevCeil);
+                const transitionFloor = Math.max(floorY, prevFloor);
+                pathwayCorridors.push({
+                    x: sx - 4,
+                    y: transitionCeil,
+                    w: 8,
+                    h: transitionFloor - transitionCeil
+                });
+            }
 
             currentX += sw;
         }
 
         const spawnX = wallL + 50;
         const spawnY = stepFloors[0];
-        const summitIndex = numSteps - 1;
-        const summitFloor = stepFloors[summitIndex];
-        const summitStart = boundsW - wallR - stepWidths[summitIndex];
+        const lastStepIdx = numSteps - 1;
+        const doorFloor = stepFloors[lastStepIdx];
         const doorX = boundsW - wallR - 65;
-        const doorY = summitFloor - 46;
+        const doorY = doorFloor - 46;
 
         const staticTraps = [];
         const candidateTrapSlots = [];
 
-        // Springboard on Tier 1 to help leap to Tier 2
+        // Spring pad on Step 1 to assist leaping to Step 2
         staticTraps.push({
             type: 'spring_pad',
-            x: wallL + stepWidths[0] - 55,
+            x: wallL + stepWidths[0] - 50,
             y: stepFloors[0],
             w: 32,
             h: 10,
-            boostVy: -7.6
+            boostVy: -7.8
         });
 
-        // Static spike on a middle tier
-        if (numSteps >= 3) {
-            const midIndex = 1;
-            staticTraps.push({
-                type: 'static_spike',
-                x: wallL + stepWidths[0] + 50,
-                y: stepFloors[midIndex],
-                w: 28,
-                h: 15
-            });
-        }
+        // Middle step static spike
+        const midStep = Math.floor(numSteps / 2);
+        let midX = wallL;
+        for (let k = 0; k < midStep; k++) midX += stepWidths[k];
+        staticTraps.push({
+            type: 'static_spike',
+            x: midX + Math.round(stepWidths[midStep] * 0.4),
+            y: stepFloors[midStep],
+            w: 28,
+            h: 15
+        });
 
-        // Rolling boulder descending along summit altar
+        // Rolling boulder from higher tier
+        const highestStep = isPyramid ? Math.floor(numSteps / 2) : numSteps - 1;
+        let highX = wallL;
+        for (let k = 0; k < highestStep; k++) highX += stepWidths[k];
         candidateTrapSlots.push({
             type: 'rolling_ball',
-            x: boundsW - wallR - 25,
-            y: summitFloor,
-            groundY: summitFloor,
-            radius: 18,
-            vx: -4.0,
+            x: highX + Math.round(stepWidths[highestStep] * 0.7),
+            y: stepFloors[highestStep],
+            groundY: stepFloors[highestStep],
+            radius: 16 + rngInt(0, 3),
+            vx: -3.8 - difficulty * 0.4,
             triggerRange: 85
         });
 
-        // Patrolling sawblade on middle tier (positioned with >= 50px clearance from static spike at midX + 50)
-        if (numSteps >= 3) {
-            const midX = wallL + stepWidths[0];
-            candidateTrapSlots.push({
-                type: 'spinning_saw',
-                x: midX + 135,
-                y: stepFloors[1] - 25,
-                radius: 16,
-                patrolAxis: 'x',
-                minX: midX + 110,
-                maxX: midX + stepWidths[1] - 25,
-                speed: 2.0
-            });
-        }
-
-        // High razor on summit altar: duck and crawl on all fours underneath!
+        // Retracting crusher on summit
         candidateTrapSlots.push({
-            type: 'spinning_saw',
-            x: summitStart + 80,
-            y: summitFloor - 22,
-            radius: 15,
-            patrolAxis: 'none'
+            type: 'piston_crusher',
+            x: highX + Math.round(stepWidths[highestStep] * 0.3),
+            startY: stepFloors[highestStep] - cHeadroom - 30,
+            targetY: stepFloors[highestStep] - cHeadroom + 15,
+            w: 38,
+            h: 95,
+            triggerRange: 45,
+            pauseDuration: 50
         });
 
-        // Collapsing floor on summit
+        // Collapsing floor near the exit
         candidateTrapSlots.push({
             type: 'collapsing_floor',
-            x: summitStart + 160,
-            y: summitFloor,
+            x: doorX - 60,
+            y: doorFloor,
             w: 48,
             h: 35,
             dropSpeed: 2.2
@@ -370,57 +378,92 @@ class AILevelGenerator {
     }
 
     // =========================================================================
-    // 2. CRAWL DUCT (Low Ceiling Beams, Crawl on All Fours, Rhythmic Saws)
-    // =========================================================================
     buildProceduralCrawlDuct(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        const boundsW = (levelNum <= 6) ? 840 : (840 + rngInt(0, 3) * 80); // 840 to 1080px
+        const boundsW = 880 + rngInt(0, 360); // 880 to 1240px continuous
         const boundsH = 480;
-        const floorY = 345;
-        const normalCeilY = 230;
+        const floorY = 340 + rngInt(-10, 10);
+        const normalCeilY = 220 + rngInt(-15, 15);
+        const normalHeadroom = floorY - normalCeilY;
 
         const solids = [
-            { x: 0, y: 0, w: boundsW, h: normalCeilY },     // Base solid ceiling
-            { x: 0, y: 0, w: 80, h: boundsH },             // Left wall
-            { x: boundsW - 80, y: 0, w: 80, h: boundsH },   // Right wall
-            { x: 80, y: floorY, w: boundsW - 160, h: boundsH - floorY } // Solid continuous floor
+            { x: 0, y: 0, w: boundsW, h: normalCeilY },
+            { x: 0, y: 0, w: 80, h: boundsH },
+            { x: boundsW - 80, y: 0, w: 80, h: boundsH },
+            { x: 80, y: floorY, w: boundsW - 160, h: boundsH - floorY }
         ];
 
-        const pathwayCorridors = [
-            { x: 80, y: normalCeilY, w: boundsW - 160, h: floorY - normalCeilY }
-        ];
+        // Procedural generation of 1, 2, or 3 low-ceiling ducts requiring crawling
+        const numBeams = 1 + ((levelNum + rngInt(0, 2)) % 3); // 1, 2, or 3 beams
+        const beamSegments = [];
+        const playableStart = 220;
+        const playableEnd = boundsW - 200;
+        const span = (playableEnd - playableStart) / numBeams;
 
-        // Procedural "Low Duct Beam": drops ceiling to y: 265 for a span of 140px
-        // In this zone, headroom is only 80px (standing player cannot jump, ducking required)
-        const beamX = (levelNum <= 6) ? 260 : (260 + rngInt(0, 3) * 60);
-        const beamW = (levelNum <= 6) ? 140 : (150 + rngInt(0, 40));
-        solids.push({ x: beamX, y: normalCeilY, w: beamW, h: 35 }); // Ceil drops down to 265
+        for (let b = 0; b < numBeams; b++) {
+            const bX = Math.round(playableStart + b * span + rngInt(10, 30));
+            const bW = rngInt(120, 190);
+            const dropH = rngInt(34, 44); // leaves 75-85px headroom (forces ducking under 12px!)
+            beamSegments.push({ x: bX, w: bW, dropH: dropH });
+            solids.push({ x: bX, y: normalCeilY, w: bW, h: dropH });
+        }
+
+        // Carve pathway corridors matching the ceiling profile
+        const pathwayCorridors = [];
+        let curX = 80;
+
+        for (const beam of beamSegments) {
+            if (beam.x > curX) {
+                pathwayCorridors.push({
+                    x: curX,
+                    y: normalCeilY,
+                    w: beam.x - curX,
+                    h: normalHeadroom
+                });
+            }
+            pathwayCorridors.push({
+                x: beam.x,
+                y: normalCeilY + beam.dropH,
+                w: beam.w,
+                h: floorY - (normalCeilY + beam.dropH)
+            });
+            curX = beam.x + beam.w;
+        }
+
+        if (curX < boundsW - 80) {
+            pathwayCorridors.push({
+                x: curX,
+                y: normalCeilY,
+                w: (boundsW - 80) - curX,
+                h: normalHeadroom
+            });
+        }
 
         const spawnX = 130;
         const spawnY = floorY;
         const doorX = boundsW - 130;
         const doorY = floorY - 46;
 
+        const firstBeam = beamSegments[0];
         const staticTraps = [
-            // Floor spike in the open-ceiling runway
-            { type: 'static_spike', x: beamX + beamW + 60, y: floorY, w: 28, h: 15 }
+            { type: 'static_spike', x: firstBeam.x + firstBeam.w + 50, y: floorY, w: 28, h: 15 }
         ];
 
         const candidateTrapSlots = [
-            // Head-height sawblade: bottom at y: 334. Standing player hits it; crawling player ducks cleanly under!
+            // Head-height sawblade before first beam: bottom at y: floorY - 14 (crawl underneath!)
             {
                 type: 'spinning_saw',
-                x: beamX - 60,
-                y: 320,
+                x: firstBeam.x - 50,
+                y: floorY - 26,
                 radius: 15,
                 patrolAxis: 'x',
-                minX: beamX - 100,
-                maxX: beamX - 20,
-                speed: 1.8
+                minX: firstBeam.x - 90,
+                maxX: firstBeam.x - 20,
+                speed: 1.8 + difficulty * 0.2
             },
             // Dropping ceiling spike
             {
                 type: 'dropping_spike',
-                x: beamX + beamW + 140,
+                x: firstBeam.x + firstBeam.w + 120,
                 y: normalCeilY,
                 w: 22,
                 h: 22,
@@ -430,15 +473,15 @@ class AILevelGenerator {
             // Retracting ceiling crusher
             {
                 type: 'piston_crusher',
-                x: beamX + beamW + 210,
-                startY: normalCeilY - 40,
-                targetY: normalCeilY + 10,
+                x: firstBeam.x + firstBeam.w + 180,
+                startY: normalCeilY - 35,
+                targetY: normalCeilY + 15,
                 w: 40,
                 h: 105,
                 triggerRange: 45,
                 pauseDuration: 52
             },
-            // Collapsing floor near the exit
+            // Collapsing floor near exit
             {
                 type: 'collapsing_floor',
                 x: doorX - 65,
@@ -477,99 +520,123 @@ class AILevelGenerator {
     // 3. VERTICAL SPIRE (Multi-Story Ascent, Smooth One-Way Elevators)
     // =========================================================================
     buildProceduralVerticalSpire(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        const boundsW = 840;
-        const boundsH = 960 + (levelNum % 3 === 0 ? 160 : 0); // 960 or 1120px
+        const boundsW = 840 + rngInt(0, 260); // 840 to 1100px continuous
+        const numTiers = 3 + ((levelNum + rngInt(0, 2)) % 3); // 3, 4, or 5 stories
+        const boundsH = 680 + numTiers * 160 + rngInt(0, 80);
 
-        const tier3Floor = boundsH - 80;
-        const tier2Floor = Math.round(boundsH * 0.58);
-        const tier1Floor = 160;
         const cHeight = 110;
+        const tierFloors = [];
+        const floorSpacing = Math.round((boundsH - 180) / numTiers);
+
+        for (let t = numTiers - 1; t >= 0; t--) {
+            if (t === numTiers - 1) {
+                tierFloors.push(boundsH - 80);
+            } else if (t === 0) {
+                tierFloors.push(160 + rngInt(0, 20));
+            } else {
+                tierFloors.push(boundsH - 80 - (numTiers - 1 - t) * floorSpacing + rngInt(-15, 15));
+            }
+        }
+        tierFloors.reverse(); // Top tier is tierFloors[0], bottom is tierFloors[numTiers - 1]
 
         const solids = [
-            { x: 0, y: 0, w: boundsW, h: 50 },                               // Top ceiling cap
-            { x: 0, y: 0, w: 80, h: boundsH },                               // Left outer wall
-            { x: boundsW - 80, y: 0, w: 80, h: boundsH },                    // Right outer wall
-            { x: 80, y: tier3Floor, w: boundsW - 160, h: boundsH - tier3Floor }, // Bottom solid floor
-            // Rock separator between Tier 2 and Tier 3 (leaves right shaft open)
-            { x: 80, y: tier2Floor, w: boundsW - 260, h: tier3Floor - tier2Floor - cHeight },
-            // Rock separator between Tier 1 and Tier 2 (leaves left shaft open)
-            { x: 180, y: tier1Floor, w: boundsW - 260, h: tier2Floor - tier1Floor - cHeight }
+            { x: 0, y: 0, w: boundsW, h: 50 },
+            { x: 0, y: 0, w: 80, h: boundsH },
+            { x: boundsW - 80, y: 0, w: 80, h: boundsH },
+            // Solid base floor
+            { x: 80, y: tierFloors[numTiers - 1], w: boundsW - 160, h: boundsH - tierFloors[numTiers - 1] }
         ];
 
-        const pathwayCorridors = [
-            // Tier 3 bottom hall
-            { x: 80, y: tier3Floor - cHeight, w: boundsW - 160, h: cHeight },
-            // Right elevator shaft
-            { x: boundsW - 180, y: tier2Floor - cHeight, w: 100, h: tier3Floor - tier2Floor },
-            // Tier 2 middle hall
-            { x: 80, y: tier2Floor - cHeight, w: boundsW - 160, h: cHeight },
-            // Left elevator shaft
-            { x: 80, y: tier1Floor - cHeight, w: 100, h: tier2Floor - tier1Floor },
-            // Tier 1 summit hall
-            { x: 80, y: tier1Floor - cHeight, w: boundsW - 160, h: cHeight }
-        ];
+        const pathwayCorridors = [];
+        const candidateTrapSlots = [];
 
-        const elevatorSpeed = 1.8 + rngRange(-0.1, 0.2);
+        // Procedural shafts alternating between right and left sides
+        for (let t = 0; t < numTiers; t++) {
+            const flY = tierFloors[t];
+            // Story corridor
+            pathwayCorridors.push({
+                x: 80,
+                y: flY - cHeight,
+                w: boundsW - 160,
+                h: cHeight
+            });
+
+            if (t < numTiers - 1) {
+                const nextFlY = tierFloors[t + 1];
+                const isRightShaft = (t % 2 === 0);
+                const shaftW = 100;
+                const shaftX = isRightShaft ? boundsW - 180 : 80;
+                const shelfX = isRightShaft ? 80 : 180;
+                const shelfW = boundsW - 260;
+
+                // Rock separator
+                solids.push({
+                    x: shelfX,
+                    y: flY,
+                    w: shelfW,
+                    h: nextFlY - flY - cHeight
+                });
+
+                // Elevator vertical shaft
+                pathwayCorridors.push({
+                    x: shaftX,
+                    y: flY - cHeight,
+                    w: shaftW,
+                    h: nextFlY - flY
+                });
+
+                // Elevator moving platform in shaft
+                const elevSpeed = 1.8 + rngRange(-0.2, 0.3) + difficulty * 0.15;
+                candidateTrapSlots.push({
+                    type: 'moving_platform',
+                    x: shaftX + 12,
+                    y: nextFlY - 40,
+                    w: 76,
+                    h: 18,
+                    axis: 'y',
+                    min: flY - 5,
+                    max: nextFlY - 30,
+                    speed: elevSpeed
+                });
+            }
+        }
+
+        const bottomFloor = tierFloors[numTiers - 1];
+        const topFloor = tierFloors[0];
+        const spawnX = 130;
+        const spawnY = bottomFloor;
+
+        // Top tier shaft is on the right side (0 % 2 === 0), solid rock shelf is on the left ([80, boundsW - 180]).
+        // Door sits firmly on the solid shelf with ZERO floating pixels!
+        const doorX = 140;
+        const doorY = topFloor - 46;
 
         const staticTraps = [
-            { type: 'static_spike', x: 420, y: tier2Floor, w: 28, h: 15 }
+            { type: 'static_spike', x: Math.round(boundsW * 0.5), y: tierFloors[1] || bottomFloor, w: 28, h: 15 }
         ];
 
-        const candidateTrapSlots = [
-            // Right elevator platform in Shaft 2 (one-way top-surface platform!)
-            {
-                type: 'moving_platform',
-                x: boundsW - 170,
-                y: tier3Floor - 40,
-                w: 76,
-                h: 18,
-                axis: 'y',
-                min: tier2Floor - 5,
-                max: tier3Floor - 30,
-                speed: elevatorSpeed
-            },
-            // Left elevator platform in Shaft 1 (one-way top-surface platform!)
-            {
-                type: 'moving_platform',
-                x: 92,
-                y: tier2Floor - 40,
-                w: 76,
-                h: 18,
-                axis: 'y',
-                min: tier1Floor - 5,
-                max: tier2Floor - 30,
-                speed: elevatorSpeed
-            },
-            // Patrolling razor on middle tier
-            {
-                type: 'spinning_saw',
-                x: 320,
-                y: tier2Floor - 30,
-                radius: 18,
-                patrolAxis: 'x',
-                minX: 240,
-                maxX: 400,
-                speed: 2.0
-            },
-            // High razor at summit
-            {
-                type: 'spinning_saw',
-                x: 440,
-                y: tier1Floor - 22,
-                radius: 15,
-                patrolAxis: 'none'
-            },
-            // Dropping ceiling spike at summit peak
-            {
-                type: 'dropping_spike',
-                x: 540,
-                y: 50,
-                w: 22,
-                h: 22,
-                groundY: tier1Floor,
-                triggerRange: 38
-            }
-        ];
+        // Patrolling razor on middle tier
+        candidateTrapSlots.push({
+            type: 'spinning_saw',
+            x: 320,
+            y: (tierFloors[1] || bottomFloor) - 30,
+            radius: 18,
+            patrolAxis: 'x',
+            minX: 220,
+            maxX: boundsW - 220,
+            speed: 2.0
+        });
+
+        // Dropping spike on the summit approach
+        candidateTrapSlots.push({
+            type: 'dropping_spike',
+            x: doorX + 75,
+            y: 50,
+            w: 22,
+            h: 22,
+            groundY: topFloor,
+            triggerRange: 38
+        });
 
         return {
             id: levelNum,
@@ -577,18 +644,18 @@ class AILevelGenerator {
             theme: theme,
             isAIGenerated: true,
             bounds: { width: boundsW, height: boundsH },
-            playerSpawn: { x: 130, y: tier3Floor, facing: 1 },
+            playerSpawn: { x: spawnX, y: spawnY, facing: 1 },
             pathwayCorridors,
             solids,
             door: {
-                x: boundsW - 140,
-                y: tier1Floor - 46,
+                x: doorX,
+                y: doorY,
                 w: 32,
                 h: 46,
                 open: true,
                 shiftsMax: 2,
-                shiftDirection: -1,
-                shiftDistance: 85
+                shiftDirection: 1,
+                shiftDistance: 75
             },
             staticTraps,
             candidateTrapSlots
@@ -599,22 +666,22 @@ class AILevelGenerator {
     // 4. CAVERN DESCENT (Subterranean Drop Shafts, Crypt, Safety Alcoves)
     // =========================================================================
     buildProceduralCavernDescent(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        const boundsW = 840;
-        const boundsH = 960;
-        const cHeight = 110;
+        const boundsW = 840 + rngInt(0, 320); // 840 to 1160px continuous
+        const boundsH = 880 + rngInt(0, 260); // 880 to 1140px continuous
+        const cHeight = 110 + rngInt(0, 20);
 
-        const tier1Floor = 160;
-        const tier2Floor = 580;
-        const tier3Floor = 880;
+        const tier1Floor = 160 + rngInt(-15, 20);
+        const tier2Floor = Math.round(boundsH * 0.53 + rngInt(-15, 15));
+        const tier3Floor = boundsH - 80;
 
         const solids = [
             { x: 0, y: 0, w: boundsW, h: 50 },
             { x: 0, y: 0, w: 80, h: boundsH },
             { x: boundsW - 80, y: 0, w: 80, h: boundsH },
             { x: 80, y: tier3Floor, w: boundsW - 160, h: boundsH - tier3Floor },
-            // Rock separator between Tier 1 and Tier 2 (leaves right drop open)
+            // Rock separator 1
             { x: 80, y: tier1Floor, w: boundsW - 260, h: tier2Floor - tier1Floor - cHeight },
-            // Rock separator between Tier 2 and Tier 3 (leaves left drop open)
+            // Rock separator 2
             { x: 180, y: tier2Floor, w: boundsW - 260, h: tier3Floor - tier2Floor - cHeight }
         ];
 
@@ -627,7 +694,7 @@ class AILevelGenerator {
         ];
 
         const staticTraps = [
-            { type: 'spinning_saw', x: boundsW - 130, y: 320, radius: 20, patrolAxis: 'none' },
+            { type: 'spinning_saw', x: boundsW - 130, y: Math.round((tier1Floor + tier2Floor) / 2), radius: 20, patrolAxis: 'none' },
             { type: 'static_spike', x: 440, y: tier3Floor, w: 28, h: 15 }
         ];
 
@@ -635,24 +702,24 @@ class AILevelGenerator {
             // Horizontal ferry platform on middle tier
             {
                 type: 'moving_platform',
-                x: 320,
+                x: 300,
                 y: tier2Floor - 5,
                 w: 75,
                 h: 18,
                 axis: 'x',
-                min: 220,
-                max: 520,
-                speed: 1.8
+                min: 200,
+                max: boundsW - 240,
+                speed: 1.8 + difficulty * 0.15
             },
-            // Patrolling razor in the crypt (clearance >= 50px from static spike at x: 440)
+            // Patrolling razor in the crypt
             {
                 type: 'spinning_saw',
                 x: 320,
                 y: tier3Floor - 30,
                 radius: 18,
                 patrolAxis: 'x',
-                minX: 220,
-                maxX: 365,
+                minX: 200,
+                maxX: 360,
                 speed: 2.0
             },
             // Retracting ceiling crusher
@@ -666,7 +733,7 @@ class AILevelGenerator {
                 triggerRange: 45,
                 pauseDuration: 55
             },
-            // High razor in crypt corridor: crawl under!
+            // Crawl-under razor
             {
                 type: 'spinning_saw',
                 x: 260,
@@ -704,53 +771,56 @@ class AILevelGenerator {
     // 5. TWIN ROUTES (High Road Jumps vs Low Road Crawlway)
     // =========================================================================
     buildProceduralTwinRoutes(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        const boundsW = 1000 + rngInt(0, 2) * 80;
+        const boundsW = 920 + rngInt(0, 360); // 920 to 1280px continuous
         const boundsH = 480;
 
-        const entryW = 180;
-        const exitW = 180;
+        const entryW = 150 + rngInt(0, 50);
+        const exitW = 150 + rngInt(0, 50);
         const midW = boundsW - 160 - entryW - exitW;
+        const groundFloor = 340 + rngInt(-10, 10);
+        const dividerY = 215 + rngInt(-15, 15);
+        const dividerH = 42 + rngInt(0, 12);
 
         const solids = [
             { x: 0, y: 0, w: boundsW, h: 130 },
+            { x: 80, y: 130, w: entryW, h: 90 }, // Solid ceiling over entry chamber (prevents jumping into black rock!)
             { x: 0, y: 130, w: 80, h: boundsH - 130 },
             { x: boundsW - 80, y: 0, w: 80, h: boundsH },
-            { x: 80, y: 345, w: boundsW - 160, h: boundsH - 345 }, // Continuous ground floor
+            { x: 80, y: groundFloor, w: boundsW - 160, h: boundsH - groundFloor }, // Continuous ground floor
             // Solid rock divider separating High Road from Low Road
-            { x: 80 + entryW, y: 220, w: midW, h: 45 }
+            { x: 80 + entryW, y: dividerY, w: midW, h: dividerH }
         ];
 
         const pathwayCorridors = [
-            { x: 80, y: 230, w: entryW, h: 115 },               // Entry chamber
-            { x: 80 + entryW, y: 130, w: midW, h: 90 },         // High Road
-            { x: 80 + entryW, y: 265, w: midW, h: 80 },         // Low Road (crawl duct)
-            { x: 80 + entryW + midW, y: 130, w: 80, h: 215 },   // High Road drop down
-            { x: 80 + entryW + midW, y: 230, w: exitW, h: 115 } // Exit chamber
+            { x: 80, y: dividerY, w: entryW, h: groundFloor - dividerY },                     // Entry chamber
+            { x: 80 + entryW, y: 130, w: midW, h: dividerY - 130 },                          // High Road
+            { x: 80 + entryW, y: dividerY + dividerH, w: midW, h: groundFloor - (dividerY + dividerH) }, // Low Road (crawl duct)
+            { x: 80 + entryW + midW, y: 130, w: 80, h: groundFloor - 130 },                  // High Road descent
+            { x: 80 + entryW + midW, y: dividerY, w: exitW, h: groundFloor - dividerY }       // Exit chamber
         ];
 
         const staticTraps = [
-            { type: 'static_spike', x: 80 + entryW + Math.round(midW * 0.4), y: 220, w: 28, h: 15 },
-            // Low Road high-mounted razor: crawl underneath on all fours!
-            { type: 'spinning_saw', x: 80 + entryW + Math.round(midW * 0.3), y: 320, radius: 15, patrolAxis: 'none' }
+            { type: 'static_spike', x: 80 + entryW + Math.round(midW * 0.4), y: dividerY, w: 28, h: 15 },
+            { type: 'spinning_saw', x: 80 + entryW + Math.round(midW * 0.3), y: groundFloor - 25, radius: 15, patrolAxis: 'none' }
         ];
 
         const candidateTrapSlots = [
-            // High razor in Low Road duct: crawl under!
+            // Patrolling razor in Low Road
             {
                 type: 'spinning_saw',
                 x: 80 + entryW + Math.round(midW * 0.7),
-                y: 320,
+                y: groundFloor - 25,
                 radius: 15,
                 patrolAxis: 'x',
                 minX: 80 + entryW + Math.round(midW * 0.55),
                 maxX: 80 + entryW + Math.round(midW * 0.85),
-                speed: 1.9
+                speed: 1.9 + difficulty * 0.2
             },
             // Moving platform on High Road
             {
                 type: 'moving_platform',
                 x: 80 + entryW + 40,
-                y: 215,
+                y: dividerY - 5,
                 w: 70,
                 h: 16,
                 axis: 'x',
@@ -762,17 +832,17 @@ class AILevelGenerator {
             {
                 type: 'rolling_ball',
                 x: 80 + entryW + midW - 30,
-                y: 220,
-                groundY: 220,
+                y: dividerY,
+                groundY: dividerY,
                 radius: 16,
-                vx: -4.0,
+                vx: -4.0 - difficulty * 0.3,
                 triggerRange: 80
             },
             // Collapsing floor at exit
             {
                 type: 'collapsing_floor',
                 x: boundsW - 180,
-                y: 345,
+                y: groundFloor,
                 w: 48,
                 h: 35,
                 dropSpeed: 2.2
@@ -785,12 +855,12 @@ class AILevelGenerator {
             theme: theme,
             isAIGenerated: true,
             bounds: { width: boundsW, height: boundsH },
-            playerSpawn: { x: 120, y: 345, facing: 1 },
+            playerSpawn: { x: 120, y: groundFloor, facing: 1 },
             pathwayCorridors,
             solids,
             door: {
                 x: boundsW - 130,
-                y: 299,
+                y: groundFloor - 46,
                 w: 32,
                 h: 46,
                 open: true,
@@ -807,54 +877,89 @@ class AILevelGenerator {
     // 6. CHASM SPRINGS (Floating Islands, Vanishing Stones & Spring Launchpads)
     // =========================================================================
     buildProceduralChasmSprings(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        const boundsW = 960 + rngInt(0, 2) * 80;
+        const numIslands = 2 + ((levelNum + rngInt(0, 3)) % 4); // 2, 3, 4, or 5 islands
+        const boundsW = 900 + rngInt(0, 420); // 900 to 1320px continuous
         const boundsH = 480;
-        const floorY = 345;
-        const ceilY = 220;
+        const floorY = 340 + rngInt(-10, 10);
+        const cHeadroom = 120 + rngInt(0, 20);
+        const ceilY = floorY - cHeadroom;
 
         const solids = [
             { x: 0, y: 0, w: boundsW, h: ceilY },
             { x: 0, y: 0, w: 80, h: boundsH },
-            { x: boundsW - 80, y: 0, w: 80, h: boundsH },
-            // Entry platform
-            { x: 80, y: floorY, w: 180, h: boundsH - floorY },
-            // Middle island
-            { x: 380, y: floorY, w: 160, h: boundsH - floorY },
-            // Exit platform
-            { x: 680, y: floorY, w: boundsW - 680 - 80, h: boundsH - floorY }
+            { x: boundsW - 80, y: 0, w: 80, h: boundsH }
         ];
 
-        const pathwayCorridors = [
-            { x: 80, y: ceilY, w: boundsW - 160, h: floorY - ceilY + 120 } // Extends down into chasms
-        ];
+        const pathwayCorridors = [];
+        const staticTraps = [];
+        const candidateTrapSlots = [];
 
-        const staticTraps = [
-            // Spring pad on Entry platform launching player across Chasm 1 to Middle island
-            { type: 'spring_pad', x: 210, y: floorY, w: 32, h: 10, boostVy: -7.8 },
-            // Spikes in the chasms
-            { type: 'static_spike', x: 280, y: boundsH - 20, w: 80, h: 20 },
-            { type: 'static_spike', x: 560, y: boundsH - 20, w: 80, h: 20 }
-        ];
+        // Distribute islands and chasms
+        const entryW = 150 + rngInt(0, 45);
+        const exitW = 150 + rngInt(0, 45);
+        const middleSpan = boundsW - 160 - entryW - exitW;
+        const islandW = Math.round(middleSpan / (numIslands * 1.8));
+        const chasmW = Math.round((middleSpan - (numIslands - 1) * islandW) / numIslands);
 
-        const candidateTrapSlots = [
-            // Spring pad on Middle island launching across Chasm 2
-            { type: 'spring_pad', x: 480, y: floorY, w: 32, h: 10, boostVy: -7.8 },
-            // Vanishing stepping stone tile on Middle island
-            { type: 'collapsing_floor', x: 400, y: floorY, w: 45, h: 35, dropSpeed: 2.2 },
-            // Dropping spike in ceiling over exit runway
-            { type: 'dropping_spike', x: 740, y: ceilY, w: 22, h: 22, groundY: floorY, triggerRange: 38 },
-            // Patrolling razor on exit platform
-            {
-                type: 'spinning_saw',
-                x: 820,
-                y: floorY - 25,
-                radius: 18,
-                patrolAxis: 'x',
-                minX: 740,
-                maxX: boundsW - 160,
-                speed: 2.0
+        // Entry platform
+        solids.push({ x: 80, y: floorY, w: entryW, h: boundsH - floorY });
+        pathwayCorridors.push({ x: 80, y: ceilY, w: entryW, h: floorY - ceilY });
+
+        let curX = 80 + entryW;
+
+        for (let i = 0; i < numIslands - 1; i++) {
+            // Chasm void
+            pathwayCorridors.push({ x: curX, y: ceilY, w: chasmW, h: boundsH - ceilY });
+            staticTraps.push({ type: 'static_spike', x: curX + Math.round(chasmW * 0.2), y: boundsH - 18, w: Math.max(30, chasmW - 20), h: 18 });
+            curX += chasmW;
+
+            // Island platform
+            solids.push({ x: curX, y: floorY, w: islandW, h: boundsH - floorY });
+            pathwayCorridors.push({ x: curX, y: ceilY, w: islandW, h: floorY - ceilY });
+
+            // Springboard on island
+            if (i % 2 === 0) {
+                staticTraps.push({ type: 'spring_pad', x: curX + Math.round(islandW * 0.6), y: floorY, w: 32, h: 10, boostVy: -7.8 });
+            } else {
+                candidateTrapSlots.push({ type: 'collapsing_floor', x: curX + 10, y: floorY, w: Math.min(48, islandW - 10), h: 35, dropSpeed: 2.2 });
             }
-        ];
+            curX += islandW;
+        }
+
+        // Final chasm
+        const lastChasmW = (boundsW - 80 - exitW) - curX;
+        pathwayCorridors.push({ x: curX, y: ceilY, w: lastChasmW, h: boundsH - ceilY });
+        staticTraps.push({ type: 'static_spike', x: curX + 10, y: boundsH - 18, w: Math.max(30, lastChasmW - 20), h: 18 });
+
+        // Exit platform
+        solids.push({ x: boundsW - 80 - exitW, y: floorY, w: exitW, h: boundsH - floorY });
+        pathwayCorridors.push({ x: boundsW - 80 - exitW, y: ceilY, w: exitW, h: floorY - ceilY });
+
+        // Springboard on Entry platform
+        staticTraps.push({ type: 'spring_pad', x: 80 + entryW - 45, y: floorY, w: 32, h: 10, boostVy: -7.8 });
+
+        // Patrolling razor on exit platform
+        candidateTrapSlots.push({
+            type: 'spinning_saw',
+            x: boundsW - 160,
+            y: floorY - 25,
+            radius: 18,
+            patrolAxis: 'x',
+            minX: boundsW - 80 - exitW + 20,
+            maxX: boundsW - 100,
+            speed: 2.0
+        });
+
+        // Dropping spike over exit
+        candidateTrapSlots.push({
+            type: 'dropping_spike',
+            x: boundsW - 140,
+            y: ceilY,
+            w: 22,
+            h: 22,
+            groundY: floorY,
+            triggerRange: 38
+        });
 
         return {
             id: levelNum,
@@ -866,7 +971,7 @@ class AILevelGenerator {
             pathwayCorridors,
             solids,
             door: {
-                x: boundsW - 130,
+                x: boundsW - 120,
                 y: floorY - 46,
                 w: 32,
                 h: 46,
@@ -881,13 +986,15 @@ class AILevelGenerator {
     }
 
     // =========================================================================
-    // 7. CRUSHER ALLEY (Synchronized Piston Crushers with Rhythm Safe Zones)
+    // 7. CRUSHER ALLEY (Synchronized Pneumatic Crushers & Crawl Ducts)
     // =========================================================================
     buildProceduralCrusherAlley(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        const boundsW = 960 + rngInt(0, 2) * 80;
+        const numCrushers = 2 + ((levelNum + rngInt(0, 3)) % 4); // 2, 3, 4, or 5 crushers
+        const boundsW = 880 + rngInt(0, 420); // 880 to 1300px continuous
         const boundsH = 480;
-        const floorY = 345;
-        const ceilY = 220;
+        const floorY = 340 + rngInt(-10, 10);
+        const cHeadroom = 115 + rngInt(0, 25);
+        const ceilY = floorY - cHeadroom;
 
         const solids = [
             { x: 0, y: 0, w: boundsW, h: ceilY },
@@ -900,62 +1007,49 @@ class AILevelGenerator {
             { x: 80, y: ceilY, w: boundsW - 160, h: floorY - ceilY }
         ];
 
-        const staticTraps = [
-            { type: 'static_spike', x: 380, y: floorY, w: 28, h: 15 }
-        ];
+        const staticTraps = [];
+        const candidateTrapSlots = [];
 
-        const candidateTrapSlots = [
-            // Crusher 1
-            {
+        const span = (boundsW - 400) / numCrushers;
+        for (let c = 0; c < numCrushers; c++) {
+            const cX = Math.round(240 + c * span + rngInt(-15, 15));
+            candidateTrapSlots.push({
                 type: 'piston_crusher',
-                x: 280,
+                x: cX,
                 startY: ceilY - 40,
                 targetY: ceilY + 10,
                 w: 42,
                 h: 105,
                 triggerRange: 48,
-                pauseDuration: 50
-            },
-            // Crusher 2
-            {
-                type: 'piston_crusher',
-                x: 520,
-                startY: ceilY - 40,
-                targetY: ceilY + 10,
-                w: 42,
-                h: 105,
-                triggerRange: 48,
-                pauseDuration: 55
-            },
-            // Crusher 3
-            {
-                type: 'piston_crusher',
-                x: 740,
-                startY: ceilY - 40,
-                targetY: ceilY + 10,
-                w: 42,
-                h: 105,
-                triggerRange: 48,
-                pauseDuration: 50
-            },
-            // High razor between crushers: crawl under!
-            {
-                type: 'spinning_saw',
-                x: 640,
-                y: 320,
-                radius: 15,
-                patrolAxis: 'none'
-            },
-            // Surprise collapsing floor near exit
-            {
-                type: 'collapsing_floor',
-                x: boundsW - 170,
-                y: floorY,
-                w: 48,
-                h: 35,
-                dropSpeed: 2.2
+                pauseDuration: 48 + rngInt(0, 15)
+            });
+
+            // Intermediate obstacle between crushers
+            if (c < numCrushers - 1) {
+                const midX = cX + Math.round(span * 0.5);
+                if (c % 2 === 0) {
+                    staticTraps.push({ type: 'static_spike', x: midX, y: floorY, w: 28, h: 15 });
+                } else {
+                    candidateTrapSlots.push({
+                        type: 'spinning_saw',
+                        x: midX,
+                        y: floorY - 25,
+                        radius: 15,
+                        patrolAxis: 'none'
+                    });
+                }
             }
-        ];
+        }
+
+        // Surprise collapsing floor near the exit
+        candidateTrapSlots.push({
+            type: 'collapsing_floor',
+            x: boundsW - 170,
+            y: floorY,
+            w: 48,
+            h: 35,
+            dropSpeed: 2.2
+        });
 
         return {
             id: levelNum,
@@ -985,61 +1079,71 @@ class AILevelGenerator {
     // 8. BOULDER RAMP (Cascading Downward Run with High Alcoves)
     // =========================================================================
     buildProceduralBoulderRamp(levelNum, rng, rngRange, rngInt, rngChoice, difficulty, theme, title, profile) {
-        const boundsW = 1000 + rngInt(0, 2) * 80;
+        const boundsW = 920 + rngInt(0, 420); // 920 to 1340px continuous
         const boundsH = 480;
-        const floorY = 345;
-        const ceilY = 220;
+        const floorY = 340 + rngInt(-10, 10);
+        const cHeadroom = 120 + rngInt(0, 25);
+        const ceilY = floorY - cHeadroom;
 
         const solids = [
             { x: 0, y: 0, w: boundsW, h: ceilY },
             { x: 0, y: 0, w: 80, h: boundsH },
             { x: boundsW - 80, y: 0, w: 80, h: boundsH },
-            { x: 80, y: floorY, w: boundsW - 160, h: boundsH - floorY },
-            // High resting shelf midway so player can vault over rolling boulder
-            { x: 440, y: 285, w: 100, h: 20 }
+            { x: 80, y: floorY, w: boundsW - 160, h: boundsH - floorY }
         ];
+
+        // Procedural high resting shelves so player can vault over boulders
+        const numShelves = 1 + ((levelNum + rngInt(0, 2)) % 3); // 1, 2, or 3 shelves
+        const shelfSpan = (boundsW - 400) / (numShelves + 1);
+
+        for (let s = 0; s < numShelves; s++) {
+            const shX = Math.round(300 + s * shelfSpan + rngInt(-25, 25));
+            const shW = 90 + rngInt(0, 40);
+            const shY = floorY - 55 - rngInt(0, 20);
+            solids.push({ x: shX, y: shY, w: shW, h: 20 });
+        }
 
         const pathwayCorridors = [
             { x: 80, y: ceilY, w: boundsW - 160, h: floorY - ceilY }
         ];
 
         const staticTraps = [
-            { type: 'static_spike', x: 620, y: floorY, w: 28, h: 15 }
+            { type: 'static_spike', x: Math.round(boundsW * 0.55), y: floorY, w: 28, h: 15 }
         ];
 
         const candidateTrapSlots = [
-            // Rolling boulder triggered from the far side, rolling back toward player
+            // Rolling boulder rolling back toward player
             {
                 type: 'rolling_ball',
                 x: boundsW - 140,
                 y: floorY,
                 groundY: floorY,
-                radius: 18,
-                vx: -4.0,
+                radius: 17 + rngInt(0, 3),
+                vx: -4.0 - difficulty * 0.35,
                 triggerRange: 90
             },
-            // High razor in the vault zone: crawl under!
+            // High razor in vault zone: crawl under!
             {
                 type: 'spinning_saw',
-                x: 320,
-                y: 320,
+                x: 300,
+                y: floorY - 25,
                 radius: 15,
                 patrolAxis: 'x',
-                minX: 260,
+                minX: 240,
                 maxX: 360,
                 speed: 1.8
             },
             // Dropping ceiling spike
             {
                 type: 'dropping_spike',
-                x: 760,
+                x: boundsW - 240,
                 y: ceilY,
                 w: 22,
                 h: 22,
                 groundY: floorY,
                 triggerRange: 38
             },
-            // Collapsing floor
+            // Collapsing floor near exit
             {
                 type: 'collapsing_floor',
                 x: boundsW - 180,

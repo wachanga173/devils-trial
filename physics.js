@@ -162,8 +162,10 @@ class Physics {
         const pBottom = player.y;
 
         for (const s of solids) {
-            if (s.passthrough || s.isOneWay) continue;
-            if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y && pTop < s.y + s.h) {
+            if (s.passthrough || s.isOneWay || s.isWallOnly) continue;
+            // Snag prevention: only collide horizontally if penetrating at least 3px into the vertical wall face.
+            // Walking on top of adjacent floor blocks will never snag or register as a wall collision!
+            if (pRight > s.x && pLeft < s.x + s.w && pBottom > s.y + 3 && pTop < s.y + s.h - 1) {
                 if (player.vx > 0) {
                     player.x = s.x - player.width / 2;
                     player.vx = 0;
@@ -192,7 +194,7 @@ class Physics {
 
                 const prevBottom = player.y - player.vy;
                 const platVy = s.vy || 0;
-                const landingTolerance = Math.max(14, player.vy + Math.abs(platVy) + 4);
+                const landingTolerance = Math.max(16, player.vy + Math.abs(platVy) + 4);
 
                 if (pRight > s.x + 2 && pLeft < s.x + s.w - 2) {
                     if (prevBottom <= s.y + landingTolerance && player.y >= s.y - 4) {
@@ -213,20 +215,26 @@ class Physics {
                     continue;
                 }
 
-                if (player.vy > 0) {
+                if (player.vy >= 0) {
                     const prevBottom = player.y - player.vy;
-                    if (prevBottom <= s.y + 14) {
-                        // Landing on top of solid floor
+                    const topOverlap = player.y - s.y;
+                    const bottomOverlap = (s.y + s.h) - (player.y - player.height);
+
+                    // Landing on top of solid floor:
+                    // Player arrived from above, or penetration is closer to top surface than bottom.
+                    // Snaps player.y exactly to s.y so player is firmly grounded with ZERO floating pixels!
+                    if (prevBottom <= s.y + Math.max(16, player.vy + 4) || topOverlap <= bottomOverlap) {
                         player.y = s.y;
                         player.vy = 0;
                         player.onGround = true;
                         player.isJumping = false;
                     } else {
-                        // Inside or below block: push down into open corridor
+                        // Truly hit bottom of a ceiling block hanging down: push down
                         player.y = s.y + s.h + player.height;
+                        player.vy = 0;
                     }
                 } else if (player.vy < 0) {
-                    // Hitting solid ceiling from below
+                    // Hitting solid ceiling from below: push down
                     player.y = s.y + s.h + player.height;
                     player.vy = 0;
                 }

@@ -1451,11 +1451,15 @@ class MovingPlatformTrap {
 
     draw(ctx, theme) {
         ctx.save();
-        // Top walking surface
-        ctx.fillStyle = theme.pathColor;
+        // Solid visible walking surface (contrasts with background air so player never appears floating!)
+        ctx.fillStyle = theme.doorFrameColor || '#3d2516';
         ctx.fillRect(this.x, this.y, this.w, this.h);
 
-        // Platform underside & side brackets
+        // Solid top grip tread
+        ctx.fillStyle = theme.spikeColor || '#ffca28';
+        ctx.fillRect(this.x, this.y, this.w, 3);
+
+        // Platform underside & mechanical body
         ctx.fillStyle = theme.bgColor;
         ctx.fillRect(this.x + 2, this.y + 5, this.w - 4, this.h - 5);
 

@@ -73,8 +73,26 @@ An adaptive troll platformer where traps dynamically shuffle on every respawn us
 - `levels.js` — Level registry, themes, and difficulty progression curves.
 - `ai.js` — Adaptive machine learning director and telemetry reinforcement engine.
 - `server.js` — Zero-dependency HTTP server with native OS File Explorer launcher.
-- `manifest.json` & `sw.js` — Progressive Web App manifest and Service Worker.
+- `manifest.json` & `sw.js` — Progressive Web App manifest and Service Worker (Network-First caching).
+- `terms.html` — Complete Terms of Service, EULA, troll platformer disclosures, and streaming permissions.
+- `privacy.html` — Zero-telemetry Privacy Policy, LocalStorage JSON schema, and GDPR/CCPA user rights.
+- `faq.html` — Interactive searchable Knowledge Base & FAQ covering gameplay, mechanics, AI, and saves.
+- `legal.html` — Master Legal & Architectural Portal unifying compliance, licenses, and documentation.
+- `legal.css` — Dedicated responsive styling and print layouts for the legal documentation suite.
 - `style.css` — Retro arcade aesthetics, glowing UI elements, and responsive layout.
+
+---
+
+## 📜 Legal, Privacy & Compliance
+
+- **Zero Telemetry Guarantee:** Devil's Trial collects **0% personal data**. All progression and AI weights reside strictly inside your browser's local sandbox (`localStorage`).
+- **Free Streaming & Monetization:** You have full, royalty-free authorization to livestream and monetize Devil's Trial on YouTube, Twitch, TikTok, etc. Real-time procedural audio synthesis via Web Audio API guarantees **0 DMCA copyright strikes**.
+- **Anti-Checkmate Guarantee:** All dynamic trap placements adhere to semantic mutual exclusion rules; softlocks are mathematically impossible.
+- **Documentation:**
+  - [Terms & Conditions](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/terms.html)
+  - [Privacy Policy](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/privacy.html)
+  - [Frequently Asked Questions (FAQ)](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/faq.html)
+  - [Legal & Compliance Portal](file:///c:/Users/Admin/Documents/GitHub/Level%20Devil/legal.html)
 
 ---
 

@@ -51,14 +51,14 @@ class CharacterRenderer {
         // Proportional measurements: total height = 24px (compact, nimble stick figure)
         const headRadius = 3.4;
         const torsoLength = 9.0;
-        const upperLegLength = 5.6;
-        const lowerLegLength = 5.6;
+        const upperLegLength = 6.0;
+        const lowerLegLength = 6.0;
         const upperArmLength = 5.2;
         const lowerArmLength = 4.6;
 
-        // Slight vertical bobbing while running
-        const bobY = onGround && isMoving ? Math.abs(Math.sin(this.runCycle * 2)) * 1.5 : 0;
-        const hipY = -11.2 - bobY;
+        // Ground-locked vertical bobbing while running (subtle torso dynamics, feet stay locked to y = 0)
+        const bobY = onGround && isMoving ? Math.abs(Math.sin(this.runCycle * 2)) * 0.5 : 0;
+        const hipY = -11.6 + (onGround ? bobY * 0.3 : 0);
         const shoulderY = hipY - torsoLength;
         const headCenterY = shoulderY - headRadius - 1.2;
 
@@ -86,41 +86,72 @@ class CharacterRenderer {
                 rightHipAngle = -0.2;
                 rightKneeAngle = 0.7;
             } else {
-                // Falling: arms flailing up/out, legs dangling
+                // Falling: arms flailing up/out, legs reaching for ground
                 const flail = Math.sin(Date.now() * 0.025) * 0.25;
                 leftShoulderAngle = -2.6 + flail;
                 rightShoulderAngle = -2.0 - flail;
                 leftElbowAngle = 0.4;
                 rightElbowAngle = 0.4;
 
-                leftHipAngle = -0.4;
-                leftKneeAngle = 0.4;
-                rightHipAngle = 0.6;
-                rightKneeAngle = 0.6;
+                leftHipAngle = -0.2;
+                leftKneeAngle = 0.3;
+                rightHipAngle = 0.3;
+                rightKneeAngle = 0.4;
             }
         } else if (isMoving) {
-            // RUNNING ANIMATION: Smooth leg stride and counter-arm pumping
-            const stride = Math.sin(this.runCycle);
-            const counterStride = Math.sin(this.runCycle + Math.PI);
+            // RUNNING ANIMATION WITH 2-JOINT INVERSE KINEMATICS:
+            // Stance foot is mathematically locked to ground line y = 0 (0 floating pixels!)
+            const strideLength = 4.2;
 
-            leftHipAngle = stride * 0.9;
-            leftKneeAngle = stride > 0 ? stride * 1.1 : 0.1;
+            // Leg A (Left)
+            let footAX, footAY;
+            if (this.runCycle < Math.PI) {
+                const t = this.runCycle / Math.PI;
+                footAX = strideLength * (1 - 2 * t);
+                footAY = 0; // Stance foot firmly on the floor
+            } else {
+                const t = (this.runCycle - Math.PI) / Math.PI;
+                footAX = strideLength * (-1 + 2 * t);
+                footAY = -Math.sin(t * Math.PI) * 4.2; // Swing foot lifting forward
+            }
 
-            rightHipAngle = counterStride * 0.9;
-            rightKneeAngle = counterStride > 0 ? counterStride * 1.1 : 0.1;
+            // Leg B (Right, offset by PI)
+            const cycleB = (this.runCycle + Math.PI) % (Math.PI * 2);
+            let footBX, footBY;
+            if (cycleB < Math.PI) {
+                const t = cycleB / Math.PI;
+                footBX = strideLength * (1 - 2 * t);
+                footBY = 0; // Stance foot firmly on the floor
+            } else {
+                const t = (cycleB - Math.PI) / Math.PI;
+                footBX = strideLength * (-1 + 2 * t);
+                footBY = -Math.sin(t * Math.PI) * 4.2; // Swing foot lifting forward
+            }
 
-            leftShoulderAngle = counterStride * 0.8 + 0.3;
-            leftElbowAngle = 0.6;
+            const ikA = this.solveIK(0, hipY, footAX, footAY, upperLegLength, lowerLegLength, 1);
+            const ikB = this.solveIK(0, hipY, footBX, footBY, upperLegLength, lowerLegLength, 1);
 
-            rightShoulderAngle = stride * 0.8 + 0.3;
-            rightElbowAngle = 0.6;
+            leftHipAngle = ikA.hipAngle;
+            leftKneeAngle = ikA.kneeAngle;
+            rightHipAngle = ikB.hipAngle;
+            rightKneeAngle = ikB.kneeAngle;
+
+            // Athletic counter-arm pumping
+            leftShoulderAngle = -(footAX / strideLength) * 0.75 + 0.3;
+            leftElbowAngle = 0.55;
+
+            rightShoulderAngle = -(footBX / strideLength) * 0.75 + 0.3;
+            rightElbowAngle = 0.55;
         } else {
-            // IDLE ANIMATION: relaxed stance
+            // IDLE ANIMATION: both feet firmly planted on ground line y = 0
             const breathe = Math.sin(Date.now() * 0.003) * 0.06;
-            leftHipAngle = -0.12;
-            rightHipAngle = 0.12;
-            leftKneeAngle = 0.05;
-            rightKneeAngle = 0.05;
+            const ikLeft = this.solveIK(0, hipY, -1.8, 0, upperLegLength, lowerLegLength, 1);
+            const ikRight = this.solveIK(0, hipY, 1.8, 0, upperLegLength, lowerLegLength, 1);
+
+            leftHipAngle = ikLeft.hipAngle;
+            leftKneeAngle = ikLeft.kneeAngle;
+            rightHipAngle = ikRight.hipAngle;
+            rightKneeAngle = ikRight.kneeAngle;
 
             leftShoulderAngle = 0.2 + breathe;
             rightShoulderAngle = -0.12 - breathe;
@@ -235,6 +266,30 @@ class CharacterRenderer {
         ctx.lineTo(frontShoulderX + 2.5, frontShoulderY + 3.2);
         ctx.lineTo(fArmNearX, 0);
         ctx.stroke();
+    }
+
+    /**
+     * 2-Joint Analytical Inverse Kinematics for legs:
+     * Guarantees stance foot lands mathematically on targetFootY (0 floating pixels).
+     */
+    solveIK(hipX, hipY, footX, footY, L1, L2, bendDir = 1) {
+        const dx = footX - hipX;
+        const dy = footY - hipY;
+        let dist = Math.hypot(dx, dy);
+        const maxLen = L1 + L2 - 0.001;
+        if (dist > maxLen) dist = maxLen;
+        const minLen = Math.abs(L1 - L2) + 0.001;
+        if (dist < minLen) dist = minLen;
+
+        const baseAngle = Math.atan2(dx, dy);
+        const cosAngle1 = (L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist);
+        const angle1 = Math.acos(Math.max(-1, Math.min(1, cosAngle1)));
+
+        const hipAngle = baseAngle + bendDir * angle1;
+        const cosKnee = (L1 * L1 + L2 * L2 - dist * dist) / (2 * L1 * L2);
+        const kneeAngle = (Math.PI - Math.acos(Math.max(-1, Math.min(1, cosKnee)))) * (-bendDir);
+
+        return { hipAngle, kneeAngle };
     }
 
     drawLeg(ctx, startX, startY, hipAngle, kneeAngle, upperLen, lowerLen) {

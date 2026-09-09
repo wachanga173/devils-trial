@@ -215,6 +215,76 @@ class Game {
             });
         }
 
+        // Legal & FAQ Modal Wireups
+        const headerLegalBtn = document.getElementById('headerLegalBtn');
+        const pauseLegalBtn = document.getElementById('pauseLegalBtn');
+        const closeLegalBtn = document.getElementById('closeLegalBtn');
+        const backFromLegalBtn = document.getElementById('backFromLegalBtn');
+        const footerTermsBtn = document.getElementById('footerTermsBtn');
+        const footerPrivacyBtn = document.getElementById('footerPrivacyBtn');
+        const footerFaqBtn = document.getElementById('footerFaqBtn');
+
+        if (headerLegalBtn) {
+            headerLegalBtn.addEventListener('click', () => {
+                if (this.gameState === 'playing') this.togglePause();
+                this.toggleLegalModal(true, 'terms');
+            });
+        }
+        if (pauseLegalBtn) {
+            pauseLegalBtn.addEventListener('click', () => {
+                this.toggleLegalModal(true, 'terms');
+            });
+        }
+        if (closeLegalBtn) {
+            closeLegalBtn.addEventListener('click', () => this.toggleLegalModal(false));
+        }
+        if (backFromLegalBtn) {
+            backFromLegalBtn.addEventListener('click', () => this.toggleLegalModal(false));
+        }
+        if (footerTermsBtn) {
+            footerTermsBtn.addEventListener('click', () => {
+                if (this.gameState === 'playing') this.togglePause();
+                this.toggleLegalModal(true, 'terms');
+            });
+        }
+        if (footerPrivacyBtn) {
+            footerPrivacyBtn.addEventListener('click', () => {
+                if (this.gameState === 'playing') this.togglePause();
+                this.toggleLegalModal(true, 'privacy');
+            });
+        }
+        if (footerFaqBtn) {
+            footerFaqBtn.addEventListener('click', () => {
+                if (this.gameState === 'playing') this.togglePause();
+                this.toggleLegalModal(true, 'faq');
+            });
+        }
+
+        // Tab button switching
+        const modalTabBtns = document.querySelectorAll('.legal-modal-tabs .modal-tab-btn');
+        modalTabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.switchLegalModalTab(btn.dataset.tab);
+            });
+        });
+
+        // Accordion collapsing/expanding
+        const modalAccBtns = document.querySelectorAll('.in-modal-acc-q');
+        modalAccBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const parent = btn.closest('.in-modal-acc-item');
+                if (parent) parent.classList.toggle('open');
+            });
+        });
+
+        // Live In-Modal Search
+        const inModalSearch = document.getElementById('inModalLegalSearch');
+        if (inModalSearch) {
+            inModalSearch.addEventListener('input', (e) => {
+                this.filterLegalModalContent(e.target.value);
+            });
+        }
+
         if (btnForceLandscape) {
             btnForceLandscape.addEventListener('click', async () => {
                 try {
@@ -845,6 +915,61 @@ class Game {
         this.showToast('🗑️ All local storage data has been permanently destroyed.');
     }
 
+    toggleLegalModal(open, targetTab = 'terms') {
+        const modal = document.getElementById('legalOverlay');
+        if (!modal) return;
+        if (open) {
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+            this.switchLegalModalTab(targetTab);
+            const searchInput = document.getElementById('inModalLegalSearch');
+            if (searchInput) {
+                searchInput.value = '';
+                this.filterLegalModalContent('');
+            }
+        } else {
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
+    switchLegalModalTab(tabName) {
+        const tabBtns = document.querySelectorAll('.legal-modal-tabs .modal-tab-btn');
+        const panels = document.querySelectorAll('.legal-modal-scroll .tab-panel');
+        tabBtns.forEach(btn => {
+            if (btn.dataset.tab === tabName) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        panels.forEach(panel => {
+            const panelId = 'tabContent' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+            if (panel.id === panelId) {
+                panel.classList.add('active');
+            } else {
+                panel.classList.remove('active');
+            }
+        });
+        const scrollContainer = document.getElementById('legalModalScroll');
+        if (scrollContainer) scrollContainer.scrollTop = 0;
+    }
+
+    filterLegalModalContent(query) {
+        const cleanQuery = (query || '').toLowerCase().trim();
+        const items = document.querySelectorAll('.in-modal-acc-item');
+        items.forEach(item => {
+            const q = item.querySelector('.in-modal-acc-q')?.innerText.toLowerCase() || '';
+            const a = item.querySelector('.in-modal-acc-a')?.innerText.toLowerCase() || '';
+            if (!cleanQuery || q.includes(cleanQuery) || a.includes(cleanQuery)) {
+                item.style.display = '';
+                if (cleanQuery) item.classList.add('open');
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
     updateModeButton() {
         if (!this.modeToggleBtn) return;
         if (this.trapManager.chaosMode) {
@@ -908,7 +1033,7 @@ class Game {
         this.player.vy = 0;
         this.player.facing = spawn.facing || 1;
         this.player.alive = true;
-        this.player.onGround = false;
+        this.player.onGround = true;
         this.player.isCrawling = false;
         this.player.width = 12;
         this.player.height = 24;
@@ -985,9 +1110,23 @@ class Game {
                 if (!this.input.jump) {
                     this.input.jumpPressed = true;
                 }
-                this.input.jump = true;
             } else if (e.code === 'Escape') {
-                this.togglePause();
+                const legalOverlay = document.getElementById('legalOverlay');
+                const storageOverlay = document.getElementById('storageOverlay');
+                const saveDataViewerModal = document.getElementById('saveDataViewerModal');
+                const pwaGuideModal = document.getElementById('pwaGuideModal');
+
+                if (legalOverlay && legalOverlay.classList.contains('active')) {
+                    this.toggleLegalModal(false);
+                } else if (saveDataViewerModal && saveDataViewerModal.classList.contains('active')) {
+                    saveDataViewerModal.classList.remove('active');
+                } else if (storageOverlay && storageOverlay.classList.contains('active')) {
+                    this.toggleStorageModal(false);
+                } else if (pwaGuideModal && pwaGuideModal.classList.contains('active')) {
+                    this.togglePwaGuideModal(false);
+                } else {
+                    this.togglePause();
+                }
             } else if (e.code === 'KeyR') {
                 this.respawnPlayer(true);
             }
@@ -1276,6 +1415,15 @@ class Game {
         ctx.fillStyle = this.theme.pathColor;
         for (const corridor of this.currentLevel.pathwayCorridors) {
             ctx.fillRect(corridor.x, corridor.y, corridor.w, corridor.h);
+        }
+
+        // 2b. Solid Interior Structures / Shelves / Islands / Steps (Zero Floating Pixels!)
+        ctx.fillStyle = this.theme.bgColor;
+        const currentSolids = this.currentSolids || this.currentLevel.solids || [];
+        for (const solid of currentSolids) {
+            if (solid.isOneWay || solid.passthrough || solid.isWallOnly) continue;
+            // Draw interior solid rock slabs, shelves, pillars and islands
+            ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
         }
 
         // 3. SEAMLESS VANISHING GROUND:
