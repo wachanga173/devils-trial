@@ -47,6 +47,13 @@ class DevilAI {
         this.activeCounterStrategy = "Detecting player psychology...";
         this.creativityLevel = 1.0;
         this.deployedTrapsCurrentRun = [];
+
+        // Python RL Agent Connectivity
+        this.pythonConnected = false;
+        this.pythonModel = "DevilAI-RL-Py3";
+        this.cachedPrediction = null;
+        this.isPrefetching = false;
+        this.checkPythonStatus();
     }
 
     resetRunTelemetry() {
@@ -132,6 +139,18 @@ class DevilAI {
         });
 
         this.classifyPlayer();
+
+        // Asynchronously notify Python ML agent of player death
+        this.sendPythonLearn('death', {
+            levelId: levelId,
+            reason: reason,
+            trapType: fatalType,
+            fatal_trap: fatalType,
+            x: x,
+            y: y,
+            timeAlive: this.telemetry.totalFrames,
+            telemetry: this.telemetry
+        });
     }
 
     /**
@@ -151,6 +170,14 @@ class DevilAI {
         this.creativityLevel = Math.min(2.5, 1.0 + (levelId * 0.1) + (this.playerSkillEstimate * 0.2));
         this.learningEpochs++;
         this.classifyPlayer();
+
+        // Asynchronously notify Python ML agent of stage clear
+        this.sendPythonLearn('clear', {
+            levelId: levelId,
+            durationFrames: durationFrames,
+            deployedTraps: [...this.deployedTrapsCurrentRun],
+            telemetry: this.telemetry
+        });
     }
 
     classifyPlayer() {
@@ -234,20 +261,43 @@ class DevilAI {
         else if (levelId === 2) difficultyMult = 1.15;
         else if (levelId === 3) difficultyMult = 1.35;
         else if (levelId === 4) difficultyMult = 1.55;
-        else difficultyMult = 1.55 + Math.min(1.5, (levelId - 4) * 0.20);
+        else if (levelId === 5) difficultyMult = 1.75;
+        else if (levelId === 6) difficultyMult = 2.0;
+        else if (levelId === 7) difficultyMult = 2.25;
+        else difficultyMult = 2.25 + Math.min(1.2, (levelId - 7) * 0.18);
 
         // Maximum dynamic trap count based on difficulty
+        // Progressive scaling: L1: 1-2, L2: 2, L3: 2-3, L4: 3, L5: 4, L6: 5, L7: 6, L8+: up to 8
         let maxTraps = 2;
         if (levelId === 1) {
-            maxTraps = Math.random() < 0.5 ? 1 : 2; // Level 1: 1 or 2 dynamic traps
+            maxTraps = Math.random() < 0.5 ? 1 : 2;
         } else if (levelId === 2) {
             maxTraps = 2;
         } else if (levelId === 3) {
             maxTraps = Math.random() < 0.5 ? 2 : 3;
         } else if (levelId === 4) {
             maxTraps = 3;
+        } else if (levelId === 5) {
+            maxTraps = 4;
+        } else if (levelId === 6) {
+            maxTraps = 5;
+        } else if (levelId === 7) {
+            maxTraps = 6;
         } else {
-            maxTraps = Math.min(5, 3 + Math.floor((levelId - 4) * 0.4));
+            maxTraps = Math.min(8, 6 + Math.floor((levelId - 7) * 0.5));
+        }
+
+        // 0. Use pre-calculated Python ML prediction if available
+        if (this.cachedPrediction && this.cachedPrediction.selectedTraps && this.cachedPrediction.selectedTraps.length > 0) {
+            const pred = this.cachedPrediction;
+            this.cachedPrediction = null; // Consume
+            if (pred.classification) {
+                if (pred.classification.profile) this.currentProfile = pred.classification.profile;
+                if (pred.classification.confidence) this.confidence = pred.classification.confidence;
+                if (pred.classification.strategy) this.activeCounterStrategy = pred.classification.strategy;
+            }
+            this.deployedTrapsCurrentRun = pred.selectedTraps.map(t => t.type);
+            return pred.selectedTraps;
         }
 
         // Anti-Checkmate System: Semantic Mutual Exclusion Matrix
@@ -255,8 +305,7 @@ class DevilAI {
         const activeTraps = (staticTraps || []).map(st => ({ ...st, isStatic: true }));
         const isAntiCheckmateSafe = (slot, deployedList) => this.isAntiCheckmateSafe(slot, deployedList);
 
-
-        // 1. Score candidate traps using ML Model Prediction + Online Efficacy
+        // 1. Score candidate traps using ML Model Prediction + Online Efficacy + Zone Variety
         const scoredSlots = candidateSlots.map((rawSlot, idx) => {
             const slot = JSON.parse(JSON.stringify(rawSlot)); // Clean clone
             let affinity = 1.0;
@@ -274,6 +323,10 @@ class DevilAI {
                 if (slot.type === 'hidden_spike' || slot.type === 'spinning_saw') affinity += 1.4;
             }
 
+            // Zone distribution weighting (encourage entry ambush and exit troll traps)
+            if (slot.zone === 'entry') affinity *= 1.1;
+            else if (slot.zone === 'exit') affinity *= 1.15;
+
             return {
                 slot,
                 originalIndex: idx,
@@ -281,14 +334,13 @@ class DevilAI {
             };
         });
 
-        // 2. Separate into ML-Predicted Pool and Stochastic Wildcard Pool
+        // 2. Separate into ML-Predicted Pool (60%) and Stochastic Wildcard Pool (40%)
         scoredSlots.sort((a, b) => b.score - a.score);
 
         const selected = [];
         const usedIndices = new Set();
 
-        // 50% of slots allocated to ML Model Prediction
-        const predictedCount = Math.max(1, Math.floor(maxTraps / 2));
+        const predictedCount = Math.max(1, Math.floor(maxTraps * 0.6));
         for (const item of scoredSlots) {
             if (selected.length >= predictedCount) break;
             if (isAntiCheckmateSafe(item.slot, activeTraps)) {
@@ -347,6 +399,83 @@ class DevilAI {
         };
     }
 
+    // =========================================================================
+    // Python 3 Machine Learning Agent Bridge
+    // =========================================================================
+    async checkPythonStatus() {
+        if (typeof fetch === 'undefined') return false;
+        try {
+            const res = await fetch('/api/ai-status');
+            if (res.ok) {
+                const data = await res.json();
+                this.pythonConnected = !!data.available;
+                if (data.engine) this.pythonModel = data.engine;
+                return this.pythonConnected;
+            }
+        } catch (e) {
+            this.pythonConnected = false;
+        }
+        return false;
+    }
+
+    async prefetchPythonPrediction(levelId, candidateSlots, staticTraps) {
+        if (!this.pythonConnected || !candidateSlots || candidateSlots.length === 0 || typeof fetch === 'undefined') {
+            return null;
+        }
+        if (this.isPrefetching) return null;
+        this.isPrefetching = true;
+
+        try {
+            const payload = {
+                action: 'predict',
+                levelId: levelId,
+                telemetry: this.telemetry,
+                candidateSlots: candidateSlots,
+                staticTraps: staticTraps || []
+            };
+            const res = await fetch('/api/ai-predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.selectedTraps) {
+                    this.cachedPrediction = data;
+                    if (data.classification) {
+                        if (data.classification.profile) this.currentProfile = data.classification.profile;
+                        if (data.classification.confidence) this.confidence = data.classification.confidence;
+                        if (data.classification.strategy) this.activeCounterStrategy = data.classification.strategy;
+                    }
+                    this.isPrefetching = false;
+                    return data;
+                }
+            }
+        } catch (e) {
+            // Silently fall back to in-browser RL
+        }
+        this.isPrefetching = false;
+        return null;
+    }
+
+    sendPythonLearn(type, eventData) {
+        if (!this.pythonConnected || typeof fetch === 'undefined') return;
+        try {
+            fetch('/api/ai-learn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: type,
+                    event: eventData
+                })
+            }).then(res => res.json()).then(data => {
+                if (data && data.epochs) {
+                    this.learningEpochs = data.epochs;
+                }
+            }).catch(() => {});
+        } catch (e) {}
+    }
+
     deserializeTelemetry(data) {
         if (!data || typeof data !== 'object') return;
         if (typeof data.learningEpochs === 'number') this.learningEpochs = data.learningEpochs;
@@ -385,9 +514,11 @@ class DevilAI {
                 // Never two rolling boulders in the same level section
                 if (act.type === 'rolling_ball' && isSameElevation) return false;
 
-                // In the same corridor, never pair a rolling boulder with sawblades
+                // In the same corridor, never pair a rolling boulder with sawblades within its rolling runway
                 if ((act.type === 'spinning_saw' || act.type === 'razor') && isSameElevation) {
-                    return false;
+                    if (Math.abs(act.x - slot.x) < 220 || (act.x >= bJumpMinX - 50 && act.x <= bJumpMaxX + 50)) {
+                        return false;
+                    }
                 }
 
                 // Cannot pair with dropping ceiling spikes in the boulder jump-evasion runway
@@ -421,7 +552,9 @@ class DevilAI {
                     const bJumpMaxX = Math.max(act.x, bTriggerX) + 50;
 
                     if (slot.type === 'spinning_saw' || slot.type === 'razor') {
-                        return false;
+                        if (Math.abs(slot.x - act.x) < 220 || (slot.x >= bJumpMinX - 50 && slot.x <= bJumpMaxX + 50)) {
+                            return false;
+                        }
                     }
 
                     if (slot.type === 'dropping_spike') {
@@ -446,14 +579,14 @@ class DevilAI {
         if (isCrawlSaw(slot)) {
             for (const act of deployedList) {
                 if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
-                    if (Math.abs(act.x - slot.x) < 70) return false;
+                    if (Math.abs(act.x - slot.x) < 60) return false;
                 }
             }
         }
         for (const act of deployedList) {
             if (isCrawlSaw(act)) {
                 if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
-                    if (Math.abs(slot.x - act.x) < 70) return false;
+                    if (Math.abs(slot.x - act.x) < 60) return false;
                 }
             }
         }
@@ -462,20 +595,19 @@ class DevilAI {
         if (slot.type === 'dropping_spike') {
             for (const act of deployedList) {
                 if (act.type === 'static_spike' || act.type === 'hidden_spike' || act.type === 'collapsing_floor') {
-                    if (Math.abs(act.x - slot.x) < 75) return false;
+                    if (Math.abs(act.x - slot.x) < 65) return false;
                 }
             }
         }
         if (slot.type === 'static_spike' || slot.type === 'hidden_spike' || slot.type === 'collapsing_floor') {
             for (const act of deployedList) {
                 if (act.type === 'dropping_spike') {
-                    if (Math.abs(act.x - slot.x) < 75) return false;
+                    if (Math.abs(act.x - slot.x) < 65) return false;
                 }
             }
         }
 
-        // 5. Standard minimum physical distance separation (>= 50px buffer for statics, 35px for dynamics)
-        // Only applies when sharing the same vertical corridor or elevation zone
+        // 5. Standard minimum physical distance separation
         const slotY = slot.groundY !== undefined ? slot.groundY : (slot.y || 345);
         const slotStart = slot.x;
         const slotEnd = slot.x + (slot.w || 32);
@@ -485,7 +617,12 @@ class DevilAI {
 
             const actStart = act.x;
             const actEnd = act.x + (act.w || 28);
-            const minGap = (act.isStatic || act.type === 'static_spike') ? 50 : 35;
+            let minGap = 25;
+            if (act.type === 'static_spike' || slot.type === 'static_spike') {
+                minGap = 35;
+            } else if (act.type === 'spring_pad' || slot.type === 'spring_pad') {
+                minGap = 18;
+            }
             if (!(slotEnd <= actStart - minGap || slotStart >= actEnd + minGap)) {
                 return false;
             }

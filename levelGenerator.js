@@ -321,17 +321,38 @@ class AILevelGenerator {
         const highestStep = isPyramid ? Math.floor(numSteps / 2) : numSteps - 1;
         let highX = wallL;
         for (let k = 0; k < highestStep; k++) highX += stepWidths[k];
+
+        // Zone 1: Entry / Step 0 Traps
+        candidateTrapSlots.push({
+            type: 'collapsing_floor',
+            x: wallL + 50,
+            y: stepFloors[0],
+            w: 48,
+            h: 35,
+            dropSpeed: 2.2,
+            zone: 'entry'
+        });
+        candidateTrapSlots.push({
+            type: 'hidden_spike',
+            x: Math.round(wallL + stepWidths[0] * 0.45),
+            y: stepFloors[0],
+            w: 26,
+            h: 16,
+            triggerRange: 36,
+            zone: 'entry'
+        });
+
+        // Zone 2: Mid-Altar Gauntlet Traps
         candidateTrapSlots.push({
             type: 'rolling_ball',
             x: highX + Math.round(stepWidths[highestStep] * 0.7),
             y: stepFloors[highestStep],
             groundY: stepFloors[highestStep],
             radius: 16 + rngInt(0, 3),
-            vx: -3.8 - difficulty * 0.4,
-            triggerRange: 85
+            vx: -3.8 - difficulty * 0.35,
+            triggerRange: 85,
+            zone: 'mid'
         });
-
-        // Retracting crusher on summit
         candidateTrapSlots.push({
             type: 'piston_crusher',
             x: highX + Math.round(stepWidths[highestStep] * 0.3),
@@ -340,17 +361,60 @@ class AILevelGenerator {
             w: 38,
             h: 95,
             triggerRange: 45,
-            pauseDuration: 50
+            pauseDuration: 48,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'dropping_spike',
+            x: midX + Math.round(stepWidths[midStep] * 0.65),
+            y: Math.max(30, stepFloors[midStep] - cHeadroom),
+            w: 22,
+            h: 22,
+            groundY: stepFloors[midStep],
+            triggerRange: 40,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'spinning_saw',
+            x: midX + 40,
+            y: stepFloors[midStep] - 25,
+            radius: 16,
+            patrolAxis: 'x',
+            minX: midX + 20,
+            maxX: midX + Math.min(180, stepWidths[midStep] - 20),
+            speed: 2.2,
+            zone: 'mid'
         });
 
-        // Collapsing floor near the exit
+        // Zone 3: Exit Climax Traps
         candidateTrapSlots.push({
             type: 'collapsing_floor',
             x: doorX - 60,
             y: doorFloor,
             w: 48,
             h: 35,
-            dropSpeed: 2.2
+            dropSpeed: 2.2,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'dropping_spike',
+            x: doorX + 16,
+            y: Math.max(30, doorFloor - cHeadroom),
+            w: 22,
+            h: 22,
+            groundY: doorFloor,
+            triggerRange: 42,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'sliding_door',
+            x: doorX,
+            y: doorY,
+            w: 32,
+            h: 46,
+            shiftX: -90,
+            triggerRange: 75,
+            zone: 'exit'
         });
 
         return {
@@ -446,50 +510,111 @@ class AILevelGenerator {
 
         const firstBeam = beamSegments[0];
         const staticTraps = [
-            { type: 'static_spike', x: firstBeam.x + firstBeam.w + 50, y: floorY, w: 28, h: 15 }
+            { type: 'static_spike', x: firstBeam.x + firstBeam.w + 90, y: floorY, w: 28, h: 15 }
         ];
 
         const candidateTrapSlots = [
-            // Head-height sawblade before first beam: bottom at y: floorY - 18 (safe to crawl underneath with 6px margin!)
+            // Zone 1: Entry / Approach Traps
             {
-                type: 'spinning_saw',
-                x: firstBeam.x - 50,
-                y: floorY - 33,
-                radius: 15,
-                patrolAxis: 'x',
-                minX: firstBeam.x - 90,
-                maxX: firstBeam.x - 20,
-                speed: 1.8 + difficulty * 0.2
+                type: 'collapsing_floor',
+                x: 160,
+                y: floorY,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'entry'
             },
-            // Dropping ceiling spike
+            {
+                type: 'hidden_spike',
+                x: Math.max(150, firstBeam.x - 45),
+                y: floorY,
+                w: 26,
+                h: 16,
+                triggerRange: 35,
+                zone: 'entry'
+            },
             {
                 type: 'dropping_spike',
-                x: firstBeam.x + firstBeam.w + 120,
+                x: Math.max(150, firstBeam.x - 15),
                 y: normalCeilY,
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38
+                triggerRange: 38,
+                zone: 'entry'
             },
-            // Retracting ceiling crusher
+
+            // Zone 2: Mid Gauntlet Traps (Post-Crawl Ambush)
             {
                 type: 'piston_crusher',
-                x: firstBeam.x + firstBeam.w + 180,
+                x: firstBeam.x + firstBeam.w + 35,
                 startY: normalCeilY - 35,
                 targetY: normalCeilY + 15,
-                w: 40,
+                w: 38,
                 h: 105,
                 triggerRange: 45,
-                pauseDuration: 52
+                pauseDuration: 50,
+                zone: 'mid'
             },
-            // Collapsing floor near exit
+            {
+                type: 'dropping_spike',
+                x: firstBeam.x + firstBeam.w + 150,
+                y: normalCeilY,
+                w: 22,
+                h: 22,
+                groundY: floorY,
+                triggerRange: 38,
+                zone: 'mid'
+            },
+            {
+                type: 'hidden_spike',
+                x: firstBeam.x + firstBeam.w + 200,
+                y: floorY,
+                w: 26,
+                h: 16,
+                triggerRange: 36,
+                zone: 'mid'
+            },
+            {
+                type: 'rolling_ball',
+                x: Math.min(boundsW - 200, firstBeam.x + firstBeam.w + 270),
+                y: floorY,
+                groundY: floorY,
+                radius: 16,
+                vx: -4.2 - difficulty * 0.35,
+                triggerRange: 85,
+                zone: 'mid'
+            },
+
+            // Zone 3: Exit Climax Traps
             {
                 type: 'collapsing_floor',
-                x: doorX - 65,
+                x: doorX - 105,
                 y: floorY,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2
+                dropSpeed: 2.2,
+                zone: 'exit'
+            },
+            {
+                type: 'dropping_spike',
+                x: doorX - 45,
+                y: normalCeilY,
+                w: 22,
+                h: 22,
+                groundY: floorY,
+                triggerRange: 40,
+                zone: 'exit'
+            },
+            {
+                type: 'sliding_door',
+                x: doorX,
+                y: doorY,
+                w: 32,
+                h: 46,
+                shiftX: -85,
+                triggerRange: 75,
+                zone: 'exit'
             }
         ];
 
@@ -617,27 +742,101 @@ class AILevelGenerator {
             { type: 'static_spike', x: Math.round(boundsW * 0.5), y: tierFloors[1] || bottomFloor, w: 28, h: 15 }
         ];
 
-        // Patrolling razor on middle tier
+        // Zone 1: Base / Entry Traps
+        candidateTrapSlots.push({
+            type: 'collapsing_floor',
+            x: spawnX + 80,
+            y: bottomFloor,
+            w: 48,
+            h: 35,
+            dropSpeed: 2.2,
+            zone: 'entry'
+        });
+        candidateTrapSlots.push({
+            type: 'hidden_spike',
+            x: spawnX + 160,
+            y: bottomFloor,
+            w: 26,
+            h: 16,
+            triggerRange: 36,
+            zone: 'entry'
+        });
+
+        // Zone 2: Mid-Story Climb Traps
+        const midFloor = tierFloors[1] || bottomFloor;
         candidateTrapSlots.push({
             type: 'spinning_saw',
             x: 320,
-            y: (tierFloors[1] || bottomFloor) - 30,
+            y: midFloor - 30,
             radius: 18,
             patrolAxis: 'x',
-            minX: 220,
-            maxX: boundsW - 220,
-            speed: 2.0
+            minX: 200,
+            maxX: boundsW - 200,
+            speed: 2.2,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'piston_crusher',
+            x: Math.round(boundsW * 0.45),
+            startY: midFloor - cHeight - 25,
+            targetY: midFloor - cHeight + 15,
+            w: 40,
+            h: 100,
+            triggerRange: 45,
+            pauseDuration: 48,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'troll_portal',
+            x: Math.round(boundsW * 0.7),
+            y: midFloor,
+            w: 55,
+            h: 75,
+            exitX: spawnX + 20,
+            exitY: bottomFloor - 20,
+            exitVy: 2.0,
+            zone: 'mid'
         });
 
-        // Dropping spike on the summit approach
+        // Zone 3: Summit Climax Traps
+        candidateTrapSlots.push({
+            type: 'rolling_ball',
+            x: boundsW - 130,
+            y: topFloor,
+            groundY: topFloor,
+            radius: 16,
+            vx: -4.2 - difficulty * 0.35,
+            triggerRange: 80,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'collapsing_floor',
+            x: doorX + 45,
+            y: topFloor,
+            w: 48,
+            h: 35,
+            dropSpeed: 2.2,
+            zone: 'exit'
+        });
         candidateTrapSlots.push({
             type: 'dropping_spike',
             x: doorX + 75,
-            y: 50,
+            y: topCeilH,
             w: 22,
             h: 22,
             groundY: topFloor,
-            triggerRange: 38
+            triggerRange: 40,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'sliding_door',
+            x: doorX,
+            y: doorY,
+            w: 32,
+            h: 46,
+            shiftX: 80,
+            triggerRange: 75,
+            zone: 'exit'
         });
 
         return {
@@ -701,7 +900,28 @@ class AILevelGenerator {
         ];
 
         const candidateTrapSlots = [
-            // Horizontal ferry platform on middle tier
+            // Zone 1: Upper Tier Traps
+            {
+                type: 'collapsing_floor',
+                x: boundsW - 250,
+                y: tier1Floor,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'entry'
+            },
+            {
+                type: 'dropping_spike',
+                x: 220,
+                y: tier1Floor - cHeight,
+                w: 22,
+                h: 22,
+                groundY: tier1Floor,
+                triggerRange: 38,
+                zone: 'entry'
+            },
+
+            // Zone 2: Mid Chasm / Shaft Traps
             {
                 type: 'moving_platform',
                 x: 300,
@@ -711,9 +931,43 @@ class AILevelGenerator {
                 axis: 'x',
                 min: 200,
                 max: boundsW - 240,
-                speed: 1.8 + difficulty * 0.15
+                speed: 1.8 + difficulty * 0.15,
+                zone: 'mid'
             },
-            // Patrolling razor in the crypt
+            {
+                type: 'piston_crusher',
+                x: Math.round(boundsW * 0.45),
+                startY: tier2Floor - cHeight - 20,
+                targetY: tier2Floor - cHeight + 20,
+                w: 40,
+                h: 100,
+                triggerRange: 45,
+                pauseDuration: 50,
+                zone: 'mid'
+            },
+            {
+                type: 'troll_portal',
+                x: 220,
+                y: tier2Floor,
+                w: 55,
+                h: 75,
+                exitX: 130,
+                exitY: tier1Floor - 15,
+                exitVy: 2.0,
+                zone: 'mid'
+            },
+
+            // Zone 3: Bottom Crypt & Exit Traps
+            {
+                type: 'rolling_ball',
+                x: boundsW - 140,
+                y: tier3Floor,
+                groundY: tier3Floor,
+                radius: 17,
+                vx: -4.5 - difficulty * 0.35,
+                triggerRange: 85,
+                zone: 'exit'
+            },
             {
                 type: 'spinning_saw',
                 x: 320,
@@ -722,26 +976,27 @@ class AILevelGenerator {
                 patrolAxis: 'x',
                 minX: 200,
                 maxX: 360,
-                speed: 2.0
+                speed: 2.2,
+                zone: 'exit'
             },
-            // Retracting ceiling crusher
             {
-                type: 'piston_crusher',
-                x: 580,
-                startY: tier3Floor - 150,
-                targetY: tier3Floor - 100,
-                w: 40,
-                h: 100,
-                triggerRange: 45,
-                pauseDuration: 55
+                type: 'collapsing_floor',
+                x: boundsW - 200,
+                y: tier3Floor,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'exit'
             },
-            // Crawl-under razor (bottom at tier3Floor - 18, safe for 12px crawl height)
             {
-                type: 'spinning_saw',
-                x: 260,
-                y: tier3Floor - 33,
-                radius: 15,
-                patrolAxis: 'none'
+                type: 'sliding_door',
+                x: boundsW - 150,
+                y: tier3Floor - 46,
+                w: 32,
+                h: 46,
+                shiftX: -85,
+                triggerRange: 75,
+                zone: 'exit'
             }
         ];
 
@@ -808,7 +1063,69 @@ class AILevelGenerator {
         ];
 
         const candidateTrapSlots = [
-            // Patrolling razor in Low Road (crawl underneath with safe 6px clearance)
+            // Zone 1: Entry Chamber Traps
+            {
+                type: 'spring_pad',
+                x: 80 + entryW - 35,
+                y: groundFloor,
+                w: 32,
+                h: 10,
+                boostVy: -8.5,
+                zone: 'entry'
+            },
+            {
+                type: 'collapsing_floor',
+                x: 80 + 50,
+                y: groundFloor,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'entry'
+            },
+            {
+                type: 'hidden_spike',
+                x: 80 + entryW - 75,
+                y: groundFloor,
+                w: 26,
+                h: 16,
+                triggerRange: 35,
+                zone: 'entry'
+            },
+
+            // Zone 2: High Road Traps
+            {
+                type: 'rolling_ball',
+                x: 80 + entryW + midW - 30,
+                y: dividerY,
+                groundY: dividerY,
+                radius: 16,
+                vx: -4.2 - difficulty * 0.35,
+                triggerRange: 80,
+                zone: 'mid'
+            },
+            {
+                type: 'dropping_spike',
+                x: 80 + entryW + Math.round(midW * 0.6),
+                y: 130,
+                w: 22,
+                h: 22,
+                groundY: dividerY,
+                triggerRange: 40,
+                zone: 'mid'
+            },
+            {
+                type: 'piston_crusher',
+                x: 80 + entryW + Math.round(midW * 0.25),
+                startY: 100,
+                targetY: 140,
+                w: 40,
+                h: 85,
+                triggerRange: 45,
+                pauseDuration: 48,
+                zone: 'mid'
+            },
+
+            // Zone 2: Low Road Crawlway Traps
             {
                 type: 'spinning_saw',
                 x: 80 + entryW + Math.round(midW * 0.7),
@@ -817,38 +1134,50 @@ class AILevelGenerator {
                 patrolAxis: 'x',
                 minX: 80 + entryW + Math.round(midW * 0.55),
                 maxX: 80 + entryW + Math.round(midW * 0.85),
-                speed: 1.9 + difficulty * 0.2
+                speed: 2.2,
+                zone: 'mid'
             },
-            // Moving platform on High Road
             {
-                type: 'moving_platform',
-                x: 80 + entryW + 40,
-                y: dividerY - 5,
-                w: 70,
-                h: 16,
-                axis: 'x',
-                min: 80 + entryW + 20,
-                max: 80 + entryW + 150,
-                speed: 1.8
+                type: 'troll_portal',
+                x: 80 + entryW + Math.round(midW * 0.5),
+                y: groundFloor,
+                w: 55,
+                h: 75,
+                exitX: 110,
+                exitY: groundFloor - 20,
+                exitVy: 2.5,
+                zone: 'mid'
             },
-            // Rolling boulder along High Road
-            {
-                type: 'rolling_ball',
-                x: 80 + entryW + midW - 30,
-                y: dividerY,
-                groundY: dividerY,
-                radius: 16,
-                vx: -4.0 - difficulty * 0.3,
-                triggerRange: 80
-            },
-            // Collapsing floor at exit
+
+            // Zone 3: Exit Chamber Traps
             {
                 type: 'collapsing_floor',
                 x: boundsW - 180,
                 y: groundFloor,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2
+                dropSpeed: 2.2,
+                zone: 'exit'
+            },
+            {
+                type: 'dropping_spike',
+                x: boundsW - 130,
+                y: dividerY,
+                w: 22,
+                h: 22,
+                groundY: groundFloor,
+                triggerRange: 40,
+                zone: 'exit'
+            },
+            {
+                type: 'sliding_door',
+                x: boundsW - 130,
+                y: groundFloor - 46,
+                w: 32,
+                h: 46,
+                shiftX: -85,
+                triggerRange: 75,
+                zone: 'exit'
             }
         ];
 
@@ -941,7 +1270,80 @@ class AILevelGenerator {
         // Springboard on Entry platform
         staticTraps.push({ type: 'spring_pad', x: 80 + entryW - 45, y: floorY, w: 32, h: 10, boostVy: -7.8 });
 
-        // Patrolling razor on exit platform
+        // Zone 1: Entry / Approach Traps
+        candidateTrapSlots.push({
+            type: 'collapsing_floor',
+            x: 80 + Math.round(entryW * 0.35),
+            y: floorY,
+            w: 48,
+            h: 35,
+            dropSpeed: 2.2,
+            zone: 'entry'
+        });
+        candidateTrapSlots.push({
+            type: 'dropping_spike',
+            x: 80 + Math.round(entryW * 0.65),
+            y: ceilY,
+            w: 22,
+            h: 22,
+            groundY: floorY,
+            triggerRange: 40,
+            zone: 'entry'
+        });
+        candidateTrapSlots.push({
+            type: 'hidden_spike',
+            x: 80 + Math.round(entryW * 0.45),
+            y: floorY,
+            w: 26,
+            h: 16,
+            triggerRange: 35,
+            zone: 'entry'
+        });
+
+        // Zone 2: Mid Chasm & Island Traps
+        candidateTrapSlots.push({
+            type: 'spinning_saw',
+            x: 80 + entryW + Math.round(chasmW * 0.5),
+            y: ceilY + Math.round(cHeadroom * 0.45),
+            radius: 16,
+            patrolAxis: 'y',
+            minY: ceilY + 15,
+            maxY: floorY - 30,
+            speed: 1.8 + difficulty * 0.2,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'dropping_spike',
+            x: 80 + entryW + chasmW + Math.round(islandW * 0.5),
+            y: ceilY,
+            w: 22,
+            h: 22,
+            groundY: floorY,
+            triggerRange: 40,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'hidden_spike',
+            x: 80 + entryW + chasmW + Math.round(islandW * 0.3),
+            y: floorY,
+            w: 26,
+            h: 16,
+            triggerRange: 35,
+            zone: 'mid'
+        });
+        candidateTrapSlots.push({
+            type: 'troll_portal',
+            x: boundsW - 80 - exitW - Math.round(lastChasmW * 0.5) - 25,
+            y: floorY - 50,
+            w: 50,
+            h: 70,
+            exitX: 120,
+            exitY: floorY - 20,
+            exitVy: 2.5,
+            zone: 'mid'
+        });
+
+        // Zone 3: Exit Platform Climax Traps
         candidateTrapSlots.push({
             type: 'spinning_saw',
             x: boundsW - 160,
@@ -950,10 +1352,9 @@ class AILevelGenerator {
             patrolAxis: 'x',
             minX: boundsW - 80 - exitW + 20,
             maxX: boundsW - 100,
-            speed: 2.0
+            speed: 2.0,
+            zone: 'exit'
         });
-
-        // Dropping spike over exit
         candidateTrapSlots.push({
             type: 'dropping_spike',
             x: boundsW - 140,
@@ -961,7 +1362,27 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: floorY,
-            triggerRange: 38
+            triggerRange: 38,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'collapsing_floor',
+            x: boundsW - 80 - Math.round(exitW * 0.6),
+            y: floorY,
+            w: 48,
+            h: 35,
+            dropSpeed: 2.2,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'sliding_door',
+            x: boundsW - 120,
+            y: floorY - 46,
+            w: 32,
+            h: 46,
+            shiftX: -85,
+            triggerRange: 75,
+            zone: 'exit'
         });
 
         return {
@@ -1011,7 +1432,37 @@ class AILevelGenerator {
         ];
 
         const staticTraps = [];
-        const candidateTrapSlots = [];
+        const candidateTrapSlots = [
+            // Zone 1: Entry / Approach Traps
+            {
+                type: 'collapsing_floor',
+                x: 170,
+                y: floorY,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'entry'
+            },
+            {
+                type: 'dropping_spike',
+                x: 200,
+                y: ceilY,
+                w: 22,
+                h: 22,
+                groundY: floorY,
+                triggerRange: 38,
+                zone: 'entry'
+            },
+            {
+                type: 'hidden_spike',
+                x: 150,
+                y: floorY,
+                w: 26,
+                h: 16,
+                triggerRange: 35,
+                zone: 'entry'
+            }
+        ];
 
         const span = (boundsW - 400) / numCrushers;
         for (let c = 0; c < numCrushers; c++) {
@@ -1024,7 +1475,8 @@ class AILevelGenerator {
                 w: 42,
                 h: 105,
                 triggerRange: 48,
-                pauseDuration: 48 + rngInt(0, 15)
+                pauseDuration: 48 + rngInt(0, 15),
+                zone: 'mid'
             });
 
             // Intermediate obstacle between crushers
@@ -1032,26 +1484,70 @@ class AILevelGenerator {
                 const midX = cX + Math.round(span * 0.5);
                 if (c % 2 === 0) {
                     staticTraps.push({ type: 'static_spike', x: midX, y: floorY, w: 28, h: 15 });
+                    candidateTrapSlots.push({
+                        type: 'dropping_spike',
+                        x: midX,
+                        y: ceilY,
+                        w: 22,
+                        h: 22,
+                        groundY: floorY,
+                        triggerRange: 38,
+                        zone: 'mid'
+                    });
                 } else {
                     candidateTrapSlots.push({
                         type: 'spinning_saw',
                         x: midX,
-                        y: floorY - 25,
+                        y: floorY - 33,
                         radius: 15,
-                        patrolAxis: 'none'
+                        patrolAxis: 'none',
+                        zone: 'mid'
                     });
                 }
             }
         }
 
-        // Surprise collapsing floor near the exit
+        // Zone 2 additional: surprise rolling ball through crusher alley
+        candidateTrapSlots.push({
+            type: 'rolling_ball',
+            x: Math.min(boundsW - 200, 240 + Math.round((numCrushers - 1) * span) + 80),
+            y: floorY,
+            groundY: floorY,
+            radius: 16,
+            vx: -4.2 - difficulty * 0.35,
+            triggerRange: 85,
+            zone: 'mid'
+        });
+
+        // Zone 3: Exit Climax Traps
         candidateTrapSlots.push({
             type: 'collapsing_floor',
             x: boundsW - 170,
             y: floorY,
             w: 48,
             h: 35,
-            dropSpeed: 2.2
+            dropSpeed: 2.2,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'dropping_spike',
+            x: boundsW - 130,
+            y: ceilY,
+            w: 22,
+            h: 22,
+            groundY: floorY,
+            triggerRange: 40,
+            zone: 'exit'
+        });
+        candidateTrapSlots.push({
+            type: 'sliding_door',
+            x: boundsW - 120,
+            y: floorY - 46,
+            w: 32,
+            h: 46,
+            shiftX: -85,
+            triggerRange: 75,
+            zone: 'exit'
         });
 
         return {
@@ -1115,17 +1611,57 @@ class AILevelGenerator {
         ];
 
         const candidateTrapSlots = [
-            // Rolling boulder rolling back toward player
+            // Zone 1: Entry / Approach Traps
+            {
+                type: 'collapsing_floor',
+                x: 170,
+                y: floorY,
+                w: 48,
+                h: 35,
+                dropSpeed: 2.2,
+                zone: 'entry'
+            },
+            {
+                type: 'dropping_spike',
+                x: 210,
+                y: ceilY,
+                w: 22,
+                h: 22,
+                groundY: floorY,
+                triggerRange: 38,
+                zone: 'entry'
+            },
+            {
+                type: 'hidden_spike',
+                x: 150,
+                y: floorY,
+                w: 26,
+                h: 16,
+                triggerRange: 35,
+                zone: 'entry'
+            },
+
+            // Zone 2: Mid Ramp & Vault Shelf Traps
             {
                 type: 'rolling_ball',
                 x: boundsW - 140,
                 y: floorY,
                 groundY: floorY,
                 radius: 17 + rngInt(0, 3),
-                vx: -4.0 - difficulty * 0.35,
-                triggerRange: 90
+                vx: -4.2 - difficulty * 0.35,
+                triggerRange: 90,
+                zone: 'mid'
             },
-            // High razor in vault zone: crawl under (bottom at floorY - 18, safe 6px crawl clearance)
+            {
+                type: 'rolling_ball',
+                x: Math.round(boundsW * 0.65),
+                y: floorY,
+                groundY: floorY,
+                radius: 16,
+                vx: -3.8 - difficulty * 0.3,
+                triggerRange: 60,
+                zone: 'mid'
+            },
             {
                 type: 'spinning_saw',
                 x: 300,
@@ -1134,26 +1670,69 @@ class AILevelGenerator {
                 patrolAxis: 'x',
                 minX: 240,
                 maxX: 360,
-                speed: 1.8
+                speed: 1.8,
+                zone: 'mid'
             },
-            // Dropping ceiling spike
             {
                 type: 'dropping_spike',
-                x: boundsW - 240,
+                x: Math.round(300 + shelfSpan * 0.5),
                 y: ceilY,
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38
+                triggerRange: 42,
+                zone: 'mid'
             },
-            // Collapsing floor near exit
+            {
+                type: 'hidden_spike',
+                x: Math.round(300 + shelfSpan + 40),
+                y: floorY,
+                w: 26,
+                h: 16,
+                triggerRange: 35,
+                zone: 'mid'
+            },
+            {
+                type: 'troll_portal',
+                x: Math.round(boundsW * 0.5),
+                y: floorY - 10,
+                w: 50,
+                h: 70,
+                exitX: 120,
+                exitY: floorY - 20,
+                exitVy: 2.5,
+                zone: 'mid'
+            },
+
+            // Zone 3: Exit Climax Traps
             {
                 type: 'collapsing_floor',
                 x: boundsW - 180,
                 y: floorY,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2
+                dropSpeed: 2.2,
+                zone: 'exit'
+            },
+            {
+                type: 'dropping_spike',
+                x: boundsW - 135,
+                y: ceilY,
+                w: 22,
+                h: 22,
+                groundY: floorY,
+                triggerRange: 38,
+                zone: 'exit'
+            },
+            {
+                type: 'sliding_door',
+                x: boundsW - 120,
+                y: floorY - 46,
+                w: 32,
+                h: 46,
+                shiftX: -85,
+                triggerRange: 75,
+                zone: 'exit'
             }
         ];
 

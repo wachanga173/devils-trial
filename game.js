@@ -81,6 +81,9 @@ class Game {
         this.levelTitleDisplay = document.getElementById('levelTitle');
         this.modeToggleBtn = document.getElementById('modeToggle');
         this.aiBadge = document.getElementById('aiBadge');
+        if (this.ai && this.ai.checkPythonStatus) {
+            this.ai.checkPythonStatus().then(() => this.updateAIBadge());
+        }
         this.pauseOverlay = document.getElementById('pauseOverlay');
         this.themeSelector = document.getElementById('themeSelector');
         this.levelSelector = document.getElementById('levelSelector');
@@ -1147,8 +1150,14 @@ class Game {
         if (profile === 'RUSHER') color = '#ff5252';
         else if (profile === 'CAUTIOUS') color = '#69f0ae';
         else if (profile === 'HOPPER') color = '#40c4ff';
+        else if (profile === 'CHAOTIC') color = '#e040fb';
+        else if (profile === 'METHODICAL') color = '#00e676';
 
-        this.aiBadge.innerHTML = `<span>AI PREDICTION:</span> <strong style="color: ${color};">${profile} (${conf}%)</strong> <span style="opacity: 0.8; font-size: 11px; margin-left: 4px;">| LEARN: E${epochs}</span>`;
+        const engineBadge = (this.ai && this.ai.pythonConnected)
+            ? `<span style="background: rgba(46, 125, 50, 0.35); border: 1px solid #4caf50; color: #a5d6a7; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">🐍 PYTHON RL</span>`
+            : `<span style="background: rgba(30, 136, 229, 0.25); border: 1px solid #42a5f5; color: #90caf9; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">⚡ JS RL</span>`;
+
+        this.aiBadge.innerHTML = `${engineBadge}<span>AI PREDICTION:</span> <strong style="color: ${color};">${profile} (${conf}%)</strong> <span style="opacity: 0.8; font-size: 11px; margin-left: 4px;">| LEARN: E${epochs}</span>`;
         this.aiBadge.title = `${this.ai.activeCounterStrategy} (Skill: ${skill}x, Creativity: ${(this.ai.creativityLevel || 1.0).toFixed(1)})`;
     }
 
@@ -1180,6 +1189,11 @@ class Game {
 
         this.respawnPlayer(false);
         this.saveGame();
+
+        // Background prefetch next trap configuration from Python RL model
+        if (this.currentLevel && this.currentLevel.candidateTrapSlots && this.ai && this.ai.prefetchPythonPrediction) {
+            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps);
+        }
     }
 
     respawnPlayer(incrementDeath = false) {
@@ -1236,6 +1250,11 @@ class Game {
 
         const fatalTrap = trapType || (reason === 'pit' ? 'collapsing_floor' : reason);
         this.ai.recordDeath(reason, this.player.x, this.player.y, this.currentLevel.id, fatalTrap);
+
+        // Prefetch counter-traps for the upcoming respawn
+        if (this.currentLevel && this.currentLevel.candidateTrapSlots && this.ai && this.ai.prefetchPythonPrediction) {
+            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps);
+        }
 
         this.shake(12, 6);
         if (window.soundFX) window.soundFX.playDeath();
