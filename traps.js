@@ -131,19 +131,32 @@ class AdaptiveDoor {
         this.h = this.def.h || 46;
         this.open = true;
 
-        // Specified puzzle shift: The door moves ONLY if explicitly specified by the level design!
-        this.hasScriptedShift = !!(this.def.shiftX || (this.def.shiftsMax && this.def.shiftsMax > 0));
-        this.shiftsLeft = this.hasScriptedShift ? (this.def.shiftsMax || 1) : 0;
-        this.shiftDirection = this.def.shiftDirection || (this.def.shiftX && this.def.shiftX < 0 ? -1 : 1);
-        this.shiftDistance = this.def.shiftDistance || (this.def.shiftX ? Math.abs(this.def.shiftX) : 90);
-        this.triggerRange = this.def.triggerRange || 75;
+        // Dynamic Evasion Budget:
+        // Levels 1-3: Tutorial levels (0 evasions, stationary)
+        // Level 4: 1 evasion (Level 4 signature puzzle shift)
+        // Level 5+: 1 to 2 dynamic evasions (or explicitly specified by shiftsMax)
+        let maxEvasions = 0;
+        if (this.def.shiftsMax !== undefined) {
+            maxEvasions = this.def.shiftsMax;
+        } else if (level && level.id) {
+            if (level.id <= 3) maxEvasions = 0;
+            else if (level.id === 4) maxEvasions = 1;
+            else maxEvasions = 1 + (level.id % 2);
+        }
+        this.evasionsMax = maxEvasions;
+        this.shiftsLeft = maxEvasions;
+        this.triggerRange = this.def.triggerRange || 85;
 
-        // States: 'idle', 'shifting', 'settled', 'shutting', 'shut'
+        // States: 'idle', 'alert', 'shifting', 'settled', 'shutting', 'shut'
         this.state = this.shiftsLeft === 0 ? 'settled' : 'idle';
         this.isShifting = false;
+        this.isAlert = false;
+        this.alertTimer = 0;
         this.shiftProgress = 0;
         this.hopStartX = this.x;
+        this.hopStartY = this.y;
         this.hopTargetX = this.x;
+        this.hopTargetY = this.y;
         this.hopY = 0;
         this.rotation = 0;
         this.scaleX = 1;
@@ -161,10 +174,44 @@ class AdaptiveDoor {
         this.onShutComplete = callback;
     }
 
+    findEvasionTarget(player) {
+        // If level has a scripted shift delta (e.g. Level 4 with shiftX: -85), honor it on first hop
+        if (this.def.shiftX && this.shiftsLeft === this.evasionsMax) {
+            return { x: this.x + this.def.shiftX, y: this.y };
+        }
+
+        const boundsW = (this.level && this.level.bounds) ? this.level.bounds.width : 840;
+        const solids = (this.level && this.level.solids) ? this.level.solids : [];
+        const pX = player ? player.x : this.x;
+
+        // Determine direction away from player
+        let dir = (this.x >= pX) ? 1 : -1;
+        if (dir > 0 && this.x > boundsW - 160) dir = -1;
+        if (dir < 0 && this.x < 160) dir = 1;
+
+        // Try candidate hop distances
+        const candidateDists = [115, 145, 85, 170, -110];
+        for (const dist of candidateDists) {
+            const testX = Math.max(90, Math.min(boundsW - 90 - this.w, this.x + dir * dist));
+            // Check if there is solid ground at testX
+            for (const s of solids) {
+                if (s.passthrough || s.isWallOnly) continue;
+                if (testX + this.w - 4 >= s.x && testX + 4 <= s.x + s.w) {
+                    if (Math.abs(s.y - (this.y + this.h)) < 45) {
+                        return { x: testX, y: s.y - this.h };
+                    }
+                }
+            }
+        }
+
+        const fallbackX = Math.max(90, Math.min(boundsW - 90 - this.w, this.x + dir * 115));
+        return { x: fallbackX, y: this.y };
+    }
+
     update(player, aiModel, game) {
         // 1. Physical door shutting sequence
         if (this.state === 'shutting') {
-            this.shutProgress += 0.12;
+            this.shutProgress += 0.085;
             if (this.shutProgress >= 1) {
                 this.shutProgress = 1;
                 this.state = 'shut';
@@ -172,7 +219,7 @@ class AdaptiveDoor {
                     window.soundFX.playDoorSlam();
                 }
                 if (game) {
-                    if (game.shake) game.shake(8, 4.5);
+                    if (game.shake) game.shake(10, 5.0);
                     if (game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
                 }
                 if (this.onShutComplete) {
@@ -189,73 +236,112 @@ class AdaptiveDoor {
         const diffX = playerCenterX - doorCenterX;
         this.eyeLookX = Math.max(-2.2, Math.min(2.2, diffX * 0.04));
 
-        // 3. Shifting animation (smooth specified hop to puzzle destination)
+        // 3. Alert countdown before evasive hop
+        if (this.isAlert) {
+            this.alertTimer--;
+            if (this.alertTimer <= 0) {
+                this.isAlert = false;
+                this.startEvasiveHop(player, game);
+            }
+            return;
+        }
+
+        // 4. Shifting animation (smooth parabolic hop to destination)
         if (this.isShifting) {
-            this.shiftProgress += 0.055;
+            this.shiftProgress += 0.048;
             if (this.shiftProgress >= 1) {
                 this.shiftProgress = 1;
                 this.x = this.hopTargetX;
+                this.y = this.hopTargetY;
                 this.hopY = 0;
                 this.rotation = 0;
                 this.scaleX = 1;
                 this.scaleY = 1;
                 this.isShifting = false;
                 this.shiftsLeft--;
-                this.state = 'settled';
+                if (this.shiftsLeft <= 0) {
+                    this.state = 'settled';
+                } else {
+                    this.state = 'idle';
+                }
                 if (window.soundFX && window.soundFX.playDoorSettle) window.soundFX.playDoorSettle();
                 if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
             } else {
                 const t = this.shiftProgress;
                 this.x = this.hopStartX + (this.hopTargetX - this.hopStartX) * t;
-                this.hopY = -Math.sin(t * Math.PI) * 28;
-                this.scaleX = 1 + Math.sin(t * Math.PI) * 0.1;
-                this.scaleY = 1 - Math.sin(t * Math.PI) * 0.1;
+                this.y = this.hopStartY + (this.hopTargetY - this.hopStartY) * t;
+                this.hopY = -Math.sin(t * Math.PI) * 32;
+                const hopDir = (this.hopTargetX >= this.hopStartX) ? 1 : -1;
+                this.rotation = hopDir * Math.sin(t * Math.PI) * 0.14;
+                this.scaleX = 1 + Math.sin(t * Math.PI) * 0.12;
+                this.scaleY = 1 - Math.sin(t * Math.PI) * 0.12;
             }
             return;
         }
 
-        // 4. Only trigger if shift is scripted and remaining
-        if (this.shiftsLeft <= 0 || !this.hasScriptedShift) {
+        // 5. If no evasions left, door is permanently settled and waiting for player
+        if (this.shiftsLeft <= 0) {
             this.state = 'settled';
             return;
         }
 
-        // Proximity detection for specified shift
+        // 6. Proximity detection: Startle door when player approaches!
         const dist = Math.abs(player.x - (this.x + this.w / 2));
         const yDist = Math.abs(player.y - (this.y + this.h));
-        if (dist < this.triggerRange && yDist < 50) {
-            this.executeSpecifiedShift(game);
+        if (dist < this.triggerRange && yDist < 55) {
+            this.isAlert = true;
+            this.alertTimer = 10; // Brief comic reaction before hopping
+            if (window.soundFX && window.soundFX.playDoorScurry) window.soundFX.playDoorScurry();
+            if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
         }
     }
 
-    executeSpecifiedShift(game) {
+    startEvasiveHop(player, game) {
+        const target = this.findEvasionTarget(player);
         this.isShifting = true;
         this.shiftProgress = 0;
         this.hopStartX = this.x;
-
-        const boundsW = (this.level && this.level.bounds) ? this.level.bounds.width : 840;
-        let targetX = this.x + this.shiftDirection * this.shiftDistance;
-        targetX = Math.max(90, Math.min(boundsW - 90 - this.w, targetX));
-        this.hopTargetX = targetX;
-
-        if (window.soundFX && window.soundFX.playDoorScurry) window.soundFX.playDoorScurry();
+        this.hopStartY = this.y;
+        this.hopTargetX = target.x;
+        this.hopTargetY = target.y;
         if (game && game.spawnDust) game.spawnDust(this.x + this.w / 2, this.y + this.h);
     }
 
-    draw(ctx, theme) {
+    drawBack(ctx, theme) {
         ctx.save();
         ctx.globalAlpha = this.opacity;
         ctx.translate(this.x + this.w / 2, this.y + this.hopY + this.h / 2);
         ctx.rotate(this.rotation);
         ctx.scale(this.scaleX, this.scaleY);
 
-        drawArchedDoor(ctx, -this.w / 2, -this.h / 2, this.w, this.h, theme, {
-            eyeLookX: this.eyeLookX,
+        drawDoorBackground(ctx, -this.w / 2, -this.h / 2, this.w, this.h, theme, {
             state: this.state,
+            isAlert: this.isAlert,
+            eyeLookX: this.eyeLookX
+        });
+
+        ctx.restore();
+    }
+
+    drawFront(ctx, theme) {
+        ctx.save();
+        ctx.globalAlpha = this.opacity;
+        ctx.translate(this.x + this.w / 2, this.y + this.hopY + this.h / 2);
+        ctx.rotate(this.rotation);
+        ctx.scale(this.scaleX, this.scaleY);
+
+        drawDoorForeground(ctx, -this.w / 2, -this.h / 2, this.w, this.h, theme, {
+            state: this.state,
+            isAlert: this.isAlert,
             shutProgress: this.shutProgress
         });
 
         ctx.restore();
+    }
+
+    draw(ctx, theme) {
+        this.drawBack(ctx, theme);
+        this.drawFront(ctx, theme);
     }
 }
 
@@ -1540,12 +1626,12 @@ class CoinBaitTrap {
     }
 }
 
-function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
-    const { eyeLookX = 0, state = 'idle', isAlert = false, shutProgress = 0 } = options;
+function drawDoorBackground(ctx, x, y, w, h, theme, options = {}) {
+    const { state = 'idle', isAlert = false, eyeLookX = 0 } = options;
 
     ctx.save();
 
-    // Outer arch frame - ALWAYS uses authentic theme colors, NEVER pitch black!
+    // 1. Outer arch frame - ALWAYS uses authentic theme colors, NEVER pitch black!
     ctx.fillStyle = theme.doorFrameColor || '#473628';
     ctx.beginPath();
     ctx.moveTo(x, y + h);
@@ -1555,64 +1641,18 @@ function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
     ctx.closePath();
     ctx.fill();
 
-    // Inner doorway rendering
-    if (state === 'shutting' || state === 'shut') {
-        // First draw the dark inner passage behind
-        ctx.fillStyle = '#0a0705';
-        ctx.beginPath();
-        ctx.moveTo(x + 3.5, y + h);
-        ctx.lineTo(x + 3.5, y + w / 2 + 2);
-        ctx.arc(x + w / 2, y + w / 2 + 2, w / 2 - 3.5, Math.PI, 0);
-        ctx.lineTo(x + w - 3.5, y + h);
-        ctx.closePath();
-        ctx.fill();
+    // 2. Hollow dark doorway interior aperture (the passage where player steps inside)
+    ctx.fillStyle = '#140e0a';
+    ctx.beginPath();
+    ctx.moveTo(x + 3.5, y + h);
+    ctx.lineTo(x + 3.5, y + w / 2 + 2);
+    ctx.arc(x + w / 2, y + w / 2 + 2, w / 2 - 3.5, Math.PI, 0);
+    ctx.lineTo(x + w - 3.5, y + h);
+    ctx.closePath();
+    ctx.fill();
 
-        // Heavy door slab physically swinging / slamming shut across the opening!
-        const maxDoorW = w - 7;
-        const currentDoorW = maxDoorW * Math.min(1, shutProgress);
-
-        ctx.fillStyle = '#5d4037'; // Heavy dark oak timber
-        ctx.beginPath();
-        ctx.moveTo(x + 3.5, y + h);
-        ctx.lineTo(x + 3.5, y + w / 2 + 2);
-        ctx.arc(x + 3.5 + currentDoorW / 2, y + w / 2 + 2, currentDoorW / 2, Math.PI, 0);
-        ctx.lineTo(x + 3.5 + currentDoorW, y + h);
-        ctx.closePath();
-        ctx.fill();
-
-        // Sturdy vertical plank lines
-        if (currentDoorW > 8) {
-            ctx.strokeStyle = '#3e2723';
-            ctx.lineWidth = 1;
-            const plankStep = currentDoorW / 3;
-            for (let p = 1; p < 3; p++) {
-                ctx.beginPath();
-                ctx.moveTo(x + 3.5 + p * plankStep, y + w / 2 + 3);
-                ctx.lineTo(x + 3.5 + p * plankStep, y + h);
-                ctx.stroke();
-            }
-        }
-
-        // Heavy iron cross-straps and locking bolt
-        if (shutProgress >= 0.8) {
-            ctx.fillStyle = '#212121';
-            // Upper iron strap
-            ctx.fillRect(x + 3.5, y + h * 0.42, currentDoorW, 3.5);
-            // Lower iron strap
-            ctx.fillRect(x + 3.5, y + h * 0.72, currentDoorW, 3.5);
-
-            // Heavy locked iron padlock / latch
-            if (state === 'shut') {
-                ctx.fillStyle = '#ffb300'; // Golden padlock
-                ctx.beginPath();
-                ctx.arc(x + w - 8, y + h * 0.58, 3.2, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.fillStyle = '#111';
-                ctx.fillRect(x + w - 8.6, y + h * 0.56, 1.2, 2.5);
-            }
-        }
-    } else {
-        // Normal door (idle, alert, shifting)
+    // If open and NOT shutting/shut, draw inner door panel face and eyes
+    if (state !== 'shutting' && state !== 'shut') {
         ctx.fillStyle = theme.doorInnerColor || '#d9d5cd';
         ctx.beginPath();
         ctx.moveTo(x + 3.5, y + h);
@@ -1627,10 +1667,8 @@ function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
         ctx.beginPath();
         ctx.arc(x + w - 7, y + h * 0.62, 2.2, 0, Math.PI * 2);
         ctx.fill();
-    }
 
-    // Expressive Eyes (only when not shut)
-    if (state !== 'shut' && state !== 'shutting') {
+        // Expressive Eyes
         const eyeY = y + w / 2 - 1;
         const eyeLeftX = x + w / 2 - 5;
         const eyeRightX = x + w / 2 + 5;
@@ -1674,6 +1712,62 @@ function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
     ctx.restore();
 }
 
+function drawDoorForeground(ctx, x, y, w, h, theme, options = {}) {
+    const { state = 'idle', shutProgress = 0 } = options;
+    if (state !== 'shutting' && state !== 'shut') return;
+
+    ctx.save();
+
+    // Heavy door slab swinging / sliding shut IN FRONT of the player!
+    const maxDoorW = w - 7;
+    const currentDoorW = maxDoorW * Math.min(1, shutProgress);
+
+    ctx.fillStyle = '#5d4037'; // Heavy dark oak timber
+    ctx.beginPath();
+    ctx.moveTo(x + 3.5, y + h);
+    ctx.lineTo(x + 3.5, y + w / 2 + 2);
+    ctx.arc(x + 3.5 + currentDoorW / 2, y + w / 2 + 2, currentDoorW / 2, Math.PI, 0);
+    ctx.lineTo(x + 3.5 + currentDoorW, y + h);
+    ctx.closePath();
+    ctx.fill();
+
+    // Sturdy vertical plank lines
+    if (currentDoorW > 8) {
+        ctx.strokeStyle = '#3e2723';
+        ctx.lineWidth = 1;
+        const plankStep = currentDoorW / 3;
+        for (let p = 1; p < 3; p++) {
+            ctx.beginPath();
+            ctx.moveTo(x + 3.5 + p * plankStep, y + w / 2 + 3);
+            ctx.lineTo(x + 3.5 + p * plankStep, y + h);
+            ctx.stroke();
+        }
+    }
+
+    // Heavy iron cross-straps and locking bolt
+    if (shutProgress >= 0.75) {
+        ctx.fillStyle = '#212121';
+        ctx.fillRect(x + 3.5, y + h * 0.42, currentDoorW, 3.5);
+        ctx.fillRect(x + 3.5, y + h * 0.72, currentDoorW, 3.5);
+
+        if (state === 'shut' || shutProgress >= 0.95) {
+            ctx.fillStyle = '#ffb300'; // Golden padlock
+            ctx.beginPath();
+            ctx.arc(x + w - 8, y + h * 0.58, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#111';
+            ctx.fillRect(x + w - 8.6, y + h * 0.56, 1.2, 2.5);
+        }
+    }
+
+    ctx.restore();
+}
+
+function drawArchedDoor(ctx, x, y, w, h, theme, options = {}) {
+    drawDoorBackground(ctx, x, y, w, h, theme, options);
+    drawDoorForeground(ctx, x, y, w, h, theme, options);
+}
+
 window.TrapManager = TrapManager;
 window.AdaptiveDoor = AdaptiveDoor;
 window.TrollPortalTrap = TrollPortalTrap;
@@ -1690,3 +1784,5 @@ window.ReversedControlsTrap = ReversedControlsTrap;
 window.FallingPlatformTrap = FallingPlatformTrap;
 window.CoinBaitTrap = CoinBaitTrap;
 window.drawArchedDoor = drawArchedDoor;
+window.drawDoorBackground = drawDoorBackground;
+window.drawDoorForeground = drawDoorForeground;

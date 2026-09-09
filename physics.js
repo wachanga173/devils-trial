@@ -330,17 +330,16 @@ class Physics {
         // Cannot enter door while it is in comedic motion, hopping, startled alert, or already shut
         if (door.isHopping || door.isShifting || door.isAlert || door.state === 'shutting' || door.state === 'shut') return false;
 
-        const pLeft = player.x - player.width / 2;
-        const pRight = player.x + player.width / 2;
-        const pTop = player.y - player.height;
-        const pBottom = player.y;
+        // Player must be grounded or touching the ground (not brushing from overhead jump or falling past)
+        if (!player.onGround && Math.abs(player.vy) > 2.0) return false;
 
-        return (
-            pRight > door.x + 4 &&
-            pLeft < door.x + door.w - 4 &&
-            pBottom > door.y + 10 &&
-            pTop < door.y + door.h
-        );
+        const doorCenterX = door.x + door.w / 2;
+        const doorFloorY = door.y + door.h;
+        const distCenterX = Math.abs(player.x - doorCenterX);
+        const distFloorY = Math.abs(player.y - doorFloorY);
+
+        // Player must step inside the center opening of the doorway arch on the floor
+        return (distCenterX <= 14 && distFloorY <= 8);
     }
 }
 

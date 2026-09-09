@@ -1443,8 +1443,10 @@ class Game {
             this.door.update(this.player, this.ai, this);
             const doorTargetX = this.door.x + this.door.w / 2;
             this.player.x += (doorTargetX - this.player.x) * 0.25;
+            this.player.y = this.door.y + this.door.h;
             this.player.vx = 0;
             this.player.vy = 0;
+            this.player.onGround = true;
         } else if (this.gameState === 'dying') {
             this.respawnTimer--;
             if (this.respawnTimer <= 0) {
@@ -1652,17 +1654,27 @@ class Game {
         // 4. Draw Traps (Rolling boulders, emerging spikes, natural crushers, stationary spikes, razors, moving platforms)
         this.trapManager.draw(ctx, this.theme);
 
-        // 5. Draw Adaptive Shifting Door
+        // 5. Draw Door Arch Frame and Hollow Interior Aperture
         if (this.door) {
-            this.door.draw(ctx, this.theme);
+            this.door.drawBack(ctx, this.theme);
         }
 
         // 6. Draw Particles
         this.drawParticles(ctx);
 
         // 7. Draw Player (Articulated silhouette with animated running legs, jumping arms & crawling on all fours)
-        // Hidden when physically shut inside door
+        // In door_entering state, player steps into the hollow doorway with perspective depth!
         if (this.player.alive && (!this.door || this.door.state !== 'shut')) {
+            const isEntering = (this.gameState === 'door_entering');
+            const playerScale = isEntering ? Math.max(0.7, 1 - (this.door ? this.door.shutProgress : 0) * 0.3) : 1.0;
+
+            ctx.save();
+            if (isEntering) {
+                ctx.translate(this.player.x, this.player.y);
+                ctx.scale(playerScale, playerScale);
+                ctx.translate(-this.player.x, -this.player.y);
+            }
+
             this.renderer.draw(
                 ctx,
                 this.player.x,
@@ -1674,6 +1686,12 @@ class Game {
                 this.theme.playerColor,
                 this.player.isCrawling
             );
+            ctx.restore();
+        }
+
+        // 7b. Draw Door Foreground (Heavy timber panel slamming shut in front of player!)
+        if (this.door) {
+            this.door.drawFront(ctx, this.theme);
         }
 
         ctx.restore(); // Restore camera transform to draw HUD / overlays in screen space!

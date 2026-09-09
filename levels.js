@@ -53,6 +53,42 @@ const THEMES = {
         doorFrameColor: "#13282b",
         doorInnerColor: "#b2ebf2",
         playerColor: "#ffffff"
+    },
+    emerald: {
+        name: "Emerald Catacombs",
+        bgColor: "#0a2012",
+        pathColor: "#174426",
+        spikeColor: "#69f0ae",
+        doorFrameColor: "#0f301b",
+        doorInnerColor: "#b9f6ca",
+        playerColor: "#ffffff"
+    },
+    twilight: {
+        name: "Twilight Void",
+        bgColor: "#1a0933",
+        pathColor: "#321261",
+        spikeColor: "#b388ff",
+        doorFrameColor: "#250d47",
+        doorInnerColor: "#d1c4e9",
+        playerColor: "#ffffff"
+    },
+    volcanic: {
+        name: "Volcanic Magma",
+        bgColor: "#1f0a00",
+        pathColor: "#451700",
+        spikeColor: "#ff3d00",
+        doorFrameColor: "#331100",
+        doorInnerColor: "#ffe0b2",
+        playerColor: "#ffffff"
+    },
+    desert: {
+        name: "Scorched Desert",
+        bgColor: "#3d250d",
+        pathColor: "#6b441d",
+        spikeColor: "#ff9100",
+        doorFrameColor: "#523212",
+        doorInnerColor: "#fff8e1",
+        playerColor: "#ffffff"
     }
 };
 

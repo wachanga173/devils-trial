@@ -16,7 +16,7 @@ class AILevelGenerator {
             'BOULDER_RAMP'      // Tiered descent with cascading rolling boulders & buffer walls
         ];
 
-        this.themes = ['inferno', 'midnight', 'toxic', 'bloodstone', 'neon', 'abyssal'];
+        this.themes = ['inferno', 'midnight', 'toxic', 'bloodstone', 'neon', 'abyssal', 'emerald', 'twilight', 'volcanic', 'desert'];
     }
 
     /**
@@ -162,14 +162,17 @@ class AILevelGenerator {
             }
         }
 
-        // Doors are stationary by default! Only on specific deliberate puzzle levels does a door shift ONCE.
+        // Dynamic Runaway Door: Level Devil comedic evasions (door dodges away when approached)
         if (level.door) {
-            if (levelNumber % 7 === 4) {
-                level.door.shiftsMax = 1;
-                level.door.shiftDirection = -1;
-                level.door.shiftDistance = 85;
+            if (levelNumber <= 3) {
+                level.door.shiftsMax = 0; // Introductory tutorial levels
+            } else if (levelNumber === 4) {
+                level.door.shiftsMax = 1; // Level 4 signature puzzle dodge
+                level.door.shiftX = -85;
             } else {
-                level.door.shiftsMax = 0;
+                // Procedural levels: 1 to 2 dynamic evasive hops
+                level.door.shiftsMax = 1 + (levelNumber % 2);
+                level.door.triggerRange = 85;
             }
         }
 
@@ -1581,15 +1584,17 @@ class AILevelGenerator {
             staticTraps.push({ type: 'static_spike', x: curX + Math.round(chasmW * 0.2), y: boundsH - 18, w: Math.max(30, chasmW - 20), h: 18 });
             curX += chasmW;
 
-            // Island platform
-            solids.push({ x: curX, y: floorY, w: islandW, h: boundsH - floorY });
-            pathwayCorridors.push({ x: curX, y: ceilY, w: islandW, h: floorY - ceilY });
+            // Island platform with dynamic elevation
+            const islandElevDelta = (i % 2 === 0) ? -35 : 25;
+            const islFloorY = floorY + islandElevDelta;
+            solids.push({ x: curX, y: islFloorY, w: islandW, h: boundsH - islFloorY });
+            pathwayCorridors.push({ x: curX, y: ceilY, w: islandW, h: islFloorY - ceilY });
 
-            // Springboard on island
-            if (i % 2 === 0) {
-                staticTraps.push({ type: 'spring_pad', x: curX + Math.round(islandW * 0.6), y: floorY, w: 32, h: 10, boostVy: -7.8 });
+            // Springboard on lower island or collapsing stepping floor
+            if (i % 2 !== 0) {
+                staticTraps.push({ type: 'spring_pad', x: curX + Math.round(islandW * 0.5), y: islFloorY, w: 32, h: 10, boostVy: -8.6 });
             } else {
-                candidateTrapSlots.push({ type: 'collapsing_floor', x: curX + 10, y: floorY, w: Math.min(48, islandW - 10), h: 35, dropSpeed: 2.2 });
+                candidateTrapSlots.push({ type: 'collapsing_floor', x: curX + 10, y: islFloorY, w: Math.min(48, islandW - 10), h: 35, dropSpeed: 2.2 });
             }
             curX += islandW;
         }

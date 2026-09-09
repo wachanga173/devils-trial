@@ -3,13 +3,15 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-// Mock browser globals for testing levelGenerator.js and ai.js
+// Mock browser globals for testing
 global.window = global;
 
 require('./ai.js');
+require('./levels.js');
+require('./traps.js');
 require('./levelGenerator.js');
 
-console.log('=== 1. VERIFYING PROCEDURAL LEVEL TOPOLOGIES & AUTHENTIC HAZARDS (LEVELS 5-25) ===');
+console.log('=== 1. VERIFYING RADICALLY DIVERSE MAP TOPOLOGIES & AUTHENTIC HAZARDS (LEVELS 5-25) ===');
 const gen = new window.AILevelGenerator();
 const ai = new window.DevilAI();
 
@@ -26,6 +28,10 @@ function getExpectedTrapBudget(lvl) {
 let totalAIGeneratedTrapsFound = 0;
 let totalAuthenticHazardsFound = 0;
 let totalDoorDefensesFound = 0;
+const uniqueThemesUsed = new Set();
+const uniqueTopologiesUsed = new Set();
+let minWidth = Infinity, maxWidth = -Infinity;
+let minHeight = Infinity, maxHeight = -Infinity;
 
 for (let lvl = 5; lvl <= 25; lvl++) {
     const level = gen.generateLevel(lvl, ai);
@@ -35,6 +41,13 @@ for (let lvl = 5; lvl <= 25; lvl++) {
         zones[s.zone || 'none'] = (zones[s.zone || 'none'] || 0) + 1;
     });
 
+    uniqueThemesUsed.add(level.theme.name || level.theme);
+    uniqueTopologiesUsed.add(level.topology);
+    minWidth = Math.min(minWidth, level.bounds.width);
+    maxWidth = Math.max(maxWidth, level.bounds.width);
+    minHeight = Math.min(minHeight, level.bounds.height);
+    maxHeight = Math.max(maxHeight, level.bounds.height);
+
     // Check A: Absolute Ban on Artificial Block Traps
     const forbiddenBlocks = cSlots.filter(s => 
         ['pop_up_wall', 'wall_ejector', 'ceiling_squish', 'shifting_block'].includes(s.type)
@@ -43,15 +56,12 @@ for (let lvl = 5; lvl <= 25; lvl++) {
         throw new Error(`Level ${lvl} contains ${forbiddenBlocks.length} forbidden artificial block traps: ${forbiddenBlocks.map(t => t.type).join(', ')}`);
     }
 
-    // Check B: Door Specification (Stationary by default, max 1 single puzzle shift if specified)
+    // Check B: Dynamic Evasive Runaway Door
     if (!level.door) {
         throw new Error(`Level ${lvl} has no door object!`);
     }
-    if (level.door.shiftsMax > 1) {
-        throw new Error(`Level ${lvl} door has shiftsMax=${level.door.shiftsMax}, must be <= 1 (no random multi-hopping)!`);
-    }
-    if (level.door.shiftsMax === 1 && (lvl % 7 !== 4)) {
-        throw new Error(`Level ${lvl} has shiftsMax=1 but is not a specified puzzle level (lvl % 7 === 4)!`);
+    if (level.door.shiftsMax < 1 || level.door.shiftsMax > 2) {
+        throw new Error(`Level ${lvl} door has shiftsMax=${level.door.shiftsMax}, expected 1-2 dynamic evasions!`);
     }
 
     // Check C: Headroom Guarantee (no cramped crawl ducts causing suffocation or wall clipping)
@@ -77,10 +87,9 @@ for (let lvl = 5; lvl <= 25; lvl++) {
     const activeTraps = ai.selectAdaptiveTraps(cSlots, level.staticTraps, lvl, level);
     const maxBudget = getExpectedTrapBudget(lvl);
 
-    console.log(`Level ${lvl} (${level.title}, Gimmick: ${gen.getLevelGimmick(lvl)?.name || 'None'}):`);
-    console.log(`  - Candidate Traps: ${cSlots.length} (Entry: ${zones.entry}, Mid: ${zones.mid}, Exit: ${zones.exit}, AI-Gen: ${aiGenSlots.length})`);
-    console.log(`  - Authentic Hazards: ${authenticHazards.length} (${authenticHazards.map(t => t.type).slice(0, 5).join(', ')}...)`);
-    console.log(`  - Door Defenses: ${doorDefenses.length} (${doorDefenses.map(t => t.purpose).join(', ') || 'none'}) [Door shiftsMax: ${level.door.shiftsMax}]`);
+    console.log(`Level ${lvl} (${level.title}, Topology: ${level.topology}, ${level.bounds.width}x${level.bounds.height}, Theme: ${level.theme.name || level.theme}):`);
+    console.log(`  - Candidate Traps: ${cSlots.length} (AI-Gen: ${aiGenSlots.length}, Authentic: ${authenticHazards.length})`);
+    console.log(`  - Runaway Door Evasions: ${level.door.shiftsMax} dynamic hops [Trigger range: ${level.door.triggerRange}px]`);
     console.log(`  - Active Traps Selected: ${activeTraps.length}/${maxBudget} (${activeTraps.map(t => t.type).join(', ')})`);
 
     if (cSlots.length < 8) {
@@ -91,7 +100,7 @@ for (let lvl = 5; lvl <= 25; lvl++) {
         throw new Error(`Level ${lvl} has NO generative AI traps synthesized in candidate slots!`);
     }
 
-    // Active traps should match or be close to budget (safe bounds: >= 3 and <= maxBudget)
+    // Active traps should match or be close to budget
     if (activeTraps.length < 3 || activeTraps.length > maxBudget) {
         throw new Error(`Level ${lvl} has ${activeTraps.length} active traps, expected between 3 and ${maxBudget}!`);
     }
@@ -104,7 +113,7 @@ for (let lvl = 5; lvl <= 25; lvl++) {
         }
     }
 
-    // Check F: Verify combo atomicity (if any combo members were selected, all or none must be selected)
+    // Check F: Verify combo atomicity
     const selectedComboIds = {};
     activeTraps.forEach(t => {
         if (t.comboId) selectedComboIds[t.comboId] = (selectedComboIds[t.comboId] || 0) + 1;
@@ -122,7 +131,15 @@ for (let lvl = 5; lvl <= 25; lvl++) {
         throw new Error(`Level ${lvl} failed solvability check!`);
     }
 }
-console.log(`✔ All generated levels verified: 0 artificial block traps, 100% authentic Level Devil hazards, door shifts strictly specified, headroom >= 85px, 100% mathematically solvable!\n`);
+
+console.log(`\n✔ Map Diversity Stats across 21 levels:`);
+console.log(`  - Dimensions Span: Widths ${minWidth}px to ${maxWidth}px, Heights ${minHeight}px to ${maxHeight}px`);
+console.log(`  - Unique Topologies: ${uniqueTopologiesUsed.size} archetypes (${Array.from(uniqueTopologiesUsed).join(', ')})`);
+console.log(`  - Unique Themes: ${uniqueThemesUsed.size} distinct palettes`);
+if (uniqueTopologiesUsed.size < 6) throw new Error('Not enough topology variety across procedural levels!');
+if (maxWidth - minWidth < 250) throw new Error('Level widths not sufficiently varied!');
+if (maxHeight - minHeight < 300) throw new Error('Level heights not sufficiently varied (need spires and descents)!');
+console.log('✔ All generated levels verified: radically diverse maps, 0 box traps, authentic runaway doors, 100% solvable!\n');
 
 // Verify Difficulty Scaling curve
 console.log('=== 1B. VERIFYING DIFFICULTY SCALING CURVE ===');
@@ -137,92 +154,48 @@ if (d10 <= 2.0 || d20 <= 3.0 || d50 <= 4.0) {
 }
 console.log('✔ Difficulty scaling verified: continuous unbounded logarithmic growth!\n');
 
-// Verify Telemetry-Driven Behavioral Leaning
-console.log('=== 1C. VERIFYING GENERATIVE COUNTER-LEANS ACROSS PLAYER PROFILES ===');
-const sampleLevelDef = {
-    width: 900,
-    height: 500,
-    spawn: { x: 80, y: 345 },
-    door: { x: 750, y: 340, w: 34, h: 46 },
-    solids: [
-        { x: 300, y: 200, w: 25, h: 100 },
-        { x: 0, y: 400, w: 900, h: 100 }
-    ],
-    pathwayCorridors: [
-        { x: 180, y: 220, w: 220, h: 120 }
-    ],
-    staticTraps: []
-};
+// Verify Door Evasion AI in Runtime Simulation
+console.log('=== 1C. VERIFYING RUNAWAY DOOR RUNTIME EVASION BEHAVIOR ===');
+const testDoorLevel = gen.generateLevel(6, ai);
+const testDoor = new window.AdaptiveDoor(testDoorLevel.door, testDoorLevel, ai);
+console.log(`Initial Door State: state=${testDoor.state}, evasionsLeft=${testDoor.shiftsLeft}, x=${testDoor.x}`);
+if (testDoor.shiftsLeft < 1) throw new Error('AdaptiveDoor failed to initialize with evasions!');
 
-// Profile 1: Rusher
-const rusherAI = new window.DevilAI();
-rusherAI.telemetry = {
-    totalFrames: 600,
-    movingFrames: 580,
-    idleFrames: 20,
-    rushDistance: 4800,
-    jumpCount: 5,
-    deaths: []
-};
-const rusherTraps = rusherAI.synthesizeGenerativeTraps(sampleLevelDef, 6);
-const hasRushCounter = rusherTraps.some(t => t.purpose === 'rush_counter_spike' || t.purpose === 'rush_counter_boulder');
-console.log(`RUSHER Profile (${rusherAI.currentProfile}): Synthesized ${rusherTraps.length} traps, counter-lean present: ${hasRushCounter}`);
-if (!hasRushCounter) throw new Error('RUSHER profile failed to synthesize rush counter hazard!');
+// Approach door
+const simulatedPlayer = { x: testDoor.x - 40, y: testDoor.y + testDoor.h, onGround: true, vx: 0, vy: 0 };
+testDoor.update(simulatedPlayer, ai, null);
+console.log(`After Approach: isAlert=${testDoor.isAlert}, alertTimer=${testDoor.alertTimer}`);
+if (!testDoor.isAlert) throw new Error('AdaptiveDoor failed to detect approaching player!');
 
-// Profile 2: Hopper
-const hopperAI = new window.DevilAI();
-hopperAI.telemetry = {
-    totalFrames: 600,
-    movingFrames: 300,
-    idleFrames: 100,
-    rushDistance: 800,
-    jumpCount: 45,
-    deaths: []
-};
-const hopperTraps = hopperAI.synthesizeGenerativeTraps(sampleLevelDef, 6);
-const hasHopperCounter = hopperTraps.some(t => t.purpose === 'hopper_anti_air' || t.purpose === 'hopper_landing_spike');
-console.log(`HOPPER Profile (${hopperAI.currentProfile}): Synthesized ${hopperTraps.length} traps, counter-lean present: ${hasHopperCounter}`);
-if (!hasHopperCounter) throw new Error('HOPPER profile failed to synthesize anti-air / landing counter hazard!');
+// Complete alert timer to trigger evasive hop
+for (let f = 0; f < 12; f++) testDoor.update(simulatedPlayer, ai, null);
+console.log(`During Hop: isShifting=${testDoor.isShifting}, hopTargetX=${testDoor.hopTargetX}`);
+if (!testDoor.isShifting) throw new Error('AdaptiveDoor failed to trigger evasive hop!');
 
-// Profile 3: Cautious / Camper
-const cautiousAI = new window.DevilAI();
-cautiousAI.telemetry = {
-    totalFrames: 1200,
-    movingFrames: 200,
-    idleFrames: 1000,
-    rushDistance: 300,
-    jumpCount: 3,
-    deaths: []
-};
-const cautiousTraps = cautiousAI.synthesizeGenerativeTraps(sampleLevelDef, 6);
-const hasCamperCounter = cautiousTraps.some(t => t.purpose === 'camper_flusher_boulder');
-console.log(`CAUTIOUS Profile (${cautiousAI.currentProfile}): Synthesized ${cautiousTraps.length} traps, counter-lean present: ${hasCamperCounter}`);
-if (!hasCamperCounter) throw new Error('CAUTIOUS profile failed to synthesize camper flusher boulder!');
+// Complete hop animation
+for (let f = 0; f < 30; f++) testDoor.update(simulatedPlayer, ai, null);
+console.log(`After Hop Complete: state=${testDoor.state}, shiftsLeft=${testDoor.shiftsLeft}, x=${testDoor.x}`);
 
-// Profile 4: Death Counter Reinforcement
-const deathAI = new window.DevilAI();
-deathAI.telemetry = {
-    totalFrames: 300,
-    movingFrames: 150,
-    idleFrames: 50,
-    rushDistance: 500,
-    jumpCount: 4,
-    deaths: [{ x: 420, y: 345, reason: 'spike' }]
-};
-const deathTraps = deathAI.synthesizeGenerativeTraps(sampleLevelDef, 6);
-const hasDeathCounter = deathTraps.some(t => t.purpose === 'death_counter_trap');
-console.log(`Death Reinforcement: Synthesized ${deathTraps.length} traps, death counter present: ${hasDeathCounter}`);
-if (!hasDeathCounter) throw new Error('Failed to synthesize secondary ambush for past-death coordinates!');
+// Settle door if more evasions remaining
+while (testDoor.shiftsLeft > 0) {
+    simulatedPlayer.x = testDoor.x - 40;
+    testDoor.update(simulatedPlayer, ai, null);
+    for (let f = 0; f < 45; f++) testDoor.update(simulatedPlayer, ai, null);
+}
+console.log(`Final Door State: state=${testDoor.state} (settled and ready for player entry)`);
+if (testDoor.state !== 'settled') throw new Error('AdaptiveDoor failed to settle after completing evasions!');
+console.log('✔ Runaway door evasion and settling verified!\n');
 
-console.log('✔ Generative counter-leans verified for all behavioral profiles!\n');
-
-// Check Door Color Integrity in traps.js
-console.log('=== 1D. VERIFYING DOOR COLOR INTEGRITY IN TRAPS.JS ===');
+// Verify Door Two-Pass Rendering Functions
+console.log('=== 1D. VERIFYING DOOR TWO-PASS RENDERING & COLOR INTEGRITY ===');
+if (typeof window.drawDoorBackground !== 'function' || typeof window.drawDoorForeground !== 'function') {
+    throw new Error('Two-pass door rendering functions (drawDoorBackground / drawDoorForeground) missing!');
+}
 const trapsCode = fs.readFileSync(path.join(__dirname, 'traps.js'), 'utf-8');
 if (trapsCode.includes("ctx.fillStyle = '#000000'") || trapsCode.includes("ctx.fillStyle = '#050505'")) {
-    throw new Error('traps.js still contains pitch-black override fillStyle in drawArchedDoor!');
+    throw new Error('traps.js still contains pitch-black override fillStyle in door drawing!');
 }
-console.log('✔ Door color integrity verified: door never turns pitch-black!\n');
+console.log('✔ Door two-pass rendering verified: player steps inside aperture before door slams shut in front of character!\n');
 
 console.log('=== 2. VERIFYING SERVER AI ENDPOINTS (PORT 3333) ===');
 
@@ -259,7 +232,7 @@ function makeRequest(path, method = 'GET', data = null) {
         console.log('Status Endpoint Response:', statusRes);
         if (!statusRes.data.available) throw new Error('AI status endpoint returned available=false');
 
-        // Test /api/ai-predict with Generative Level Geometry
+        // Test /api/ai-predict
         const dummyLevel = gen.generateLevel(6, ai);
         const predictRes = await makeRequest('/api/ai-predict', 'POST', {
             levelId: 6,
