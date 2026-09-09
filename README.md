@@ -44,9 +44,8 @@ An adaptive troll platformer where traps dynamically shuffle on every respawn us
 
 ### Local Development
 
-1. Clone the repository:
+1. Navigate to the project directory:
    ```bash
-   git clone https://github.com/wachanga173/devils-trial.git
    cd devils-trial
    ```
 
