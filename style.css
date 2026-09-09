@@ -149,6 +149,14 @@ canvas#gameCanvas {
     z-index: 10;
 }
 
+/* HUD left button grouping */
+.hud-left-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+}
+
 /* Esc button styling */
 .esc-btn {
     pointer-events: auto;
@@ -163,7 +171,7 @@ canvas#gameCanvas {
     justify-content: center;
     cursor: pointer;
     box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4);
-    transition: transform 0.1s ease;
+    transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
 .esc-btn:active {
@@ -185,6 +193,30 @@ canvas#gameCanvas {
     font-size: clamp(6px, 1.2vw, 7px);
     color: #ffca28;
     text-transform: lowercase;
+}
+
+/* Retro Quick Restart Button (Touch & Mobile friendly) */
+.restart-hud-btn {
+    background: #4a2412;
+    border-color: #2e1205;
+}
+
+.restart-hud-btn:hover {
+    background: #683017;
+    border-color: var(--accent-gold);
+}
+
+.restart-hud-btn .restart-hud-icon {
+    font-size: clamp(13px, 2.2vw, 16px);
+    color: #ffca28;
+    line-height: 1;
+    margin-bottom: 2px;
+    display: block;
+    transition: transform 0.25s ease;
+}
+
+.restart-hud-btn:active .restart-hud-icon {
+    transform: rotate(-180deg);
 }
 
 .level-badge-hud {
@@ -676,6 +708,46 @@ canvas#gameCanvas {
     background: #2b221c;
 }
 
+/* Developer Portfolio Button in Header */
+.portfolio-hud-btn {
+    text-decoration: none;
+    background: linear-gradient(135deg, #2b1f14, #442a15);
+    border: 1px solid var(--accent-gold);
+    color: var(--accent-gold) !important;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.5px;
+}
+
+.portfolio-hud-btn:hover {
+    background: linear-gradient(135deg, #ffca28, #f57f17);
+    color: #110d0b !important;
+    box-shadow: 0 0 12px rgba(255, 202, 40, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Developer Portfolio Button in Pause Menu */
+.btn-portfolio-link {
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 202, 40, 0.4);
+    color: var(--accent-gold) !important;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+.btn-portfolio-link:hover {
+    background: #2b221c;
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 14px rgba(255, 202, 40, 0.3);
+    transform: translateY(-1px);
+}
+
 .storage-modal-content {
     max-width: 540px;
     width: 92%;
@@ -1136,6 +1208,27 @@ canvas#gameCanvas {
     color: #fff;
     border-color: #6d5b4e;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Mobile & Tablet Storage UI Elements */
+.mobile-storage-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mobile-storage-note {
+    background: rgba(43, 33, 24, 0.5);
+    border-left: 3px solid var(--accent-gold);
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-top: 8px;
+    line-height: 1.45;
+}
+
+.footer-portfolio-link:hover {
+    text-decoration: underline !important;
+    color: #ffe082 !important;
 }
 
 /* Save Viewer Modal */

@@ -61,6 +61,9 @@
             </div>
         </div>
         <div class="header-right">
+            <a id="headerPortfolioBtn" class="storage-hud-btn portfolio-hud-btn" href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer" title="Developer Portfolio: Peter Wachanga">
+                👨‍💻 DEV
+            </a>
             <button id="pwaInstallBtn" class="pwa-install-badge" title="Install Devil's Trial as an App (Shared LocalStorage & Landscape)">
                 <span class="pwa-icon">📲</span>
                 <span class="pwa-text">INSTALL</span>
@@ -84,11 +87,18 @@
 
         <!-- In-game Retro HUD -->
         <div class="hud-overlay">
-            <!-- Retro Pause/Esc Button -->
-            <button id="escBtn" class="esc-btn" aria-label="Pause Menu">
-                <div class="arrow-icon"></div>
-                <span class="esc-text">esc</span>
-            </button>
+            <div class="hud-left-actions">
+                <!-- Retro Pause/Esc Button -->
+                <button id="escBtn" class="esc-btn" aria-label="Pause Menu" title="Pause Game (ESC)">
+                    <div class="arrow-icon"></div>
+                    <span class="esc-text">esc</span>
+                </button>
+                <!-- Retro Quick Restart Button (Touch & Mobile / Fast R-Key) -->
+                <button id="quickRestartHudBtn" class="esc-btn restart-hud-btn" aria-label="Restart Level" title="Quick Restart Level (R)">
+                    <span class="restart-hud-icon">↻</span>
+                    <span class="esc-text">rst</span>
+                </button>
+            </div>
 
             <!-- Level Info Badge -->
             <div class="level-badge-hud">
@@ -118,6 +128,9 @@
                     <button id="pausePwaInstallBtn" class="btn-secondary btn-pwa-install">📲 INSTALL AS APP (PWA)</button>
                     <button id="openStorageBtn" class="btn-secondary btn-storage-action">💾 STORAGE & SAVE LOCATION</button>
                     <button id="pauseLegalBtn" class="btn-secondary">📜 TERMS, PRIVACY & FAQS</button>
+                    <a id="pausePortfolioBtn" class="btn-secondary btn-portfolio-link" href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer">
+                        👨‍💻 DEVELOPER PORTFOLIO ↗
+                    </a>
                 </div>
             </div>
         </div>
@@ -171,7 +184,9 @@
                         </div>
                     </div>
                     <div id="locationActionFeedback" class="location-feedback-banner" style="display: none;"></div>
-                    <div class="device-path-actions">
+
+                    <!-- Desktop Platform Actions (Windows File Explorer, Win+R, .bat) -->
+                    <div id="desktopLocationActions" class="device-path-actions">
                         <button id="openFolderActionBtn" class="btn-location-action" title="Open this folder in File Explorer or copy command">
                             🚀 OPEN IN FILE EXPLORER
                         </button>
@@ -185,9 +200,29 @@
                             📄 EXPORT SAVE JSON
                         </button>
                     </div>
-                    <div class="device-path-note">
+
+                    <!-- Mobile & Tablet Platform Actions (Share, Download, Copy JSON - Works on iOS/Android/Tablets!) -->
+                    <div id="mobileStorageActions" class="device-path-actions mobile-storage-actions" style="display: none;">
+                        <button id="shareSaveBtn" class="btn-location-action" title="Share save file via system share sheet (AirDrop, Files, Notes, etc.)">
+                            📲 SHARE SAVE DATA
+                        </button>
+                        <button id="downloadMobileSaveBtn" class="btn-location-action btn-location-subtle" title="Download save data as a .json file to your device">
+                            💾 DOWNLOAD SAVE (.JSON)
+                        </button>
+                        <button id="copyMobileSaveBtn" class="btn-location-action btn-location-subtle" title="Copy entire save JSON payload to clipboard">
+                            📋 COPY SAVE DATA
+                        </button>
+                        <button id="viewRawDataMobileBtn" class="btn-location-action btn-location-subtle" title="Inspect live saved JSON payload">
+                            📄 VIEW SAVE JSON
+                        </button>
+                    </div>
+
+                    <div id="desktopStorageNote" class="device-path-note">
                         💡 <strong>In Browser:</strong> Press <kbd>F12</kbd> ➔ <strong>Application</strong> ➔ <strong>Local Storage</strong> ➔ click your origin.
                         <br>💡 <strong>Windows File Explorer:</strong> Click <em>1-Click Launcher (.bat)</em>, or copy the Win+R command, press <kbd>Win</kbd> + <kbd>R</kbd>, paste & hit <kbd>Enter</kbd>.
+                    </div>
+                    <div id="mobileStorageNote" class="device-path-note mobile-storage-note" style="display: none;">
+                        📲 <strong>Mobile &amp; Tablet Sandbox:</strong> On phones and tablets, game progress and AI memory are securely kept inside this browser origin's isolated storage sandbox (<span class="code-val">devils_trial_save_v1</span>). Use <em>Share Save Data</em> or <em>Download Save (.JSON)</em> above to backup or transfer your progress!
                     </div>
                 </div>
 
@@ -494,7 +529,8 @@
             <button id="footerTermsBtn" class="footer-legal-btn" type="button">Terms</button> • 
             <button id="footerPrivacyBtn" class="footer-legal-btn" type="button">Privacy</button> • 
             <button id="footerFaqBtn" class="footer-legal-btn" type="button">FAQs</button> • 
-            <a href="./legal.html" target="_blank" class="footer-legal-btn" style="text-decoration: none;">Portal ↗</a>
+            <a href="./legal.html" target="_blank" class="footer-legal-btn" style="text-decoration: none;">Portal ↗</a> • 
+            <a href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer" class="footer-legal-btn footer-portfolio-link" style="text-decoration: none; color: #ffca28; font-weight: 700;">Developer Portfolio ↗</a>
         </div>
     </footer>
 

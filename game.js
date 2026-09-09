@@ -181,6 +181,21 @@ class Game {
             escBtn.addEventListener('click', () => this.togglePause());
         }
 
+        const quickRestartHudBtn = document.getElementById('quickRestartHudBtn');
+        if (quickRestartHudBtn) {
+            const triggerQuickRestart = (e) => {
+                if (e) e.preventDefault();
+                if (window.soundFX && window.soundFX.init) window.soundFX.init();
+                if (this.isPaused) {
+                    this.togglePause();
+                }
+                this.respawnPlayer(true);
+                this.showToast('↻ Level Restarted!');
+            };
+            quickRestartHudBtn.addEventListener('click', triggerQuickRestart);
+            quickRestartHudBtn.addEventListener('touchstart', triggerQuickRestart, { passive: false });
+        }
+
         const headerStorageBtn = document.getElementById('headerStorageBtn');
         const openStorageBtn = document.getElementById('openStorageBtn');
         const closeStorageBtn = document.getElementById('closeStorageBtn');
@@ -373,6 +388,25 @@ class Game {
         }
         if (downloadSaveFileBtn) {
             downloadSaveFileBtn.addEventListener('click', () => this.downloadSaveFile());
+        }
+
+        // Mobile & Tablet Specific Storage Actions
+        const shareSaveBtn = document.getElementById('shareSaveBtn');
+        const downloadMobileSaveBtn = document.getElementById('downloadMobileSaveBtn');
+        const copyMobileSaveBtn = document.getElementById('copyMobileSaveBtn');
+        const viewRawDataMobileBtn = document.getElementById('viewRawDataMobileBtn');
+
+        if (shareSaveBtn) {
+            shareSaveBtn.addEventListener('click', () => this.shareSaveData());
+        }
+        if (downloadMobileSaveBtn) {
+            downloadMobileSaveBtn.addEventListener('click', () => this.downloadSaveFile());
+        }
+        if (copyMobileSaveBtn) {
+            copyMobileSaveBtn.addEventListener('click', () => this.copyMobileSaveData());
+        }
+        if (viewRawDataMobileBtn) {
+            viewRawDataMobileBtn.addEventListener('click', () => this.openSaveDataViewer());
         }
     }
 
@@ -597,8 +631,24 @@ class Game {
         const isAndroid = /Android/i.test(ua);
         const isIOS = /iPhone|iPad|iPod/i.test(ua) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
         const isLinux = /Linux/i.test(ua) && !isAndroid;
+        const isTouchDevice = (typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window));
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+        const isTabletUA = /iPad|tablet|(android(?!.*mobile))/i.test(ua);
+        const isMobileOrTablet = isIOS || isAndroid || isMobileUA || isTabletUA || (isTouchDevice && !isWin);
 
-        if (isWin) {
+        if (isAndroid) {
+            if (/SamsungBrowser/i.test(ua)) {
+                detectedOS = 'Android Tablet / Phone (Samsung Internet)';
+                storagePath = 'Samsung Internet Sandbox: /data/data/com.sec.android.app.sbrowser/Default/Local Storage';
+            } else {
+                detectedOS = 'Android Tablet / Phone (Google Chrome)';
+                storagePath = 'Android Chrome Sandbox: /data/data/com.android.chrome/Default/Local Storage';
+            }
+        } else if (isIOS) {
+            const isIPad = /iPad/i.test(ua) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            detectedOS = isIPad ? 'Apple iPadOS (WebKit Sandbox)' : 'Apple iOS (WebKit Sandbox)';
+            storagePath = 'iOS App Sandbox: Library/WebKit/WebsiteData/Default/LocalStorage';
+        } else if (isWin) {
             const isBrave = (typeof navigator !== 'undefined' && (navigator.brave && typeof navigator.brave.isBrave === 'function')) || /Brave/i.test(ua);
             if (isBrave) {
                 detectedOS = 'Windows (Brave Browser)';
@@ -628,17 +678,6 @@ class Game {
                 storagePath = '%LocalAppData%';
             }
             winRunCmd = `explorer "${storagePath}"`;
-        } else if (isAndroid) {
-            if (/SamsungBrowser/i.test(ua)) {
-                detectedOS = 'Android (Samsung Internet)';
-                storagePath = '/data/data/com.sec.android.app.sbrowser/app_sbrowser/Default/Local Storage/leveldb';
-            } else {
-                detectedOS = 'Android (Google Chrome)';
-                storagePath = '/data/data/com.android.chrome/app_chrome/Default/Local Storage/leveldb';
-            }
-        } else if (isIOS) {
-            detectedOS = 'Apple iOS (WebKit Sandbox)';
-            storagePath = 'iOS App Sandbox: Library/WebKit/WebsiteData/Default/LocalStorage';
         } else if (isMac) {
             if (/Safari/i.test(ua) && !/Chrome/i.test(ua)) {
                 detectedOS = 'macOS (Apple Safari)';
@@ -684,6 +723,8 @@ class Game {
         return {
             detectedOS,
             storagePath,
+            isMobileOrTablet,
+            isWin: isWin && !isMobileOrTablet,
             winRunCmd: winRunCmd || `explorer "${storagePath}"`,
             origin: (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : 'http://localhost:3333',
             sizeText: raw ? `${sizeKB} KB (${charCount} characters)` : '0.00 KB (No Saved Data)',
@@ -703,6 +744,11 @@ class Game {
         const elLastSaved = document.getElementById('storageLastSaved');
         const banner = document.getElementById('locationActionFeedback');
 
+        const desktopActions = document.getElementById('desktopLocationActions');
+        const mobileActions = document.getElementById('mobileStorageActions');
+        const desktopNote = document.getElementById('desktopStorageNote');
+        const mobileNote = document.getElementById('mobileStorageNote');
+
         if (elOS) elOS.innerText = details.detectedOS;
         if (elPathText) elPathText.innerText = details.storagePath;
         if (elOrigin) {
@@ -714,8 +760,21 @@ class Game {
         if (elLastSaved) elLastSaved.innerText = details.lastSavedStr;
         if (banner) banner.style.display = 'none';
 
-        // Query local server to resolve dynamic on-disk profile path if available
-        if (typeof fetch !== 'undefined') {
+        // Adapt UI based on whether device is mobile/tablet or desktop
+        if (details.isMobileOrTablet) {
+            if (desktopActions) desktopActions.style.display = 'none';
+            if (mobileActions) mobileActions.style.display = 'flex';
+            if (desktopNote) desktopNote.style.display = 'none';
+            if (mobileNote) mobileNote.style.display = 'block';
+        } else {
+            if (desktopActions) desktopActions.style.display = 'flex';
+            if (mobileActions) mobileActions.style.display = 'none';
+            if (desktopNote) desktopNote.style.display = 'block';
+            if (mobileNote) mobileNote.style.display = 'none';
+        }
+
+        // Query local server to resolve dynamic on-disk profile path if available on desktop
+        if (!details.isMobileOrTablet && typeof fetch !== 'undefined') {
             const ua = (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '';
             fetch(`/api/detect-storage-path?ua=${encodeURIComponent(ua)}`)
                 .then(r => r.json())
@@ -732,6 +791,12 @@ class Game {
 
     openStorageLocation() {
         const details = this.getDeviceStorageDetails();
+        // On mobile or tablets, there is no Windows File Explorer or Win+R: use mobile-friendly share/export
+        if (details.isMobileOrTablet) {
+            this.shareSaveData();
+            return;
+        }
+
         const targetPath = this.resolvedStoragePath || details.storagePath;
         const cmd = `explorer "${targetPath}"`;
 
@@ -764,6 +829,12 @@ class Game {
 
     copyStorageLocation() {
         const details = this.getDeviceStorageDetails();
+        // On mobile or tablets, copy the save data payload directly
+        if (details.isMobileOrTablet) {
+            this.copyMobileSaveData();
+            return;
+        }
+
         const targetPath = this.resolvedStoragePath || details.storagePath;
         const cmd = `explorer "${targetPath}"`;
         if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
@@ -775,6 +846,67 @@ class Game {
                 .catch(() => {
                     this.showToast('Failed to copy to clipboard.');
                 });
+        }
+    }
+
+    shareSaveData() {
+        const LEGACY_KEY = ['level', 'devil', 'save', 'v1'].join('_');
+        let raw = null;
+        try {
+            if (typeof localStorage !== 'undefined') {
+                raw = localStorage.getItem('devils_trial_save_v1') || localStorage.getItem(LEGACY_KEY);
+            }
+        } catch (e) {}
+
+        const content = raw || JSON.stringify({
+            game: "Devil's Trial",
+            status: "No saved progress yet. Complete levels to accumulate save data!",
+            date: new Date().toISOString()
+        }, null, 2);
+
+        if (typeof navigator !== 'undefined' && navigator.share && typeof navigator.share === 'function') {
+            navigator.share({
+                title: "Devil's Trial Save Data",
+                text: content
+            }).then(() => {
+                this.showToast('📲 Save data shared!');
+                this.showLocationFeedback('✓ Save data shared to your chosen application.', 'success');
+            }).catch((err) => {
+                if (err && err.name !== 'AbortError') {
+                    this.copyMobileSaveData();
+                }
+            });
+        } else {
+            this.copyMobileSaveData();
+        }
+    }
+
+    copyMobileSaveData() {
+        const LEGACY_KEY = ['level', 'devil', 'save', 'v1'].join('_');
+        let raw = null;
+        try {
+            if (typeof localStorage !== 'undefined') {
+                raw = localStorage.getItem('devils_trial_save_v1') || localStorage.getItem(LEGACY_KEY);
+            }
+        } catch (e) {}
+
+        const content = raw || JSON.stringify({
+            game: "Devil's Trial",
+            status: "No saved progress yet. Complete levels to accumulate save data!",
+            date: new Date().toISOString()
+        }, null, 2);
+
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(content)
+                .then(() => {
+                    this.showToast('📋 Save data copied to clipboard!');
+                    this.showLocationFeedback('✓ Save JSON payload copied! Paste into Notes, Files, or message it to backup.', 'success');
+                })
+                .catch(() => {
+                    this.openSaveDataViewer();
+                });
+        } else {
+            this.openSaveDataViewer();
         }
     }
 
