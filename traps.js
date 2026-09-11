@@ -115,7 +115,7 @@ class TrapManager {
         if (this.level && typeof getSurfaceAt === 'function') {
             const centerX = d.x + (d.w || 26) / 2;
             const surf = getSurfaceAt(this.level, centerX, d.y);
-            if (['hidden_spike', 'static_spike', 'collapsing_floor', 'spring_pad'].includes(d.type)) {
+            if (['hidden_spike', 'static_spike', 'collapsing_floor', 'spring_pad', 'falling_platform'].includes(d.type)) {
                 d.y = surf.floorY;
             } else if (d.type === 'coin_trap') {
                 d.y = surf.floorY - 35;
@@ -1545,26 +1545,65 @@ class ReversedControlsTrap {
 
     draw(ctx, theme) {
         ctx.save();
-        // Authentic Level Devil floor sigil: NO dotted outlines, no invisible walls!
+        // Authentic Level Devil mechanical floor plate with opposing directional chevrons
         const midX = this.x + this.w / 2;
         const groundY = this.y + this.h;
-        const glow = 0.35 + Math.sin(this.pulse) * 0.18;
+        const glow = 0.5 + Math.sin(this.pulse * 2) * 0.3;
 
-        // Ground mystic aura
+        // Plate dimensions flush with ground
+        const plateW = Math.min(this.w, 54);
+        const plateH = 5;
+        const depressOffset = this.triggered ? 2 : 0;
+        const plateX = midX - plateW / 2;
+        const plateY = groundY - plateH + depressOffset;
+
+        // 1. Recessed ground casing
+        ctx.fillStyle = 'rgba(15, 10, 10, 0.9)';
+        ctx.fillRect(plateX - 1, groundY - plateH - 1, plateW + 2, plateH + 2);
+
+        // 2. Main tread plate body
+        ctx.fillStyle = this.triggered ? '#3b1c1c' : '#2a1a17';
+        ctx.fillRect(plateX, plateY, plateW, plateH);
+
+        // 3. Metallic bevel highlight on top edge
+        ctx.fillStyle = this.triggered ? 'rgba(255, 138, 128, 0.5)' : 'rgba(255, 255, 255, 0.2)';
+        ctx.fillRect(plateX, plateY, plateW, 1.2);
+
+        // 4. Subtle corner rivets
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+        ctx.fillRect(plateX + 2, plateY + 1.5, 2, 2);
+        ctx.fillRect(plateX + plateW - 4, plateY + 1.5, 2, 2);
+
+        // 5. Etched opposing neon directional chevrons & inversion glyph
+        const activeColor = `rgba(239, 83, 80, ${Math.min(1.0, glow)})`;
+        const brightColor = `rgba(255, 138, 128, ${Math.min(1.0, glow + 0.25)})`;
+
+        ctx.strokeStyle = activeColor;
+        ctx.lineWidth = 1.4;
+
+        // Leftward chevron pointing LEFT: ◄
+        const leftChevX = midX - 16;
         ctx.beginPath();
-        ctx.ellipse(midX, groundY - 2, this.w * 0.45, 6, 0, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(239, 83, 80, ${glow * 0.35})`;
-        ctx.fill();
-
-        ctx.strokeStyle = `rgba(239, 83, 80, ${glow})`;
-        ctx.lineWidth = 1.5;
+        ctx.moveTo(leftChevX + 4, plateY - 4);
+        ctx.lineTo(leftChevX - 2, plateY - 1);
+        ctx.lineTo(leftChevX + 4, plateY + 2);
         ctx.stroke();
 
-        // Floor rune indicating flipped arrows
-        ctx.fillStyle = `rgba(239, 83, 80, ${Math.min(1.0, glow + 0.35)})`;
-        ctx.font = 'bold 12px monospace';
+        // Rightward chevron pointing RIGHT: ►
+        const rightChevX = midX + 16;
+        ctx.beginPath();
+        ctx.moveTo(rightChevX - 4, plateY - 4);
+        ctx.lineTo(rightChevX + 2, plateY - 1);
+        ctx.lineTo(rightChevX - 4, plateY + 2);
+        ctx.stroke();
+
+        // Central reverse indicator symbol
+        ctx.fillStyle = brightColor;
+        ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('⮂ ⮃', midX, groundY - 6);
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillText('◄ 🔄 ►', midX, plateY - 2);
+
         ctx.restore();
     }
 }

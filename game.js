@@ -1635,7 +1635,7 @@ class Game {
             ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
         }
 
-        // 3. SEAMLESS VANISHING GROUND:
+        // 3. SEAMLESS VANISHING GROUND & FALLING FLOOR BLOCKS:
         for (const trap of this.trapManager.traps) {
             if (trap instanceof VanishingFloorTrap) {
                 if (trap.state === 'dropping') {
@@ -1644,6 +1644,15 @@ class Game {
 
                     ctx.fillStyle = this.theme.bgColor;
                     ctx.fillRect(trap.x, trap.y, trap.w, trap.h);
+                } else if (trap.state === 'gone') {
+                    ctx.fillStyle = this.theme.pathColor;
+                    ctx.fillRect(trap.x, trap.initialY, trap.w, levelH - trap.initialY);
+                }
+            } else if (typeof FallingPlatformTrap !== 'undefined' && trap instanceof FallingPlatformTrap) {
+                // Carve pit space behind falling platform when it drops into the ground
+                if (trap.state === 'falling') {
+                    ctx.fillStyle = this.theme.pathColor;
+                    ctx.fillRect(trap.x, trap.initialY, trap.w, Math.max(0, trap.y - trap.initialY));
                 } else if (trap.state === 'gone') {
                     ctx.fillStyle = this.theme.pathColor;
                     ctx.fillRect(trap.x, trap.initialY, trap.w, levelH - trap.initialY);
@@ -1689,10 +1698,37 @@ class Game {
 
             // Overhead reversed indicator above player's head in world space
             if (this.reversedControls && this.player.alive) {
-                ctx.fillStyle = '#ff5252';
-                ctx.font = 'bold 13px monospace';
+                const headY = this.player.y - (this.player.height || 26);
+                const bob = Math.sin(Date.now() * 0.008) * 3;
+                const indY = headY - 14 + bob;
+
+                ctx.save();
+                ctx.translate(this.player.x, indY);
+
+                // Small sleek pill badge behind indicator
+                ctx.fillStyle = 'rgba(18, 5, 5, 0.88)';
+                ctx.strokeStyle = '#ef5350';
+                ctx.lineWidth = 1.2;
+                const pillW = 42;
+                const pillH = 16;
+                if (typeof ctx.roundRect === 'function') {
+                    ctx.beginPath();
+                    ctx.roundRect(-pillW / 2, -pillH / 2, pillW, pillH, 8);
+                    ctx.fill();
+                    ctx.stroke();
+                } else {
+                    ctx.fillRect(-pillW / 2, -pillH / 2, pillW, pillH);
+                    ctx.strokeRect(-pillW / 2, -pillH / 2, pillW, pillH);
+                }
+
+                // Dynamic opposing arrow icons inside badge
+                ctx.fillStyle = '#ff8a80';
+                ctx.font = 'bold 10px monospace';
                 ctx.textAlign = 'center';
-                ctx.fillText('⮂ ⮃', this.player.x, this.player.y - 32);
+                ctx.textBaseline = 'middle';
+                ctx.fillText('◄ 🔄 ►', 0, 0);
+
+                ctx.restore();
             }
 
             ctx.restore();
@@ -1708,18 +1744,31 @@ class Game {
         // 7b. Inverted Controls Indicator (in screen space)
         if (this.reversedControls) {
             ctx.save();
+            const pulseAlpha = 0.85 + Math.sin(Date.now() * 0.01) * 0.15;
             const bannerText = '🔄 CONTROLS REVERSED! [HOLD ◀ TO RUN ▶] 🔄';
             ctx.font = 'bold 13px "Courier New", monospace';
-            const bannerW = ctx.measureText(bannerText).width + 28;
-            ctx.fillStyle = 'rgba(18, 5, 5, 0.85)';
-            ctx.fillRect(screenW / 2 - bannerW / 2, 12, bannerW, 28);
-            ctx.strokeStyle = '#ef5350';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(screenW / 2 - bannerW / 2, 12, bannerW, 28);
+            const bannerW = ctx.measureText(bannerText).width + 30;
+            const bannerH = 28;
+            const bx = screenW / 2 - bannerW / 2;
+            const by = 12;
+
+            ctx.fillStyle = 'rgba(18, 5, 5, 0.9)';
+            ctx.strokeStyle = `rgba(239, 83, 80, ${pulseAlpha})`;
+            ctx.lineWidth = 1.6;
+            if (typeof ctx.roundRect === 'function') {
+                ctx.beginPath();
+                ctx.roundRect(bx, by, bannerW, bannerH, 6);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.fillRect(bx, by, bannerW, bannerH);
+                ctx.strokeRect(bx, by, bannerW, bannerH);
+            }
 
             ctx.fillStyle = '#ff8a80';
             ctx.textAlign = 'center';
-            ctx.fillText(bannerText, screenW / 2, 31);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(bannerText, screenW / 2, by + bannerH / 2);
             ctx.restore();
         }
 

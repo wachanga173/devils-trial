@@ -266,20 +266,26 @@ const LEVELS = [
  * Everywhere else in the level is 100% guaranteed solid ground!
  */
 function getActiveLevelSolids(level, activeTraps) {
-    const activeVanishingTraps = (activeTraps || []).filter(t => t instanceof VanishingFloorTrap);
+    const isFallingPlatform = (t) => (typeof FallingPlatformTrap !== 'undefined' && t instanceof FallingPlatformTrap);
+    const isVanishingTrap = (t) => (typeof VanishingFloorTrap !== 'undefined' && t instanceof VanishingFloorTrap);
 
-    if (activeVanishingTraps.length === 0) {
+    // Dynamic Solid Floor Slicer: Slices floor slabs for active vanishing floors & floor-level falling platforms
+    const floorTraps = (activeTraps || []).filter(t => isVanishingTrap(t) || isFallingPlatform(t));
+
+    if (floorTraps.length === 0) {
         return [...level.solids];
     }
 
     const resolvedSolids = [];
 
     for (const solid of level.solids) {
-        // Only slice horizontal floor slabs that match the trap Y level
-        const cuttingTraps = activeVanishingTraps.filter(t => 
-            Math.abs(t.initialY - solid.y) < 5 &&
-            t.x + t.w > solid.x && t.x < solid.x + solid.w
-        );
+        // Only slice horizontal floor slabs that match the trap Y level (within 15px)
+        const cuttingTraps = floorTraps.filter(t => {
+            const trapInitialY = t.initialY !== undefined ? t.initialY : t.y;
+            const yMatches = Math.abs(trapInitialY - solid.y) <= 15;
+            const xOverlaps = (t.x + t.w > solid.x) && (t.x < solid.x + solid.w);
+            return yMatches && xOverlaps;
+        });
 
         if (cuttingTraps.length === 0) {
             resolvedSolids.push(solid);
@@ -288,15 +294,18 @@ function getActiveLevelSolids(level, activeTraps) {
 
             let curX = solid.x;
             for (const trap of cuttingTraps) {
-                if (trap.x > curX) {
+                const trapLeft = Math.max(solid.x, trap.x);
+                const trapRight = Math.min(solid.x + solid.w, trap.x + trap.w);
+
+                if (trapLeft > curX) {
                     resolvedSolids.push({
                         x: curX,
                         y: solid.y,
-                        w: trap.x - curX,
+                        w: trapLeft - curX,
                         h: solid.h
                     });
                 }
-                curX = Math.max(curX, trap.x + trap.w);
+                curX = Math.max(curX, trapRight);
             }
 
             if (curX < solid.x + solid.w) {
