@@ -22,10 +22,123 @@
                 });
             });
         }
+
+        // ========================================================================
+        // SMART HARDWARE & SCREEN DETECTION ENGINE (PHONES VS. BIG SCREENS)
+        // Strictly prevents mobile touch controls and overlays on desktops/laptops
+        // ========================================================================
+        (function() {
+            window.dtDetectDevice = function() {
+                try {
+                    var root = document.documentElement;
+                    var override = localStorage.getItem('devils_trial_touch_controls') || 'auto';
+
+                    if (override === 'on') {
+                        root.classList.add('device-phone', 'touch-controls-forced');
+                        root.classList.remove('device-desktop');
+                        var isLandscapeForced = window.innerWidth > window.innerHeight;
+                        if (isLandscapeForced) {
+                            root.classList.add('phone-landscape');
+                            root.classList.remove('phone-portrait');
+                        } else {
+                            root.classList.add('phone-portrait');
+                            root.classList.remove('phone-landscape');
+                        }
+                        return;
+                    }
+
+                    if (override === 'off') {
+                        root.classList.add('device-desktop');
+                        root.classList.remove('device-phone', 'touch-controls-forced', 'phone-landscape', 'phone-portrait');
+                        return;
+                    }
+
+                    // Auto-detection
+                    var ua = navigator.userAgent || '';
+                    var isMobileUA = /Android.*Mobile|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|webOS/i.test(ua);
+                    var isTabletUA = /iPad|tablet|(android(?!.*mobile))/i.test(ua);
+                    var hasTouch = (navigator.maxTouchPoints > 0) || ('ontouchstart' in window);
+
+                    // Screen physical dimensions in CSS pixels (never changes with window resizing)
+                    var screenW = Math.min(window.screen.width || 1920, window.screen.height || 1080);
+                    var screenH = Math.max(window.screen.width || 1920, window.screen.height || 1080);
+
+                    // Check for primary fine mouse / trackpad
+                    var hasFineMouse = false;
+                    try {
+                        hasFineMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+                    } catch (e) {}
+
+                    // True Small Phone Criteria:
+                    // 1. Must support touch input
+                    // 2. Not a tablet (iPad / Android Tablet)
+                    // 3. Must either match explicit mobile phone UA, OR have a handheld physical screen (short side <= 520px, long side <= 950px) without a primary fine mouse
+                    var isSmallPhone = hasTouch && !isTabletUA && (isMobileUA || (screenW <= 520 && screenH <= 950 && !hasFineMouse));
+
+                    if (isSmallPhone) {
+                        root.classList.add('device-phone');
+                        root.classList.remove('device-desktop');
+                        var isLandscape = window.innerWidth > window.innerHeight;
+                        if (isLandscape) {
+                            root.classList.add('phone-landscape');
+                            root.classList.remove('phone-portrait');
+                        } else {
+                            root.classList.add('phone-portrait');
+                            root.classList.remove('phone-landscape');
+                        }
+                    } else {
+                        // Desktop, Laptop, PC, or Big Screen
+                        root.classList.add('device-desktop');
+                        root.classList.remove('device-phone', 'touch-controls-forced', 'phone-landscape', 'phone-portrait');
+                    }
+                } catch (err) {
+                    document.documentElement.classList.add('device-desktop');
+                }
+            };
+
+            window.dtDetectDevice();
+            window.addEventListener('resize', window.dtDetectDevice);
+            window.addEventListener('orientationchange', window.dtDetectDevice);
+        })();
     </script>
-    <link rel="stylesheet" href="./style.css?v=27">
+    <link rel="stylesheet" href="./style.css?v=28">
 </head>
 <body>
+    <!-- Master SVG Vector Icon Sprite (Crisp across 4K & Mobile displays) -->
+    <svg style="display: none;" aria-hidden="true">
+        <defs>
+            <symbol id="icon-devil" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M7 2l2.2 4.2c.9-.3 1.9-.4 2.8-.4s1.9.1 2.8.4L17 2c-.6 3.2 1.4 5.5 1.4 5.5 1.4 1.8 1.4 4.5 0 6.8S14.8 21 12 21s-4.8-4.5-6.4-6.7-1.4-5 0-6.8c0 0 2-2.3 1.4-5.5zM9 13.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm6 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm-5.2 3.8c.7.6 1.5.9 2.2.9s1.5-.3 2.2-.9"/></symbol>
+            <symbol id="icon-brain" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-2.04zM14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-2.04z"/></symbol>
+            <symbol id="icon-skull" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><path d="M8 20v2h8v-2"/><path d="M12 2a8 8 0 0 0-8 8c0 3 1.5 5 3 6.5V19a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.5c1.5-1.5 3-3.5 3-6.5a8 8 0 0 0-8-8z"/></symbol>
+            <symbol id="icon-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol>
+            <symbol id="icon-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></symbol>
+            <symbol id="icon-smartphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol>
+            <symbol id="icon-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+            <symbol id="icon-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></symbol>
+            <symbol id="icon-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+            <symbol id="icon-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></symbol>
+            <symbol id="icon-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></symbol>
+            <symbol id="icon-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+            <symbol id="icon-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+            <symbol id="icon-help" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+            <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+            <symbol id="icon-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+            <symbol id="icon-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17c1.38 0 2.5-1.12 2.5-2.5 0-1.5-1.5-2.5-1.5-2.5s-2 1.5-2 2.5z"/><path d="M12 2c0 4.5-5 7-5 12a5 5 0 0 0 10 0c0-5-5-7.5-5-12z"/></symbol>
+            <symbol id="icon-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+            <symbol id="icon-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
+            <symbol id="icon-gamepad" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="6"/><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/></symbol>
+            <symbol id="icon-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+            <symbol id="icon-rotate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6"/><path d="M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></symbol>
+            <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></symbol>
+            <symbol id="icon-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+            <symbol id="icon-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+            <symbol id="icon-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
+            <symbol id="icon-fullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></symbol>
+            <symbol id="icon-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></symbol>
+        </defs>
+    </svg>
+
     <!-- Toast Notification -->
     <div id="gameToast" class="game-toast" aria-live="polite"></div>
 
@@ -35,18 +148,18 @@
             <div class="phone-anim">
                 <div class="phone-body">
                     <div class="phone-screen">
-                        <div class="phone-devil-icon">😈</div>
+                        <div class="phone-devil-icon"><svg class="ui-icon ui-icon-xl" style="color: #ff5252;"><use href="#icon-devil"></use></svg></div>
                     </div>
                 </div>
-                <div class="rotate-arrow">↻</div>
+                <div class="rotate-arrow"><svg class="ui-icon"><use href="#icon-rotate"></use></svg></div>
             </div>
             <h2 class="rotate-title">ROTATE YOUR PHONE</h2>
             <p class="rotate-subtitle">Devil's Trial uses the full phone landscape layout so the challenge isn't tiny or squished!</p>
             <button id="btnForceLandscape" class="btn-landscape-lock">
-                <span>FORCE FULLSCREEN LANDSCAPE</span> ⛶
+                <span>FORCE FULLSCREEN LANDSCAPE</span> <svg class="ui-icon"><use href="#icon-fullscreen"></use></svg>
             </button>
             <button id="btnDismissRotate" class="btn-portrait-fallback" type="button">
-                <span>PLAY IN PORTRAIT ANYWAY</span> ▶
+                <span>PLAY IN PORTRAIT ANYWAY</span> <svg class="ui-icon"><use href="#icon-play"></use></svg>
             </button>
             <p class="rotate-hint">Or turn off portrait orientation lock on your device</p>
         </div>
@@ -57,7 +170,7 @@
         <div class="header-left">
             <h1 class="game-title">DEVIL'S TRIAL</h1>
             <button id="modeToggle" class="mode-badge" title="Click to switch between Adaptive AI and Static trap modes">
-                <span>🧠 AI DIRECTOR:</span> <strong style="color: #ffca28;">ADAPTIVE ON</strong>
+                <span><svg class="ui-icon"><use href="#icon-brain"></use></svg> AI DIRECTOR:</span> <strong style="color: #ffca28;">ADAPTIVE ON</strong>
             </button>
             <div id="aiBadge" class="mode-badge" style="cursor: default;" title="Machine Learning model predicting player behavior">
                 <span>AI PREDICTION:</span> <strong style="color: #ffca28;">ANALYZING...</strong>
@@ -65,21 +178,21 @@
         </div>
         <div class="header-right">
             <a id="headerPortfolioBtn" class="storage-hud-btn portfolio-hud-btn" href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer" title="Developer Portfolio: Peter Wachanga">
-                👨‍💻 DEV
+                <svg class="ui-icon"><use href="#icon-code"></use></svg> DEV
             </a>
             <button id="pwaInstallBtn" class="pwa-install-badge" title="Install Devil's Trial as an App (Shared LocalStorage & Landscape)">
-                <span class="pwa-icon">📲</span>
+                <span class="pwa-icon"><svg class="ui-icon"><use href="#icon-download"></use></svg></span>
                 <span class="pwa-text">INSTALL</span>
             </button>
             <div class="stat-pill">
-                <span>💀 DEATHS:</span>
+                <span><svg class="ui-icon" style="color: #ff5252;"><use href="#icon-skull"></use></svg> DEATHS:</span>
                 <span id="deathCount" class="count">0</span>
             </div>
             <button id="headerStorageBtn" class="storage-hud-btn" title="View Device Storage Location & Save Data">
-                💾 DATA
+                <svg class="ui-icon"><use href="#icon-save"></use></svg> DATA
             </button>
             <button id="headerLegalBtn" class="storage-hud-btn" title="View Terms, Privacy Policy & FAQs">
-                📜 LEGAL
+                <svg class="ui-icon"><use href="#icon-file-text"></use></svg> LEGAL
             </button>
         </div>
     </header>
@@ -98,7 +211,7 @@
                 </button>
                 <!-- Retro Quick Restart Button (Touch & Mobile / Fast R-Key) -->
                 <button id="quickRestartHudBtn" class="esc-btn restart-hud-btn" aria-label="Restart Level" title="Quick Restart Level (R)">
-                    <span class="restart-hud-icon">↻</span>
+                    <span class="restart-hud-icon"><svg class="ui-icon ui-icon-sm"><use href="#icon-rotate"></use></svg></span>
                     <span class="esc-text">rst</span>
                 </button>
             </div>
@@ -132,16 +245,24 @@
                             <option value="toxic">Toxic Cavern</option>
                         </select>
                     </div>
+                    <div class="option-group">
+                        <label for="touchControlsSelector">On-Screen Controls:</label>
+                        <select id="touchControlsSelector" class="custom-select">
+                            <option value="auto">Auto-Detect (Small Phones Only)</option>
+                            <option value="off">Off (Big Screens &amp; Desktop)</option>
+                            <option value="on">On (Force Virtual Gamepad)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="modal-buttons">
                     <button id="resumeBtn" class="btn-primary">RESUME GAME</button>
                     <button id="restartBtn" class="btn-secondary">RESTART LEVEL (R)</button>
-                    <button id="pausePwaInstallBtn" class="btn-secondary btn-pwa-install">📲 INSTALL AS APP (PWA)</button>
-                    <button id="openStorageBtn" class="btn-secondary btn-storage-action">💾 STORAGE & SAVE LOCATION</button>
-                    <button id="pauseLegalBtn" class="btn-secondary">📜 TERMS, PRIVACY & FAQS</button>
+                    <button id="pausePwaInstallBtn" class="btn-secondary btn-pwa-install"><svg class="ui-icon"><use href="#icon-download"></use></svg> INSTALL AS APP (PWA)</button>
+                    <button id="openStorageBtn" class="btn-secondary btn-storage-action"><svg class="ui-icon"><use href="#icon-save"></use></svg> STORAGE &amp; SAVE LOCATION</button>
+                    <button id="pauseLegalBtn" class="btn-secondary"><svg class="ui-icon"><use href="#icon-file-text"></use></svg> TERMS, PRIVACY &amp; FAQS</button>
                     <a id="pausePortfolioBtn" class="btn-secondary btn-portfolio-link" href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer">
-                        👨‍💻 DEVELOPER PORTFOLIO ↗
+                        <svg class="ui-icon"><use href="#icon-code"></use></svg> DEVELOPER PORTFOLIO <svg class="ui-icon"><use href="#icon-external"></use></svg>
                     </a>
                 </div>
             </div>
@@ -183,11 +304,11 @@
                 </div>
 
                 <div class="device-path-card">
-                    <div class="device-path-title">📂 Exact File Location on Your Device:</div>
+                    <div class="device-path-title"><svg class="ui-icon"><use href="#icon-folder"></use></svg> Exact File Location on Your Device:</div>
                     <div id="deviceDetectedOS" class="device-os-tag">Detecting Device OS...</div>
                     <div id="deviceStoragePath" class="device-path-box clickable-path" role="button" tabindex="0" title="Click to open or copy this location">
                         <div class="path-display-wrap">
-                            <span class="path-icon">📂</span>
+                            <span class="path-icon"><svg class="ui-icon"><use href="#icon-folder"></use></svg></span>
                             <span id="deviceStoragePathText">Checking path...</span>
                         </div>
                         <div class="path-click-indicator">
@@ -200,56 +321,56 @@
                     <!-- Desktop Platform Actions (Windows File Explorer, Win+R, .bat) -->
                     <div id="desktopLocationActions" class="device-path-actions">
                         <button id="openFolderActionBtn" class="btn-location-action" title="Open this folder in File Explorer or copy command">
-                            🚀 OPEN IN FILE EXPLORER
+                            <svg class="ui-icon"><use href="#icon-rocket"></use></svg> OPEN IN FILE EXPLORER
                         </button>
                         <button id="downloadBatLauncherBtn" class="btn-location-action btn-location-subtle" title="Download 1-click Windows batch launcher script">
-                            💾 1-CLICK LAUNCHER (.BAT)
+                            <svg class="ui-icon"><use href="#icon-save"></use></svg> 1-CLICK LAUNCHER (.BAT)
                         </button>
                         <button id="copyLocationBtn" class="btn-location-action btn-location-subtle" title="Copy exact Win+R command to clipboard">
-                            📋 COPY WIN+R COMMAND
+                            <svg class="ui-icon"><use href="#icon-clipboard"></use></svg> COPY WIN+R COMMAND
                         </button>
                         <button id="viewRawDataBtn" class="btn-location-action btn-location-subtle" title="View or export saved JSON data">
-                            📄 EXPORT SAVE JSON
+                            <svg class="ui-icon"><use href="#icon-file-text"></use></svg> EXPORT SAVE JSON
                         </button>
                     </div>
 
                     <!-- Mobile & Tablet Platform Actions (Share, Download, Copy JSON - Works on iOS/Android/Tablets!) -->
                     <div id="mobileStorageActions" class="device-path-actions mobile-storage-actions" style="display: none;">
                         <button id="shareSaveBtn" class="btn-location-action" title="Share save file via system share sheet (AirDrop, Files, Notes, etc.)">
-                            📲 SHARE SAVE DATA
+                            <svg class="ui-icon"><use href="#icon-share"></use></svg> SHARE SAVE DATA
                         </button>
                         <button id="downloadMobileSaveBtn" class="btn-location-action btn-location-subtle" title="Download save data as a .json file to your device">
-                            💾 DOWNLOAD SAVE (.JSON)
+                            <svg class="ui-icon"><use href="#icon-download"></use></svg> DOWNLOAD SAVE (.JSON)
                         </button>
                         <button id="copyMobileSaveBtn" class="btn-location-action btn-location-subtle" title="Copy entire save JSON payload to clipboard">
-                            📋 COPY SAVE DATA
+                            <svg class="ui-icon"><use href="#icon-clipboard"></use></svg> COPY SAVE DATA
                         </button>
                         <button id="viewRawDataMobileBtn" class="btn-location-action btn-location-subtle" title="Inspect live saved JSON payload">
-                            📄 VIEW SAVE JSON
+                            <svg class="ui-icon"><use href="#icon-file-text"></use></svg> VIEW SAVE JSON
                         </button>
                     </div>
 
                     <div id="desktopStorageNote" class="device-path-note">
-                        💡 <strong>In Browser:</strong> Press <kbd>F12</kbd> ➔ <strong>Application</strong> ➔ <strong>Local Storage</strong> ➔ click your origin.
-                        <br>💡 <strong>Windows File Explorer:</strong> Click <em>1-Click Launcher (.bat)</em>, or copy the Win+R command, press <kbd>Win</kbd> + <kbd>R</kbd>, paste & hit <kbd>Enter</kbd>.
+                        <svg class="ui-icon" style="color: #ffca28;"><use href="#icon-info"></use></svg> <strong>In Browser:</strong> Press <kbd>F12</kbd> ➔ <strong>Application</strong> ➔ <strong>Local Storage</strong> ➔ click your origin.
+                        <br><svg class="ui-icon" style="color: #ffca28;"><use href="#icon-folder"></use></svg> <strong>Windows File Explorer:</strong> Click <em>1-Click Launcher (.bat)</em>, or copy the Win+R command, press <kbd>Win</kbd> + <kbd>R</kbd>, paste &amp; hit <kbd>Enter</kbd>.
                     </div>
                     <div id="mobileStorageNote" class="device-path-note mobile-storage-note" style="display: none;">
-                        📲 <strong>Mobile &amp; Tablet Sandbox:</strong> On phones and tablets, game progress and AI memory are securely kept inside this browser origin's isolated storage sandbox (<span class="code-val">devils_trial_save_v1</span>). Use <em>Share Save Data</em> or <em>Download Save (.JSON)</em> above to backup or transfer your progress!
+                        <svg class="ui-icon" style="color: #ffca28;"><use href="#icon-smartphone"></use></svg> <strong>Mobile &amp; Tablet Sandbox:</strong> On phones and tablets, game progress and AI memory are securely kept inside this browser origin's isolated storage sandbox (<span class="code-val">devils_trial_save_v1</span>). Use <em>Share Save Data</em> or <em>Download Save (.JSON)</em> above to backup or transfer your progress!
                     </div>
                 </div>
 
                 <div class="pwa-storage-callout">
-                    <span class="callout-icon">📲</span>
+                    <span class="callout-icon"><svg class="ui-icon"><use href="#icon-download"></use></svg></span>
                     <div class="callout-body">
                         <strong>Shared Storage Guarantee:</strong> Installing Devil's Trial as a PWA uses this <em>exact same local storage partition</em> (<span class="code-val">devils_trial_save_v1</span>). All your levels, deaths, and AI memory persist seamlessly!
                     </div>
                 </div>
 
                 <div class="danger-zone">
-                    <div class="danger-title">⚠️ PERMANENT DATA DESTRUCTION</div>
+                    <div class="danger-title"><svg class="ui-icon" style="color: #ff5252;"><use href="#icon-alert"></use></svg> PERMANENT DATA DESTRUCTION</div>
                     <p class="danger-desc">This will permanently destroy all saved progress, death statistics, and AI learning memory from your device's local storage. This action cannot be reversed.</p>
                     <button id="destroyDataBtn" class="btn-danger-destroy">
-                        🔥 PERMANENTLY DESTROY ALL DATA & RESET
+                        <svg class="ui-icon" style="color: #ff5252;"><use href="#icon-flame"></use></svg> PERMANENTLY DESTROY ALL DATA &amp; RESET
                     </button>
                 </div>
 
@@ -263,14 +384,14 @@
         <div id="saveDataViewerModal" class="overlay-modal">
             <div class="modal-content save-viewer-content">
                 <div class="storage-modal-header">
-                    <h2 class="modal-title">📄 DEVIL'S TRIAL SAVE DATA</h2>
+                    <h2 class="modal-title"><svg class="ui-icon"><use href="#icon-file-text"></use></svg> DEVIL'S TRIAL SAVE DATA</h2>
                     <button id="closeSaveViewerBtn" class="close-modal-btn" aria-label="Close Save Viewer">✕</button>
                 </div>
                 <p class="save-viewer-desc">Live JSON payload currently stored in <span class="code-val">devils_trial_save_v1</span>:</p>
                 <pre id="rawSaveDataPre" class="raw-json-viewer"><code>Loading save data...</code></pre>
                 <div class="modal-buttons" style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button id="copyJsonBtn" class="btn-primary" style="flex: 1;">📋 COPY JSON</button>
-                    <button id="downloadSaveFileBtn" class="btn-secondary" style="flex: 1;">💾 DOWNLOAD .JSON</button>
+                    <button id="copyJsonBtn" class="btn-primary" style="flex: 1;"><svg class="ui-icon"><use href="#icon-clipboard"></use></svg> COPY JSON</button>
+                    <button id="downloadSaveFileBtn" class="btn-secondary" style="flex: 1;"><svg class="ui-icon"><use href="#icon-download"></use></svg> DOWNLOAD .JSON</button>
                     <button id="closeSaveViewerActionBtn" class="btn-secondary" style="flex: 1;">CLOSE</button>
                 </div>
             </div>
@@ -280,7 +401,7 @@
         <div id="pwaGuideModal" class="overlay-modal">
             <div class="modal-content pwa-guide-content">
                 <div class="storage-modal-header">
-                    <h2 class="modal-title">📲 INSTALL DEVIL'S TRIAL</h2>
+                    <h2 class="modal-title"><svg class="ui-icon"><use href="#icon-download"></use></svg> INSTALL DEVIL'S TRIAL</h2>
                     <button id="closePwaGuideBtn" class="close-modal-btn" aria-label="Close Install Guide">✕</button>
                 </div>
                 <p class="pwa-guide-desc">Installing as a Progressive Web App (PWA) gives you full landscape fullscreen windowing and uses the <strong>exact same browser storage</strong>, keeping all your level progress and AI learning!</p>
@@ -297,21 +418,21 @@
         <div id="legalOverlay" class="overlay-modal" aria-hidden="true">
             <div class="modal-content legal-modal-content">
                 <div class="storage-modal-header">
-                    <h2 class="modal-title">📜 LEGAL &amp; FAQ CENTER</h2>
+                    <h2 class="modal-title"><svg class="ui-icon"><use href="#icon-file-text"></use></svg> LEGAL &amp; FAQ CENTER</h2>
                     <button id="closeLegalBtn" class="close-modal-btn" aria-label="Close Legal Menu">✕</button>
                 </div>
 
                 <!-- Category Tab Switcher -->
                 <div class="legal-modal-tabs">
-                    <button class="modal-tab-btn active" data-tab="terms">📜 Terms</button>
-                    <button class="modal-tab-btn" data-tab="privacy">🔒 Privacy</button>
-                    <button class="modal-tab-btn" data-tab="faq">❓ FAQs</button>
-                    <button class="modal-tab-btn" data-tab="ai">🧠 AI &amp; Fair Play</button>
+                    <button class="modal-tab-btn active" data-tab="terms"><svg class="ui-icon"><use href="#icon-file-text"></use></svg> Terms</button>
+                    <button class="modal-tab-btn" data-tab="privacy"><svg class="ui-icon"><use href="#icon-lock"></use></svg> Privacy</button>
+                    <button class="modal-tab-btn" data-tab="faq"><svg class="ui-icon"><use href="#icon-help"></use></svg> FAQs</button>
+                    <button class="modal-tab-btn" data-tab="ai"><svg class="ui-icon"><use href="#icon-brain"></use></svg> AI &amp; Fair Play</button>
                 </div>
 
                 <!-- In-Modal Quick Search -->
                 <div class="modal-search-box">
-                    <span class="modal-search-icon">🔍</span>
+                    <span class="modal-search-icon"><svg class="ui-icon"><use href="#icon-search"></use></svg></span>
                     <input type="text" id="inModalLegalSearch" class="modal-search-input" placeholder="Quick search terms, privacy, FAQs, crawling, AI..." aria-label="Search Legal &amp; FAQs">
                 </div>
 
@@ -321,7 +442,7 @@
                     <!-- TAB 1: TERMS & CONDITIONS -->
                     <div id="tabContentTerms" class="tab-panel active">
                         <div class="legal-mini-card">
-                            <div class="mini-card-title">🔒 Proprietary License &amp; Terms (All Rights Reserved)</div>
+                            <div class="mini-card-title"><svg class="ui-icon"><use href="#icon-lock"></use></svg> Proprietary License &amp; Terms (All Rights Reserved)</div>
                             <p>Devil's Trial is private proprietary software. You are granted permission to play, record, and livestream gameplay. Unauthorized copying, distribution, or commercial reuse of source code is prohibited.</p>
                         </div>
                         <div class="legal-accordion-group">
@@ -370,7 +491,7 @@
                     <!-- TAB 2: PRIVACY POLICY -->
                     <div id="tabContentPrivacy" class="tab-panel">
                         <div class="legal-mini-card">
-                            <div class="mini-card-title">🔒 Zero-Telemetry &amp; Zero-Cookie Guarantee</div>
+                            <div class="mini-card-title"><svg class="ui-icon"><use href="#icon-lock"></use></svg> Zero-Telemetry &amp; Zero-Cookie Guarantee</div>
                             <p>Devil's Trial does not collect, track, or transmit any personal data. All progression and telemetry are saved exclusively on your device in HTML5 <span class="code-val">localStorage</span>.</p>
                         </div>
                         <div class="legal-accordion-group">
@@ -398,7 +519,7 @@
                                     <span class="acc-chevron">▼</span>
                                 </button>
                                 <div class="in-modal-acc-a">
-                                    <p>You have full access to your data. Click 💾 DATA in the header to view the live JSON, export it as a file, or permanently obliterate all saved data with the in-game destruction button.</p>
+                                    <p>You have full access to your data. Click DATA in the header to view the live JSON, export it as a file, or permanently obliterate all saved data with the in-game destruction button.</p>
                                 </div>
                             </div>
                         </div>
@@ -410,7 +531,7 @@
                     <!-- TAB 3: FAQS -->
                     <div id="tabContentFaq" class="tab-panel">
                         <div class="legal-mini-card">
-                            <div class="mini-card-title">❓ Frequently Asked Questions</div>
+                            <div class="mini-card-title"><svg class="ui-icon"><use href="#icon-help"></use></svg> Frequently Asked Questions</div>
                             <p>Quick answers to common questions about crawling mechanics, troll traps, AI adaptation, and save persistence.</p>
                         </div>
                         <div class="legal-accordion-group">
@@ -468,7 +589,7 @@
                     <!-- TAB 4: AI & FAIR PLAY -->
                     <div id="tabContentAi" class="tab-panel">
                         <div class="legal-mini-card">
-                            <div class="mini-card-title">🧠 AI Director &amp; Anti-Checkmate Guarantee</div>
+                            <div class="mini-card-title"><svg class="ui-icon"><use href="#icon-brain"></use></svg> AI Director &amp; Anti-Checkmate Guarantee</div>
                             <p>Our client-side Machine Learning model analyzes your movement dynamics in real time to provide fair, personalized platforming challenge.</p>
                         </div>
                         <div class="legal-accordion-group">
@@ -499,7 +620,7 @@
                                     <span class="acc-chevron">▼</span>
                                 </button>
                                 <div class="in-modal-acc-a">
-                                    <p>Want a static platformer for speedrun route practice? Click the 🧠 AI DIRECTOR button in the game header to turn Adaptive AI off anytime.</p>
+                                    <p>Want a static platformer for speedrun route practice? Click the AI DIRECTOR button in the game header to turn Adaptive AI off anytime.</p>
                                 </div>
                             </div>
                         </div>
@@ -512,7 +633,7 @@
 
                 <div class="modal-buttons legal-bottom-actions">
                     <a id="openFullLegalPageLink" href="./legal.html" target="_blank" class="btn-location-action btn-location-subtle" style="text-decoration: none; flex: 1;">
-                        🌐 OPEN FULL PORTAL ↗
+                        <svg class="ui-icon"><use href="#icon-globe"></use></svg> OPEN FULL PORTAL <svg class="ui-icon"><use href="#icon-external"></use></svg>
                     </a>
                     <button id="backFromLegalBtn" class="btn-primary" style="flex: 1;">BACK TO GAME</button>
                 </div>
@@ -570,6 +691,7 @@
     </footer>
 
     <!-- Scripts with cache busting -->
+    <script src="./icons.js?v=28"></script>
     <script src="./audio.js?v=26"></script>
     <script src="./ai.js?v=26"></script>
     <script src="./levelGenerator.js?v=26"></script>
@@ -577,6 +699,6 @@
     <script src="./physics.js?v=26"></script>
     <script src="./traps.js?v=26"></script>
     <script src="./levels.js?v=26"></script>
-    <script src="./game.js?v=27"></script>
+    <script src="./game.js?v=28"></script>
 </body>
 </html>

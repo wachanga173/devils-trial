@@ -7,6 +7,7 @@
     <meta name="description" content="Privacy Policy for Devil's Trial: Zero-telemetry, zero cookies, 100% local storage. Read how your game progress and AI telemetry are stored strictly on your device.">
     <link rel="icon" type="image/svg+xml" href="./icon.svg">
     <link rel="stylesheet" href="./legal.css?v=1">
+    <script src="./icons.js?v=28"></script>
 </head>
 <body class="legal-page-body">
 
@@ -14,7 +15,7 @@
     <header class="legal-nav-bar">
         <div class="legal-nav-inner">
             <a href="./index.html" class="brand-link" title="Return to Devil's Trial Game">
-                <span class="brand-badge">😈</span>
+                <span class="brand-badge"><svg class="ui-icon ui-icon-fill"><use href="#icon-devil"></use></svg></span>
                 <span>DEVIL'S TRIAL</span>
             </a>
             <nav class="nav-links">
@@ -22,8 +23,8 @@
                 <a href="./privacy.html" class="nav-item active">Privacy Policy</a>
                 <a href="./faq.html" class="nav-item">FAQ</a>
                 <a href="./legal.html" class="nav-item">Legal Portal</a>
-                <a href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer" class="nav-item" style="color: var(--accent-gold); font-weight: 700;">👨‍💻 Dev Portfolio ↗</a>
-                <a href="./index.html" class="nav-btn-game"><span>▶ PLAY GAME</span></a>
+                <a href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer" class="nav-item" style="color: var(--accent-gold); font-weight: 700;"><svg class="ui-icon ui-icon-sm"><use href="#icon-external"></use></svg> Dev Portfolio ↗</a>
+                <a href="./index.html" class="nav-btn-game"><span><svg class="ui-icon ui-icon-sm ui-icon-fill"><use href="#icon-play"></use></svg> PLAY GAME</span></a>
             </nav>
         </div>
     </header>
@@ -33,19 +34,19 @@
 
         <!-- Hero Header -->
         <section class="legal-hero">
-            <div class="hero-tag">🔒 PRIVACY BY DESIGN</div>
+            <div class="hero-tag"><svg class="ui-icon ui-icon-sm"><use href="#icon-lock"></use></svg> PRIVACY BY DESIGN</div>
             <h1>PRIVACY POLICY &amp; DATA TRANSPARENCY</h1>
             <p>Devil's Trial is engineered from the ground up with a strict <strong>Zero-Telemetry, Client-First Privacy Architecture</strong>. We do not track, collect, monetize, sell, or transmit any personal data.</p>
             <div class="legal-metadata-bar">
-                <div class="meta-pill">📅 Effective Date: <strong>September 9, 2026</strong></div>
-                <div class="meta-pill">🛡️ Standard: <strong>GDPR / CCPA / COPPA Compliant</strong></div>
-                <div class="meta-pill">💾 Storage Engine: <strong>HTML5 LocalStorage (Device-Only)</strong></div>
+                <div class="meta-pill"><svg class="ui-icon ui-icon-sm"><use href="#icon-calendar"></use></svg> Effective Date: <strong>September 9, 2026</strong></div>
+                <div class="meta-pill"><svg class="ui-icon ui-icon-sm"><use href="#icon-shield"></use></svg> Standard: <strong>GDPR / CCPA / COPPA Compliant</strong></div>
+                <div class="meta-pill"><svg class="ui-icon ui-icon-sm"><use href="#icon-save"></use></svg> Storage Engine: <strong>HTML5 LocalStorage (Device-Only)</strong></div>
             </div>
         </section>
 
         <!-- Executive Summary Banner -->
         <section class="summary-banner">
-            <h3>🛡️ OUR PRIVACY PLEDGE AT A GLANCE</h3>
+            <h3><svg class="ui-icon ui-icon-md"><use href="#icon-shield"></use></svg> OUR PRIVACY PLEDGE AT A GLANCE</h3>
             <ul>
                 <li><strong>No User Accounts:</strong> You do not need to register, provide an email address, or create a password to play.</li>
                 <li><strong>Zero Remote Telemetry:</strong> None of your gameplay inputs, reaction speeds, death coordinates, or AI learning weights are transmitted across the internet to any server.</li>
@@ -56,7 +57,7 @@
 
         <!-- Table of Contents -->
         <nav class="toc-box" aria-label="Table of Contents">
-            <div class="toc-title">📑 TABLE OF CONTENTS</div>
+            <div class="toc-title"><svg class="ui-icon ui-icon-sm"><use href="#icon-file-text"></use></svg> TABLE OF CONTENTS</div>
             <div class="toc-grid">
                 <a href="#priv-1" class="toc-link"><span class="toc-num">01.</span> Scope &amp; Privacy Architecture</a>
                 <a href="#priv-2" class="toc-link"><span class="toc-num">02.</span> Information We DO NOT Collect</a>
@@ -168,9 +169,9 @@
             <div class="section-body">
                 <p>We believe in total code transparency. Below is the exact, unencrypted JSON payload stored under the key <span class="code-pill">devils_trial_save_v1</span> in your browser:</p>
                 <div class="callout info">
-                    <span class="callout-icon">📄</span>
+                    <span class="callout-icon"><svg class="ui-icon ui-icon-md"><use href="#icon-file-text"></use></svg></span>
                     <div>
-                        You can view your actual live device payload at any moment inside the game by clicking <strong>💾 DATA</strong> ➔ <strong>📄 EXPORT SAVE JSON</strong>.
+                        You can view your actual live device payload at any moment inside the game by clicking <strong>DATA</strong> ➔ <strong>EXPORT SAVE JSON</strong>.
                     </div>
                 </div>
                 <div class="legal-table-wrap">
@@ -236,7 +237,7 @@
             <div class="section-body">
                 <p>Devil's Trial relies exclusively on the browser's native <strong>Web Audio API</strong> (<span class="code-pill">AudioContext</span>) to synthesize retro 8-bit sound effects (jump bleeps, rolling boulder rumbles, metal sawblade slices, and victory chords) directly through mathematical wave generators (oscillators).</p>
                 <div class="callout success">
-                    <span class="callout-icon">🎙️</span>
+                    <span class="callout-icon"><svg class="ui-icon ui-icon-md"><use href="#icon-alert"></use></svg></span>
                     <div>
                         <strong>ZERO HARDWARE RECORDING:</strong> Devil's Trial NEVER requests access to your microphone, camera, motion sensors, contacts, or media library. Audio output is generated strictly outbound to your speakers or headphones.
                     </div>
@@ -273,7 +274,7 @@
                     <li><span class="code-pill">GET /api/open-storage-dir?path=...</span>: Launches the native operating system desktop file manager (Windows File Explorer via PowerShell, macOS Finder via <span class="code-pill">open</span>, or Linux via <span class="code-pill">xdg-open</span>).</li>
                 </ul>
                 <div class="callout warning">
-                    <span class="callout-icon">🔒</span>
+                    <span class="callout-icon"><svg class="ui-icon ui-icon-md"><use href="#icon-lock"></use></svg></span>
                     <div>
                         <strong>Strict Path Sanitization:</strong> The server strictly verifies that requested paths match known browser profile folders and local user AppData/Library directories. Arbitrary command execution is completely blocked. These endpoints only bind to your local loopback address (<span class="code-pill">127.0.0.1</span>).
                     </div>
@@ -302,17 +303,17 @@
                             <tr>
                                 <td>Right to Access (GDPR Art. 15)</td>
                                 <td>Granted</td>
-                                <td>Open the in-game Storage Modal (💾 DATA) or press F12 ➔ LocalStorage.</td>
+                                <td>Open the in-game Storage Modal (Data Menu) or press F12 ➔ LocalStorage.</td>
                             </tr>
                             <tr>
                                 <td>Right to Data Portability (GDPR Art. 20)</td>
                                 <td>Granted</td>
-                                <td>Click "📄 EXPORT SAVE JSON" or "💾 DOWNLOAD .JSON" to export your data.</td>
+                                <td>Click "Export Save JSON" or "Download .JSON" to export your data.</td>
                             </tr>
                             <tr>
                                 <td>Right to Erasure / Deletion (GDPR Art. 17)</td>
                                 <td>Granted</td>
-                                <td>Click "🔥 PERMANENTLY DESTROY ALL DATA &amp; RESET" in the in-game storage modal.</td>
+                                <td>Click "Permanently Destroy All Data &amp; Reset" in the in-game storage modal.</td>
                             </tr>
                             <tr>
                                 <td>Right to Opt-Out of Sale / Sharing (CCPA)</td>
@@ -349,7 +350,7 @@
             <div class="section-body">
                 <p>Data stored in <span class="code-pill">devils_trial_save_v1</span> remains on your device until you choose to clear it. You can permanently obliterate all saved state at any time via three methods:</p>
                 <ol>
-                    <li><strong>In-Game Destruction Button:</strong> Open the in-game Storage Menu (💾 DATA) and click <em>"🔥 PERMANENTLY DESTROY ALL DATA &amp; RESET"</em>. This instantly calls <span class="code-pill">localStorage.removeItem('devils_trial_save_v1')</span> and resets memory.</li>
+                    <li><strong>In-Game Destruction Button:</strong> Open the in-game Storage Menu (Data Menu) and click <em>"Permanently Destroy All Data &amp; Reset"</em>. This instantly calls <span class="code-pill">localStorage.removeItem('devils_trial_save_v1')</span> and resets memory.</li>
                     <li><strong>Browser Settings:</strong> Go to your browser settings ➔ Privacy &amp; Security ➔ Clear Browsing Data ➔ Cookies &amp; Site Data.</li>
                     <li><strong>Developer Console:</strong> Press <kbd>F12</kbd>, enter the Console tab, type <span class="code-pill">localStorage.clear()</span>, and press <kbd>Enter</kbd>.</li>
                 </ol>
@@ -366,7 +367,7 @@
                 <p>Because all gameplay execution and telemetry analysis reside inside your client sandbox, your data is protected by your device's native operating system security controls and your web browser's same-origin security policies.</p>
                 <p>If you have questions, feedback, or inquiries regarding our data handling principles, please reach out via our official in-game portal:</p>
                 <div class="callout info">
-                    <span class="callout-icon">💬</span>
+                    <span class="callout-icon"><svg class="ui-icon ui-icon-md"><use href="#icon-help"></use></svg></span>
                     <div>
                         <strong>In-Game Portal:</strong> Access the interactive Legal &amp; FAQ modal at any time from the main menu or pause screen.<br>
                         <strong>Data Sovereignty:</strong> Use the in-game Data menu to inspect, export, or destroy your local save at any time.

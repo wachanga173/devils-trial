@@ -13,6 +13,48 @@
     --reserved-h: 150px;
 }
 
+/* ========================================================= */
+/* PROFESSIONAL VECTOR ICON STYLING                          */
+/* ========================================================= */
+.ui-icon {
+    width: 1.15em;
+    height: 1.15em;
+    display: inline-block;
+    vertical-align: -0.18em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+}
+
+.ui-icon-fill {
+    fill: currentColor;
+    stroke: none;
+}
+
+.ui-icon-sm {
+    width: 0.95em;
+    height: 0.95em;
+}
+
+.ui-icon-md {
+    width: 1.25em;
+    height: 1.25em;
+}
+
+.ui-icon-lg {
+    width: 1.5em;
+    height: 1.5em;
+}
+
+.ui-icon-xl {
+    width: 2.4em;
+    height: 2.4em;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -530,16 +572,47 @@ canvas#gameCanvas {
 /* RESPONSIVE LAYOUT BREAKPOINTS: PLAYABLE ON EVERY DEVICE */
 /* ========================================================= */
 
-/* Mobile & Touch Devices (Portrait & Small Screens) */
-@media (max-width: 860px), (hover: none) and (pointer: coarse) {
+/* ========================================================= */
+/* DESKTOP & BIG SCREEN STRICT GUARD                         */
+/* Controls for small phones must NEVER appear on big screens*/
+/* ========================================================= */
+html.device-desktop .mobile-controls {
+    display: none !important;
+}
+
+html.device-desktop .rotate-overlay {
+    display: none !important;
+}
+
+html.device-desktop .footer-info {
+    display: flex !important;
+}
+
+/* Mobile Phone Portrait Mode (Only on detected small phones or forced controls) */
+html.device-phone.phone-portrait {
+    --reserved-h: 155px;
+}
+
+html.device-phone.phone-portrait .mobile-controls,
+html.touch-controls-forced:not(.phone-landscape) .mobile-controls {
+    display: flex;
+}
+
+html.device-phone.phone-portrait .footer-info,
+html.touch-controls-forced:not(.phone-landscape) .footer-info {
+    display: none !important;
+}
+
+/* CSS-only fallback for small touchscreen phones in portrait if JS is deferred */
+@media (hover: none) and (pointer: coarse) and (max-width: 520px) {
     :root {
         --reserved-h: 155px;
     }
-    .mobile-controls {
+    html:not(.device-desktop) .mobile-controls {
         display: flex;
     }
-    .footer-info {
-        display: none; /* Hide keyboard legend on touch devices */
+    html:not(.device-desktop) .footer-info {
+        display: none;
     }
 }
 
@@ -596,7 +669,7 @@ canvas#gameCanvas {
     }
 }
 
-/* Mobile Landscape & Short Viewports (True Console / Mobile App Layout) */
+/* Viewport scaling for landscape / laptops (scales canvas cleanly without activating touch controls) */
 @media (orientation: landscape) and (max-height: 700px), (max-height: 540px) {
     :root {
         --reserved-h: 34px;
@@ -628,8 +701,75 @@ canvas#gameCanvas {
         max-height: calc(100dvh - 34px);
         max-width: calc((100dvh - 34px) * (840 / 480));
     }
-    /* Controls float over sides for thumb access without blocking game field */
-    .mobile-controls {
+}
+
+/* Mobile Phone Landscape Gamepad Overlay (STRICT: Phones Only!) */
+html.device-phone.phone-landscape .mobile-controls,
+html.touch-controls-forced.phone-landscape .mobile-controls {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    margin: 0;
+    padding: 0 max(18px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    align-items: flex-end;
+    justify-content: space-between;
+    z-index: 15;
+    max-width: 100vw;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+html.device-phone.phone-landscape .mobile-controls .virtual-dpad-cluster,
+html.device-phone.phone-landscape .mobile-controls .virtual-actions-cluster,
+html.touch-controls-forced.phone-landscape .mobile-controls .virtual-dpad-cluster,
+html.touch-controls-forced.phone-landscape .mobile-controls .virtual-actions-cluster {
+    pointer-events: auto;
+}
+
+html.device-phone.phone-landscape .touch-btn,
+html.touch-controls-forced.phone-landscape .touch-btn {
+    background: rgba(36, 28, 22, 0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 2px solid rgba(255, 202, 40, 0.45);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+}
+
+html.device-phone.phone-landscape .dpad-btn,
+html.touch-controls-forced.phone-landscape .dpad-btn {
+    width: clamp(52px, 11vw, 64px);
+    height: clamp(46px, 10vw, 56px);
+    font-size: 20px;
+}
+
+html.device-phone.phone-landscape .dpad-down-btn,
+html.touch-controls-forced.phone-landscape .dpad-down-btn {
+    width: clamp(70px, 15vw, 86px);
+    height: clamp(38px, 8vw, 44px);
+}
+
+html.device-phone.phone-landscape .action-crawl-btn,
+html.touch-controls-forced.phone-landscape .action-crawl-btn {
+    width: clamp(52px, 11vw, 62px);
+    height: clamp(52px, 11vw, 62px);
+}
+
+html.device-phone.phone-landscape .touch-btn.jump-btn,
+html.touch-controls-forced.phone-landscape .touch-btn.jump-btn {
+    width: clamp(68px, 14vw, 82px);
+    height: clamp(68px, 14vw, 82px);
+}
+
+html.device-phone.phone-landscape .footer-info,
+html.touch-controls-forced.phone-landscape .footer-info {
+    display: none !important;
+}
+
+/* Fallback pure-CSS rule for landscape phones without JS */
+@media (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-height: 500px) and (max-width: 950px) {
+    html:not(.device-desktop) .mobile-controls {
         display: flex;
         position: fixed;
         inset: 0;
@@ -644,36 +784,12 @@ canvas#gameCanvas {
         border: none;
         box-shadow: none;
     }
-    .mobile-controls .virtual-dpad-cluster,
-    .mobile-controls .virtual-actions-cluster {
+    html:not(.device-desktop) .mobile-controls .virtual-dpad-cluster,
+    html:not(.device-desktop) .mobile-controls .virtual-actions-cluster {
         pointer-events: auto;
     }
-    .touch-btn {
-        background: rgba(36, 28, 22, 0.82);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        border: 2px solid rgba(255, 202, 40, 0.45);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
-    }
-    .dpad-btn {
-        width: clamp(52px, 11vw, 64px);
-        height: clamp(46px, 10vw, 56px);
-        font-size: 20px;
-    }
-    .dpad-down-btn {
-        width: clamp(70px, 15vw, 86px);
-        height: clamp(38px, 8vw, 44px);
-    }
-    .action-crawl-btn {
-        width: clamp(52px, 11vw, 62px);
-        height: clamp(52px, 11vw, 62px);
-    }
-    .touch-btn.jump-btn {
-        width: clamp(68px, 14vw, 82px);
-        height: clamp(68px, 14vw, 82px);
-    }
-    .footer-info {
-        display: none;
+    html:not(.device-desktop) .footer-info {
+        display: none !important;
     }
 }
 
@@ -694,11 +810,20 @@ canvas#gameCanvas {
     backdrop-filter: blur(10px);
 }
 
-/* Automatically activate whenever device is portrait or squished square on mobile */
-@media (orientation: portrait) and (max-width: 900px), (max-aspect-ratio: 1/1) and (max-width: 900px) {
-    .rotate-overlay {
+/* STRICT: Only activate on genuine phone devices in portrait, never on desktop */
+html.device-phone.phone-portrait .rotate-overlay {
+    display: flex;
+}
+
+@media (hover: none) and (pointer: coarse) and (orientation: portrait) and (max-width: 520px) {
+    html:not(.device-desktop) .rotate-overlay {
         display: flex;
     }
+}
+
+html.device-desktop .rotate-overlay,
+.rotate-overlay.dismissed {
+    display: none !important;
 }
 
 .rotate-card {

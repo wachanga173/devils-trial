@@ -72,7 +72,8 @@ class Game {
         this.loadLevel(this.currentLevelIndex);
         if (restored) {
             const lvlNum = this.currentLevel ? this.currentLevel.id : (this.currentLevelIndex + 1);
-            this.showToast(`💾 Progress Restored: Level ${lvlNum} (${this.deathCount} Deaths)`);
+            const iconSvg = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('save') : '';
+            this.showToast(`${iconSvg} Progress Restored: Level ${lvlNum} (${this.deathCount} Deaths)`);
         }
 
         requestAnimationFrame((t) => this.loop(t));
@@ -340,7 +341,8 @@ class Game {
                     this.togglePause();
                 }
                 this.respawnPlayer(true);
-                this.showToast('↻ Level Restarted!');
+                const rotateIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('rotate') : '↻';
+                this.showToast(`${rotateIco} Level Restarted!`);
             };
             quickRestartHudBtn.addEventListener('click', triggerQuickRestart);
             quickRestartHudBtn.addEventListener('touchstart', triggerQuickRestart, { passive: false });
@@ -479,7 +481,25 @@ class Game {
         if (btnDismissRotate && rotateOverlay) {
             btnDismissRotate.addEventListener('click', () => {
                 rotateOverlay.classList.add('dismissed');
-                this.showToast('📱 Portrait Mode Enabled');
+                const phoneIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('smartphone') : '';
+                this.showToast(`${phoneIco} Portrait Mode Enabled`);
+            });
+        }
+
+        const touchControlsSelector = document.getElementById('touchControlsSelector');
+        if (touchControlsSelector) {
+            touchControlsSelector.value = localStorage.getItem('devils_trial_touch_controls') || 'auto';
+            touchControlsSelector.addEventListener('change', (e) => {
+                const val = e.target.value;
+                localStorage.setItem('devils_trial_touch_controls', val);
+                if (window.dtDetectDevice) window.dtDetectDevice();
+                const getIco = (k) => (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg(k) : '';
+                const labels = {
+                    auto: `${getIco('settings')} Controls: Auto-Detect (Small Phones Only)`,
+                    off: `${getIco('monitor')} Controls: Off (Big Screens & Keyboard)`,
+                    on: `${getIco('gamepad')} Controls: Forced Virtual Gamepad`
+                };
+                this.showToast(labels[val] || 'Controls setting updated');
             });
         }
 
@@ -592,20 +612,22 @@ class Game {
         window.addEventListener('appinstalled', () => {
             this.deferredPwaPrompt = null;
             this.markAppInstalled();
-            this.showToast("🎉 Devil's Trial installed as app! Shared storage active.");
+            const checkIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('check') : '✓';
+            this.showToast(`${checkIco} Devil's Trial installed as app! Shared storage active.`);
         });
     }
 
     markAppInstalled() {
         const pwaBtn = document.getElementById('pwaInstallBtn');
         const pauseBtn = document.getElementById('pausePwaInstallBtn');
+        const checkIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('check') : '✓';
         if (pwaBtn) {
             pwaBtn.classList.add('installed');
-            pwaBtn.innerHTML = `<span class="pwa-icon">✓</span> <span class="pwa-text">APP MODE</span>`;
+            pwaBtn.innerHTML = `<span class="pwa-icon">${checkIco}</span> <span class="pwa-text">APP MODE</span>`;
             pwaBtn.title = "Running in standalone app mode with shared storage";
         }
         if (pauseBtn) {
-            pauseBtn.innerText = "✓ INSTALLED (APP MODE)";
+            pauseBtn.innerHTML = `${checkIco} INSTALLED (APP MODE)`;
             pauseBtn.disabled = true;
             pauseBtn.style.opacity = "0.7";
         }
@@ -616,7 +638,8 @@ class Game {
             this.deferredPwaPrompt.prompt();
             this.deferredPwaPrompt.userChoice.then((choiceResult) => {
                 if (choiceResult && choiceResult.outcome === 'accepted') {
-                    this.showToast("🎉 Installing Devil's Trial App...");
+                    const downloadIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('download') : '';
+                    this.showToast(`${downloadIco} Installing Devil's Trial App...`);
                     this.markAppInstalled();
                 }
                 this.deferredPwaPrompt = null;
@@ -673,7 +696,7 @@ class Game {
             stepsHtml = `
                 <div class="pwa-step-item">
                     <div class="pwa-step-num">1</div>
-                    <div class="pwa-step-text">Look at the right side of your browser address bar for the <strong>Install App icon (⊕ or 💻)</strong>.</div>
+                    <div class="pwa-step-text">Look at the right side of your browser address bar for the <strong>Install App icon (⊕ or App)</strong>.</div>
                 </div>
                 <div class="pwa-step-item">
                     <div class="pwa-step-num">2</div>
@@ -703,7 +726,7 @@ class Game {
     showToast(message, duration = 2800) {
         const toast = document.getElementById('gameToast');
         if (!toast) return;
-        toast.innerText = message;
+        toast.innerHTML = message;
         toast.classList.add('visible');
         if (this._toastTimeout) clearTimeout(this._toastTimeout);
         this._toastTimeout = setTimeout(() => {
@@ -976,8 +999,10 @@ class Game {
             .then(data => {
                 if (data && data.success) {
                     const opened = data.openedPath || targetPath;
-                    this.showLocationFeedback(`🚀 Opened in Windows File Explorer: ${opened}`, 'success');
-                    this.showToast('📂 Opened folder in Windows File Explorer!');
+                    const rocketIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('rocket') : '';
+                    const folderIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('folder') : '';
+                    this.showLocationFeedback(`${rocketIco} Opened in Windows File Explorer: ${opened}`, 'success');
+                    this.showToast(`${folderIco} Opened folder in Windows File Explorer!`);
                 } else {
                     this.showHostedLocationFeedback(cmd, targetPath);
                 }
@@ -988,8 +1013,9 @@ class Game {
     }
 
     showHostedLocationFeedback(cmd, targetPath) {
-        this.showLocationFeedback(`📋 Copied Win+R command: ${cmd}\nPress Win + R, paste (Ctrl+V) & hit Enter! Or click "1-Click Launcher (.bat)".`, 'info');
-        this.showToast('📋 Win+R command copied to clipboard!');
+        const clipIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('clipboard') : '';
+        this.showLocationFeedback(`${clipIco} Copied Win+R command: ${cmd}<br>Press Win + R, paste (Ctrl+V) &amp; hit Enter! Or click "1-Click Launcher (.bat)".`, 'info');
+        this.showToast(`${clipIco} Win+R command copied to clipboard!`);
     }
 
     copyStorageLocation() {
@@ -1002,11 +1028,13 @@ class Game {
 
         const targetPath = this.resolvedStoragePath || details.storagePath;
         const cmd = `explorer "${targetPath}"`;
+        const clipIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('clipboard') : '';
+        const checkIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('check') : '✓';
         if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(cmd)
                 .then(() => {
-                    this.showToast('📋 Win+R command copied!');
-                    this.showLocationFeedback(`✓ Copied: ${cmd}\nPress Win + R, paste (Ctrl+V) & hit Enter!`, 'info');
+                    this.showToast(`${clipIco} Win+R command copied!`);
+                    this.showLocationFeedback(`${checkIco} Copied: ${cmd}<br>Press Win + R, paste (Ctrl+V) &amp; hit Enter!`, 'info');
                 })
                 .catch(() => {
                     this.showToast('Failed to copy to clipboard.');
@@ -1030,12 +1058,14 @@ class Game {
         }, null, 2);
 
         if (typeof navigator !== 'undefined' && navigator.share && typeof navigator.share === 'function') {
+            const shareIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('share') : '';
+            const checkIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('check') : '✓';
             navigator.share({
                 title: "Devil's Trial Save Data",
                 text: content
             }).then(() => {
-                this.showToast('📲 Save data shared!');
-                this.showLocationFeedback('✓ Save data shared to your chosen application.', 'success');
+                this.showToast(`${shareIco} Save data shared!`);
+                this.showLocationFeedback(`${checkIco} Save data shared to your chosen application.`, 'success');
             }).catch((err) => {
                 if (err && err.name !== 'AbortError') {
                     this.copyMobileSaveData();
@@ -1062,10 +1092,12 @@ class Game {
         }, null, 2);
 
         if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+            const clipIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('clipboard') : '';
+            const checkIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('check') : '✓';
             navigator.clipboard.writeText(content)
                 .then(() => {
-                    this.showToast('📋 Save data copied to clipboard!');
-                    this.showLocationFeedback('✓ Save JSON payload copied! Paste into Notes, Files, or message it to backup.', 'success');
+                    this.showToast(`${clipIco} Save data copied to clipboard!`);
+                    this.showLocationFeedback(`${checkIco} Save JSON payload copied! Paste into Notes, Files, or message it to backup.`, 'success');
                 })
                 .catch(() => {
                     this.openSaveDataViewer();
@@ -1088,15 +1120,16 @@ class Game {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        this.showToast('💾 Downloaded Open_Devils_Trial_Save_Location.bat!');
-        this.showLocationFeedback('💾 Launcher downloaded! Double-click Open_Devils_Trial_Save_Location.bat in Downloads to open File Explorer.', 'success');
+        const saveIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('save') : '';
+        this.showToast(`${saveIco} Downloaded Open_Devils_Trial_Save_Location.bat!`);
+        this.showLocationFeedback(`${saveIco} Launcher downloaded! Double-click Open_Devils_Trial_Save_Location.bat in Downloads to open File Explorer.`, 'success');
     }
 
     showLocationFeedback(msg, type = 'success') {
         const banner = document.getElementById('locationActionFeedback');
         if (!banner) return;
         banner.className = `location-feedback-banner ${type}`;
-        banner.innerText = msg;
+        banner.innerHTML = msg;
         banner.style.display = 'block';
     }
 
@@ -1136,8 +1169,9 @@ class Game {
     copySaveJson() {
         const pre = document.getElementById('rawSaveDataPre');
         if (pre && typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+            const clipIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('clipboard') : '';
             navigator.clipboard.writeText(pre.innerText)
-                .then(() => this.showToast('📋 Save JSON copied to clipboard!'))
+                .then(() => this.showToast(`${clipIco} Save JSON copied to clipboard!`))
                 .catch(() => this.showToast('Failed to copy JSON.'));
         }
     }
@@ -1157,7 +1191,8 @@ class Game {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(a.href);
-            this.showToast('💾 Save file downloaded to your PC!');
+            const saveIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('save') : '';
+            this.showToast(`${saveIco} Save file downloaded to your PC!`);
         } catch (err) {
             this.showToast('Download initiated.');
         }
@@ -1176,7 +1211,7 @@ class Game {
 
     deleteAndDestroySaveData() {
         const confirmed = (typeof window !== 'undefined' && window.confirm) ? window.confirm(
-            "⚠️ PERMANENT DATA DESTRUCTION WARNING\n\n" +
+            "[CRITICAL WARNING] PERMANENT DATA DESTRUCTION\n\n" +
             "Are you absolutely sure you want to delete all saved history from local storage?\n\n" +
             "• Progress will be reset to Level 1\n" +
             "• Total death count will reset to 0\n" +
@@ -1209,7 +1244,8 @@ class Game {
         this.loadLevel(0);
 
         this.refreshStorageModalUI();
-        this.showToast('🗑️ All local storage data has been permanently destroyed.');
+        const trashIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('trash') : '';
+        this.showToast(`${trashIco} All local storage data has been permanently destroyed.`);
     }
 
     toggleLegalModal(open, targetTab = 'terms') {
@@ -1269,10 +1305,11 @@ class Game {
 
     updateModeButton() {
         if (!this.modeToggleBtn) return;
+        const brainIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('brain') : '';
         if (this.trapManager.chaosMode) {
-            this.modeToggleBtn.innerHTML = `<span>🧠 AI DIRECTOR:</span> <strong style="color: #ffca28;">ADAPTIVE ON</strong>`;
+            this.modeToggleBtn.innerHTML = `<span>${brainIco} AI DIRECTOR:</span> <strong style="color: #ffca28;">ADAPTIVE ON</strong>`;
         } else {
-            this.modeToggleBtn.innerHTML = `<span>🧠 AI DIRECTOR:</span> <strong style="color: #90caf9;">STATIC FIXED</strong>`;
+            this.modeToggleBtn.innerHTML = `<span>${brainIco} AI DIRECTOR:</span> <strong style="color: #90caf9;">STATIC FIXED</strong>`;
         }
     }
 
@@ -1290,8 +1327,8 @@ class Game {
         else if (profile === 'METHODICAL') color = '#00e676';
 
         const engineBadge = (this.ai && this.ai.pythonConnected)
-            ? `<span style="background: rgba(46, 125, 50, 0.35); border: 1px solid #4caf50; color: #a5d6a7; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">🐍 PYTHON RL</span>`
-            : `<span style="background: rgba(30, 136, 229, 0.25); border: 1px solid #42a5f5; color: #90caf9; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">⚡ JS RL</span>`;
+            ? `<span style="background: rgba(46, 125, 50, 0.35); border: 1px solid #4caf50; color: #a5d6a7; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">PYTHON RL</span>`
+            : `<span style="background: rgba(30, 136, 229, 0.25); border: 1px solid #42a5f5; color: #90caf9; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">JS RL</span>`;
 
         this.aiBadge.innerHTML = `${engineBadge}<span>AI PREDICTION:</span> <strong style="color: ${color};">${profile} (${conf}%)</strong> <span style="opacity: 0.8; font-size: 11px; margin-left: 4px;">| LEARN: E${epochs}</span>`;
         this.aiBadge.title = `${this.ai.activeCounterStrategy} (Skill: ${skill}x, Creativity: ${(this.ai.creativityLevel || 1.0).toFixed(1)})`;
@@ -1414,6 +1451,10 @@ class Game {
         } else if (this.gameState === 'playing') {
             this.gameState = 'paused';
             if (this.pauseOverlay) this.pauseOverlay.classList.add('active');
+            const touchControlsSelector = document.getElementById('touchControlsSelector');
+            if (touchControlsSelector) {
+                touchControlsSelector.value = localStorage.getItem('devils_trial_touch_controls') || 'auto';
+            }
         }
     }
 
@@ -1859,7 +1900,7 @@ class Game {
                 ctx.font = 'bold 10px monospace';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('◄ 🔄 ►', 0, 0);
+                ctx.fillText('◄ ⇄ ►', 0, 0);
 
                 ctx.restore();
             }
@@ -1878,7 +1919,7 @@ class Game {
         if (this.reversedControls) {
             ctx.save();
             const pulseAlpha = 0.85 + Math.sin(Date.now() * 0.01) * 0.15;
-            const bannerText = '🔄 CONTROLS REVERSED! [HOLD ◀ TO RUN ▶] 🔄';
+            const bannerText = '⇄ CONTROLS REVERSED! [HOLD ◀ TO RUN ▶] ⇄';
             ctx.font = 'bold 13px "Courier New", monospace';
             const bannerW = ctx.measureText(bannerText).width + 30;
             const bannerH = 28;

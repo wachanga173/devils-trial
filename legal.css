@@ -58,6 +58,28 @@ body.legal-page-body {
     z-index: 0;
 }
 
+/* Crisp Vector Icon Utilities */
+.ui-icon {
+    width: 1.15em;
+    height: 1.15em;
+    display: inline-block;
+    vertical-align: -0.18em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+}
+.ui-icon-fill {
+    fill: currentColor;
+    stroke: none;
+}
+.ui-icon-sm { width: 0.9em; height: 0.9em; vertical-align: -0.1em; }
+.ui-icon-md { width: 1.25em; height: 1.25em; vertical-align: -0.2em; }
+.ui-icon-lg { width: 1.6em; height: 1.6em; vertical-align: -0.28em; }
+.ui-icon-xl { width: 2.2em; height: 2.2em; vertical-align: -0.38em; }
+
 /* Sticky Top Navigation */
 .legal-nav-bar {
     position: sticky;

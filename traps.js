@@ -1602,7 +1602,7 @@ class ReversedControlsTrap {
         ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
-        ctx.fillText('◄ 🔄 ►', midX, plateY - 2);
+        ctx.fillText('◄ ⇄ ►', midX, plateY - 2);
 
         ctx.restore();
     }
