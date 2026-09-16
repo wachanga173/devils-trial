@@ -23,7 +23,7 @@
             });
         }
     </script>
-    <link rel="stylesheet" href="./style.css?v=8">
+    <link rel="stylesheet" href="./style.css?v=27">
 </head>
 <body>
     <!-- Toast Notification -->
@@ -44,6 +44,9 @@
             <p class="rotate-subtitle">Devil's Trial uses the full phone landscape layout so the challenge isn't tiny or squished!</p>
             <button id="btnForceLandscape" class="btn-landscape-lock">
                 <span>FORCE FULLSCREEN LANDSCAPE</span> ⛶
+            </button>
+            <button id="btnDismissRotate" class="btn-portrait-fallback" type="button">
+                <span>PLAY IN PORTRAIT ANYWAY</span> ▶
             </button>
             <p class="rotate-hint">Or turn off portrait orientation lock on your device</p>
         </div>
@@ -518,13 +521,36 @@
     </main>
 
     <!-- Mobile On-Screen Controls (hidden on desktop) -->
-    <div class="mobile-controls">
-        <div class="dpad">
-            <button id="btnLeft" class="touch-btn" aria-label="Move Left">◀</button>
-            <button id="btnDown" class="touch-btn" aria-label="Crawl on All Fours">▼</button>
-            <button id="btnRight" class="touch-btn" aria-label="Move Right">▶</button>
+    <div class="mobile-controls" id="mobileControls">
+        <!-- Left Directional Cluster (Rock-solid Left/Right rocker with Down below) -->
+        <div class="virtual-dpad-cluster" id="virtualDpad">
+            <div class="dpad-top-row">
+                <button id="btnLeft" class="touch-btn dpad-btn" aria-label="Move Left">
+                    <span class="btn-icon">◀</span>
+                </button>
+                <button id="btnRight" class="touch-btn dpad-btn" aria-label="Move Right">
+                    <span class="btn-icon">▶</span>
+                </button>
+            </div>
+            <div class="dpad-bottom-row">
+                <button id="btnDown" class="touch-btn dpad-btn dpad-down-btn" aria-label="Crawl on All Fours">
+                    <span class="btn-icon">▼</span>
+                    <span class="btn-subtext">CRAWL</span>
+                </button>
+            </div>
         </div>
-        <button id="btnJump" class="touch-btn jump-btn" aria-label="Jump">JUMP</button>
+
+        <!-- Right Action Cluster (Dual-Thumb Control: Leap with Jump, Duck/Crawl with Action Crawl) -->
+        <div class="virtual-actions-cluster" id="virtualActions">
+            <button id="btnActionCrawl" class="touch-btn action-crawl-btn" aria-label="Action Crawl">
+                <span class="action-icon">▼</span>
+                <span class="action-label">CRAWL</span>
+            </button>
+            <button id="btnJump" class="touch-btn jump-btn" aria-label="Jump">
+                <span class="jump-icon">▲</span>
+                <span class="jump-label">JUMP</span>
+            </button>
+        </div>
     </div>
 
     <!-- Controls Legend -->
@@ -551,6 +577,6 @@
     <script src="./physics.js?v=26"></script>
     <script src="./traps.js?v=26"></script>
     <script src="./levels.js?v=26"></script>
-    <script src="./game.js?v=26"></script>
+    <script src="./game.js?v=27"></script>
 </body>
 </html>

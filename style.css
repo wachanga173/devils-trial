@@ -362,55 +362,168 @@ canvas#gameCanvas {
     font-weight: bold;
 }
 
-/* Mobile On-screen Controls (Default Portrait) */
+/* Mobile On-screen Controls (Base Gamepad Layout) */
 .mobile-controls {
     display: none;
     width: 100%;
     max-width: 840px;
-    margin-top: 12px;
+    margin: 10px auto 0 auto;
     justify-content: space-between;
-    align-items: center;
-    padding: 0 10px;
+    align-items: flex-end;
+    padding: 0 14px;
     flex-shrink: 0;
     touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.dpad {
+/* Left Directional D-Pad Cluster (Ergonomic 2-Row / Inverted-T) */
+.virtual-dpad-cluster {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.dpad-top-row {
     display: flex;
     gap: 12px;
-    touch-action: none;
+    justify-content: center;
+    align-items: center;
 }
 
-.touch-btn {
-    width: clamp(58px, 16vw, 70px);
-    height: clamp(54px, 14vw, 64px);
-    background: #27201b;
-    border: 2px solid #4a3c33;
-    border-radius: 12px;
-    color: #ffca28;
-    font-size: 22px;
+.dpad-bottom-row {
     display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* Right Action Cluster (Jump + Action Crawl for 2-thumb mastery) */
+.virtual-actions-cluster {
+    display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Universal Touch Button Styling */
+.touch-btn {
+    position: relative;
+    background: linear-gradient(180deg, #2f251e 0%, #1f1814 100%);
+    border: 2px solid #57463b;
+    border-radius: 14px;
+    color: #ffca28;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     user-select: none;
+    -webkit-user-select: none;
     touch-action: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    transition: transform 0.08s ease, background 0.08s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: transform 0.06s ease, background 0.06s ease, border-color 0.06s ease, box-shadow 0.06s ease;
+    cursor: pointer;
+    overflow: hidden;
 }
 
-.touch-btn:active {
-    background: #ffca28;
-    color: #111;
-    transform: scale(0.94);
+.touch-btn:active,
+.touch-btn.active {
+    background: linear-gradient(180deg, #ffca28 0%, #e6a700 100%);
+    border-color: #ffe57f;
+    color: #1a1005;
+    transform: scale(0.92);
+    box-shadow: 0 0 16px rgba(255, 202, 40, 0.6), inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.touch-btn.jump-btn {
-    width: clamp(68px, 18vw, 82px);
-    height: clamp(68px, 18vw, 82px);
-    border-radius: 50%;
-    font-size: 12px;
-    font-weight: bold;
+.touch-btn:active .btn-subtext,
+.touch-btn.active .btn-subtext,
+.touch-btn:active .action-label,
+.touch-btn.active .action-label {
+    color: #241400;
+}
+
+/* Left & Right D-Pad Buttons */
+.dpad-btn {
+    width: clamp(56px, 14vw, 70px);
+    height: clamp(50px, 13vw, 62px);
+    font-size: 22px;
+}
+
+/* Down / Crawl button on D-Pad */
+.dpad-down-btn {
+    width: clamp(74px, 18vw, 92px);
+    height: clamp(40px, 10vw, 48px);
+    border-radius: 10px;
+    font-size: 16px;
+    gap: 1px;
+}
+
+.btn-icon {
+    line-height: 1;
+}
+
+.btn-subtext {
     font-family: var(--font-retro);
+    font-size: 8px;
+    letter-spacing: 1px;
+    color: #a89a8e;
+    font-weight: bold;
+    margin-top: 1px;
+    line-height: 1;
+}
+
+/* Right Side - Action Crawl Button */
+.action-crawl-btn {
+    width: clamp(54px, 13vw, 64px);
+    height: clamp(54px, 13vw, 64px);
+    border-radius: 16px;
+    border-color: #6a533d;
+    background: linear-gradient(180deg, #32251a 0%, #201610 100%);
+    gap: 2px;
+}
+
+.action-icon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+.action-label {
+    font-family: var(--font-retro);
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    color: #ffca28;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Right Side - Jump Button */
+.jump-btn {
+    width: clamp(72px, 18vw, 86px);
+    height: clamp(72px, 18vw, 86px);
+    border-radius: 50%;
+    border: 3px solid #ffca28;
+    background: radial-gradient(circle at 35% 35%, #3d2b1c 0%, #1e130a 100%);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(255, 202, 40, 0.25);
+    gap: 2px;
+}
+
+.jump-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.jump-label {
+    font-family: var(--font-retro);
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    line-height: 1;
 }
 
 /* ========================================================= */
@@ -484,7 +597,7 @@ canvas#gameCanvas {
 }
 
 /* Mobile Landscape & Short Viewports (True Console / Mobile App Layout) */
-@media (max-height: 540px) {
+@media (orientation: landscape) and (max-height: 700px), (max-height: 540px) {
     :root {
         --reserved-h: 34px;
     }
@@ -517,29 +630,47 @@ canvas#gameCanvas {
     }
     /* Controls float over sides for thumb access without blocking game field */
     .mobile-controls {
+        display: flex;
         position: fixed;
         inset: 0;
         pointer-events: none;
         margin: 0;
-        padding: 0 16px 12px 16px;
+        padding: 0 max(18px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
         align-items: flex-end;
+        justify-content: space-between;
         z-index: 15;
         max-width: 100vw;
+        background: transparent;
+        border: none;
+        box-shadow: none;
     }
-    .mobile-controls .dpad,
-    .mobile-controls .jump-btn {
+    .mobile-controls .virtual-dpad-cluster,
+    .mobile-controls .virtual-actions-cluster {
         pointer-events: auto;
     }
     .touch-btn {
-        background: rgba(36, 28, 22, 0.75);
-        backdrop-filter: blur(5px);
-        border: 2px solid rgba(255, 202, 40, 0.38);
-        width: 56px;
-        height: 50px;
+        background: rgba(36, 28, 22, 0.82);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border: 2px solid rgba(255, 202, 40, 0.45);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+    }
+    .dpad-btn {
+        width: clamp(52px, 11vw, 64px);
+        height: clamp(46px, 10vw, 56px);
+        font-size: 20px;
+    }
+    .dpad-down-btn {
+        width: clamp(70px, 15vw, 86px);
+        height: clamp(38px, 8vw, 44px);
+    }
+    .action-crawl-btn {
+        width: clamp(52px, 11vw, 62px);
+        height: clamp(52px, 11vw, 62px);
     }
     .touch-btn.jump-btn {
-        width: 66px;
-        height: 66px;
+        width: clamp(68px, 14vw, 82px);
+        height: clamp(68px, 14vw, 82px);
     }
     .footer-info {
         display: none;
@@ -686,6 +817,36 @@ canvas#gameCanvas {
 .rotate-hint {
     font-size: 11px;
     color: #9e8e82;
+}
+
+.rotate-overlay.dismissed {
+    display: none !important;
+}
+
+.btn-portrait-fallback {
+    background: rgba(43, 34, 28, 0.7);
+    border: 1px dashed rgba(255, 202, 40, 0.5);
+    color: #ded6cf;
+    font-family: var(--font-retro);
+    font-size: 10px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    letter-spacing: 0.5px;
+}
+
+.btn-portrait-fallback:hover,
+.btn-portrait-fallback:active {
+    background: rgba(255, 202, 40, 0.18);
+    border-color: #ffca28;
+    color: #ffca28;
+    transform: scale(0.98);
 }
 
 /* ========================================================= */

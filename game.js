@@ -141,66 +141,190 @@ class Game {
             });
         }
 
+        // =========================================================
+        // ERGONOMIC MOBILE TOUCH GAMEPAD SYSTEM (DUAL-THUMB CLUSTERS)
+        // =========================================================
         const btnLeft = document.getElementById('btnLeft');
         const btnDown = document.getElementById('btnDown');
         const btnRight = document.getElementById('btnRight');
         const btnJump = document.getElementById('btnJump');
+        const btnActionCrawl = document.getElementById('btnActionCrawl');
+        const virtualDpad = document.getElementById('virtualDpad');
 
-        const bindTouch = (el, pressAction, releaseAction) => {
-            if (!el) return;
-            el.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (window.soundFX) window.soundFX.init();
-                pressAction();
-            }, { passive: false });
-            el.addEventListener('touchend', (e) => { e.preventDefault(); releaseAction(); }, { passive: false });
-            el.addEventListener('touchcancel', (e) => { e.preventDefault(); releaseAction(); }, { passive: false });
-            el.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                if (window.soundFX) window.soundFX.init();
-                pressAction();
-            });
-            el.addEventListener('mouseup', (e) => { e.preventDefault(); releaseAction(); });
-            el.addEventListener('mouseleave', (e) => { releaseAction(); });
+        let dpadDownActive = false;
+        let actionCrawlActive = false;
+
+        const updateCrawlState = () => {
+            this.input.down = dpadDownActive || actionCrawlActive;
         };
 
-        bindTouch(btnLeft, () => { this.input.left = true; }, () => { this.input.left = false; });
-        bindTouch(btnDown, () => { this.input.down = true; }, () => { this.input.down = false; });
-        bindTouch(btnRight, () => { this.input.right = true; }, () => { this.input.right = false; });
-        bindTouch(btnJump, () => {
+        const triggerHaptic = () => {
+            try {
+                if (navigator.vibrate) navigator.vibrate(10);
+            } catch (e) {}
+        };
+
+        const setupButton = (el, onDown, onUp) => {
+            if (!el) return;
+            const handleStart = (e) => {
+                if (e.cancelable) e.preventDefault();
+                if (window.soundFX && window.soundFX.init) window.soundFX.init();
+                el.classList.add('active');
+                triggerHaptic();
+                onDown();
+            };
+            const handleEnd = (e) => {
+                if (e.cancelable) e.preventDefault();
+                el.classList.remove('active');
+                onUp();
+            };
+
+            el.addEventListener('touchstart', handleStart, { passive: false });
+            el.addEventListener('touchend', handleEnd, { passive: false });
+            el.addEventListener('touchcancel', handleEnd, { passive: false });
+            el.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                if (window.soundFX && window.soundFX.init) window.soundFX.init();
+                el.classList.add('active');
+                onDown();
+            });
+            el.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                el.classList.remove('active');
+                onUp();
+            });
+            el.addEventListener('mouseleave', () => {
+                el.classList.remove('active');
+                onUp();
+            });
+        };
+
+        // Right Action Cluster: Jump (Leap) & Crawl
+        setupButton(btnJump, () => {
             this.input.jump = true;
             this.input.jumpPressed = true;
         }, () => {
             this.input.jump = false;
         });
 
-        // D-pad continuous sliding touch tracker (smooth thumb gliding)
-        const dpad = document.querySelector('.dpad');
-        if (dpad && btnLeft && btnRight) {
-            const handleDpadMove = (e) => {
-                e.preventDefault();
-                if (window.soundFX) window.soundFX.init();
-                const touches = e.targetTouches;
-                if (!touches || touches.length === 0) return;
-                const touch = touches[0];
+        setupButton(btnActionCrawl, () => {
+            actionCrawlActive = true;
+            updateCrawlState();
+        }, () => {
+            actionCrawlActive = false;
+            updateCrawlState();
+        });
+
+        // Left Directional D-Pad Cluster (Continuous Gliding & Multi-direction)
+        if (virtualDpad && btnLeft && btnRight && btnDown) {
+            let activeDpadTouchId = null;
+
+            const processDpadCoords = (clientX, clientY) => {
                 const rLeft = btnLeft.getBoundingClientRect();
                 const rRight = btnRight.getBoundingClientRect();
-                const rDown = btnDown ? btnDown.getBoundingClientRect() : null;
+                const rDown = btnDown.getBoundingClientRect();
 
-                const inLeft = touch.clientX >= rLeft.left - 10 && touch.clientX <= rLeft.right &&
-                               touch.clientY >= rLeft.top - 10 && touch.clientY <= rLeft.bottom + 10;
-                const inRight = touch.clientX >= rRight.left && touch.clientX <= rRight.right + 10 &&
-                                touch.clientY >= rRight.top - 10 && touch.clientY <= rRight.bottom + 10;
-                const inDown = rDown && touch.clientX >= rDown.left - 5 && touch.clientX <= rDown.right + 5 &&
-                               touch.clientY >= rDown.top - 5 && touch.clientY <= rDown.bottom + 15;
+                const padMargin = 12;
 
+                const inLeft = clientX >= rLeft.left - padMargin && clientX <= rLeft.right + 4 &&
+                               clientY >= rLeft.top - padMargin && clientY <= rLeft.bottom + 8;
+                const inRight = clientX >= rRight.left - 4 && clientX <= rRight.right + padMargin &&
+                                clientY >= rRight.top - padMargin && clientY <= rRight.bottom + 8;
+                const inDown = clientX >= rDown.left - padMargin && clientX <= rDown.right + padMargin &&
+                               clientY >= rDown.top - 6 && clientY <= rDown.bottom + padMargin;
+
+                // Seamlessly support simultaneous Left+Down or Right+Down (Crawling while moving!)
                 this.input.left = inLeft;
                 this.input.right = inRight;
-                this.input.down = inDown;
+                dpadDownActive = inDown;
+                updateCrawlState();
+
+                if (inLeft) btnLeft.classList.add('active'); else btnLeft.classList.remove('active');
+                if (inRight) btnRight.classList.add('active'); else btnRight.classList.remove('active');
+                if (inDown) btnDown.classList.add('active'); else btnDown.classList.remove('active');
             };
 
-            dpad.addEventListener('touchmove', handleDpadMove, { passive: false });
+            const handleDpadStart = (e) => {
+                if (e.cancelable) e.preventDefault();
+                if (window.soundFX && window.soundFX.init) window.soundFX.init();
+                triggerHaptic();
+                const touch = e.changedTouches[0];
+                activeDpadTouchId = touch.identifier;
+                processDpadCoords(touch.clientX, touch.clientY);
+            };
+
+            const handleDpadMove = (e) => {
+                if (e.cancelable) e.preventDefault();
+                for (let i = 0; i < e.touches.length; i++) {
+                    const t = e.touches[i];
+                    if (t.identifier === activeDpadTouchId || activeDpadTouchId === null) {
+                        processDpadCoords(t.clientX, t.clientY);
+                        break;
+                    }
+                }
+            };
+
+            const handleDpadEnd = (e) => {
+                if (e.cancelable) e.preventDefault();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === activeDpadTouchId) {
+                        activeDpadTouchId = null;
+                        this.input.left = false;
+                        this.input.right = false;
+                        dpadDownActive = false;
+                        updateCrawlState();
+                        btnLeft.classList.remove('active');
+                        btnRight.classList.remove('active');
+                        btnDown.classList.remove('active');
+                        break;
+                    }
+                }
+            };
+
+            virtualDpad.addEventListener('touchstart', handleDpadStart, { passive: false });
+            virtualDpad.addEventListener('touchmove', handleDpadMove, { passive: false });
+            virtualDpad.addEventListener('touchend', handleDpadEnd, { passive: false });
+            virtualDpad.addEventListener('touchcancel', handleDpadEnd, { passive: false });
+
+            // Direct button fallbacks for desktop mouse clicks
+            setupButton(btnLeft, () => { this.input.left = true; }, () => { this.input.left = false; });
+            setupButton(btnRight, () => { this.input.right = true; }, () => { this.input.right = false; });
+            setupButton(btnDown, () => {
+                dpadDownActive = true;
+                updateCrawlState();
+            }, () => {
+                dpadDownActive = false;
+                updateCrawlState();
+            });
         }
+
+        // Global safety cleanup: guarantees zero stuck inputs when all fingers lift
+        window.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                this.input.left = false;
+                this.input.right = false;
+                this.input.jump = false;
+                dpadDownActive = false;
+                actionCrawlActive = false;
+                updateCrawlState();
+                [btnLeft, btnRight, btnDown, btnJump, btnActionCrawl].forEach(btn => {
+                    if (btn) btn.classList.remove('active');
+                });
+            }
+        });
+        window.addEventListener('touchcancel', (e) => {
+            if (e.touches.length === 0) {
+                this.input.left = false;
+                this.input.right = false;
+                this.input.jump = false;
+                dpadDownActive = false;
+                actionCrawlActive = false;
+                updateCrawlState();
+                [btnLeft, btnRight, btnDown, btnJump, btnActionCrawl].forEach(btn => {
+                    if (btn) btn.classList.remove('active');
+                });
+            }
+        });
 
         const escBtn = document.getElementById('escBtn');
         if (escBtn) {
@@ -347,6 +471,15 @@ class Game {
                 } catch (err) {
                     console.log('[Landscape Lock]:', err);
                 }
+            });
+        }
+
+        const btnDismissRotate = document.getElementById('btnDismissRotate');
+        const rotateOverlay = document.getElementById('rotateOverlay');
+        if (btnDismissRotate && rotateOverlay) {
+            btnDismissRotate.addEventListener('click', () => {
+                rotateOverlay.classList.add('dismissed');
+                this.showToast('📱 Portrait Mode Enabled');
             });
         }
 
