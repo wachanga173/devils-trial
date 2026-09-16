@@ -16,11 +16,12 @@ const gen = new window.AILevelGenerator();
 const ai = new window.DevilAI();
 
 function getExpectedTrapBudget(lvl, bounds) {
-    if (lvl <= 2) return 2;
-    if (lvl <= 4) return 3;
+    if (lvl <= 1) return 3;
+    if (lvl <= 2) return 4;
+    if (lvl <= 4) return 6;
     const lvlWidth = (bounds && bounds.width) || 950;
-    const lengthBonus = Math.floor((lvlWidth - 800) / 110);
-    return Math.max(7, Math.min(15, 6 + Math.floor((lvl - 4) * 0.75) + lengthBonus));
+    const lengthBonus = Math.floor((lvlWidth - 800) / 95);
+    return Math.max(9, Math.min(18, 8 + Math.floor((lvl - 4) * 0.85) + lengthBonus));
 }
 
 let totalAIGeneratedTrapsFound = 0;

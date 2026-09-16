@@ -196,6 +196,26 @@ class AILevelGenerator {
                 t.targetY = surf.ceilY + 15;
             } else if (t.type === 'reversed_controls') {
                 t.y = surf.floorY - (t.h || 32);
+            } else if (t.type === 'sliding_door') {
+                t.y = surf.floorY - (t.h || 46);
+            }
+        }
+
+        // Secondary solid penetration guard: ensure no trap sits inside solid rock
+        if (level.solids) {
+            for (const t of allTraps) {
+                const tx = t.x + (t.w || 26) / 2;
+                for (const s of level.solids) {
+                    if (tx > s.x + 2 && tx < s.x + s.w - 2) {
+                        if (t.y > s.y + 4 && t.y < s.y + s.h - 4) {
+                            if (t.type === 'sliding_door') {
+                                t.y = s.y - (t.h || 46);
+                            } else {
+                                t.y = s.y;
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -240,7 +260,7 @@ class AILevelGenerator {
      */
     injectTrapCombos(level, levelNumber, rngInt, rngChoice, difficulty) {
         if (!level.candidateTrapSlots) return;
-        if (levelNumber < 6) return; // Combos start at level 6
+        if (levelNumber < 4) return; // Combos start at level 4 for authentic challenge
 
         const slots = level.candidateTrapSlots;
         const bounds = level.bounds;
@@ -253,7 +273,9 @@ class AILevelGenerator {
             'fake_door_bait',
             'falling_platform_run',
             'spring_into_spike',
-            'control_inversion_trap'
+            'control_inversion_trap',
+            'bait_and_impale',
+            'domino_pit_collapse'
         ];
         const chosen = rngChoice(archetypes);
         const midSlots = slots.filter(s => s.zone === 'mid');
@@ -267,47 +289,50 @@ class AILevelGenerator {
             case 'boulder_drop_ambush':
                 // Boulder rolls from behind while stalactite drops overhead
                 slots.push({
-                    type: 'rolling_ball', x: baseX + 180, y: floorY, groundY: floorY,
-                    radius: 17, vx: -4.5 - difficulty * 0.3, triggerRange: 90,
+                    type: 'rolling_ball', x: baseX + 190, y: floorY, groundY: floorY,
+                    radius: 18, vx: -5.4 - difficulty * 0.45, triggerRange: 105,
                     comboId: cid, zone: 'mid'
                 });
                 slots.push({
                     type: 'dropping_spike', x: baseX - 30, y: ceilY, w: 22, h: 22,
-                    groundY: floorY, triggerRange: 45, comboId: cid, zone: 'mid'
+                    groundY: floorY, triggerRange: 75, comboId: cid, zone: 'mid'
                 });
                 break;
 
             case 'portal_saw_gauntlet':
-                // Troll portal sends you back into a sawblade patrol zone
+                // Troll portal sends you back into a fast sawblade patrol zone
                 slots.push({
                     type: 'troll_portal', x: baseX + 120, y: floorY, w: 55, h: 75,
-                    exitX: baseX - 60, exitY: floorY - 20, exitVy: 2.5,
+                    exitX: baseX - 60, exitY: floorY - 20, exitVy: 3.2,
                     comboId: cid, zone: 'mid'
                 });
                 slots.push({
                     type: 'spinning_saw', x: baseX - 40, y: floorY - 30, radius: 18,
-                    patrolAxis: 'x', minX: baseX - 80, maxX: baseX + 40, speed: 2.5,
+                    patrolAxis: 'x', minX: baseX - 90, maxX: baseX + 50, speed: 3.2,
                     comboId: cid, zone: 'mid'
                 });
                 break;
 
-            case 'fake_door_bait':
+            case 'fake_door_bait': {
                 // Sliding door runs away + hidden spike where you chase to
+                const doorTargetX = level.door ? Math.max(80, level.door.x - 70) : baseX;
+                const exitSurf = this.getSurfaceAt(level, doorTargetX);
                 slots.push({
-                    type: 'sliding_door', x: baseX, y: floorY - 46, w: 32, h: 46,
-                    shiftX: -100, triggerRange: 70, comboId: cid, zone: 'exit'
+                    type: 'sliding_door', x: doorTargetX, y: exitSurf.floorY - 46, w: 32, h: 46,
+                    shiftX: -110, triggerRange: 85, comboId: cid, zone: 'exit'
                 });
                 slots.push({
-                    type: 'hidden_spike', x: baseX - 100, y: floorY, w: 26, h: 16,
-                    triggerRange: 25, comboId: cid, zone: 'exit'
+                    type: 'hidden_spike', x: doorTargetX - 110, y: exitSurf.floorY, w: 26, h: 16,
+                    triggerRange: 65, comboId: cid, zone: 'exit'
                 });
                 break;
+            }
 
             case 'falling_platform_run':
                 // Stepping stone platform falls into abyss + coin bait
                 slots.push({
                     type: 'falling_platform', x: baseX, y: floorY, w: 55, h: 14,
-                    dropSpeed: 2.2, comboId: cid, zone: 'mid'
+                    dropSpeed: 5.2, comboId: cid, zone: 'mid'
                 });
                 slots.push({
                     type: 'coin_trap', x: baseX + 28, y: floorY - 35, r: 8,
@@ -319,11 +344,11 @@ class AILevelGenerator {
                 // Spring pad launches you into a dropping spike from ceiling
                 slots.push({
                     type: 'spring_pad', x: baseX, y: floorY, w: 32, h: 10,
-                    boostVy: -9.0, comboId: cid, zone: 'mid'
+                    boostVy: -9.8, comboId: cid, zone: 'mid'
                 });
                 slots.push({
                     type: 'dropping_spike', x: baseX + 15, y: ceilY, w: 22, h: 22,
-                    groundY: floorY, triggerRange: 50, comboId: cid, zone: 'mid'
+                    groundY: floorY, triggerRange: 75, comboId: cid, zone: 'mid'
                 });
                 break;
 
@@ -335,7 +360,31 @@ class AILevelGenerator {
                 });
                 slots.push({
                     type: 'hidden_spike', x: baseX + 80, y: floorY, w: 26, h: 16,
-                    triggerRange: 35, comboId: cid, zone: 'mid'
+                    triggerRange: 70, comboId: cid, zone: 'mid'
+                });
+                break;
+
+            case 'bait_and_impale':
+                // Coin lure with dropping ceiling spike and sudden floor spike
+                slots.push({
+                    type: 'coin_trap', x: baseX + 30, y: floorY - 30, r: 8,
+                    comboId: cid, zone: 'mid'
+                });
+                slots.push({
+                    type: 'dropping_spike', x: baseX + 30, y: ceilY, w: 22, h: 22,
+                    groundY: floorY, triggerRange: 75, comboId: cid, zone: 'mid'
+                });
+                break;
+
+            case 'domino_pit_collapse':
+                // Sequential rapid collapsing floors creating sudden void
+                slots.push({
+                    type: 'collapsing_floor', x: baseX - 30, y: floorY, w: 48, h: 35,
+                    dropSpeed: 5.0, comboId: cid, zone: 'mid'
+                });
+                slots.push({
+                    type: 'collapsing_floor', x: baseX + 25, y: floorY, w: 48, h: 35,
+                    dropSpeed: 5.2, comboId: cid, zone: 'mid'
                 });
                 break;
         }
@@ -565,7 +614,7 @@ class AILevelGenerator {
             y: stepFloors[0],
             w: 55,
             h: 14,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'entry'
         });
         candidateTrapSlots.push({
@@ -574,7 +623,7 @@ class AILevelGenerator {
             y: stepFloors[0],
             w: 48,
             h: 35,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'entry'
         });
         candidateTrapSlots.push({
@@ -583,7 +632,7 @@ class AILevelGenerator {
             y: stepFloors[0],
             w: 26,
             h: 16,
-            triggerRange: 36,
+            triggerRange: 75,
             zone: 'entry'
         });
 
@@ -595,7 +644,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: stepFloors[highestStep],
-            triggerRange: 45,
+            triggerRange: 75,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -611,9 +660,9 @@ class AILevelGenerator {
             x: highX + Math.round(stepWidths[highestStep] * 0.7),
             y: stepFloors[highestStep],
             groundY: stepFloors[highestStep],
-            radius: 16 + rngInt(0, 3),
-            vx: -3.8 - difficulty * 0.35,
-            triggerRange: 85,
+            radius: 17 + rngInt(0, 3),
+            vx: -5.4 - difficulty * 0.4,
+            triggerRange: 105,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -623,8 +672,8 @@ class AILevelGenerator {
             targetY: stepFloors[highestStep] - cHeadroom + 15,
             w: 38,
             h: 95,
-            triggerRange: 45,
-            pauseDuration: 48,
+            triggerRange: 75,
+            pauseDuration: 45,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -634,7 +683,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: stepFloors[midStep],
-            triggerRange: 40,
+            triggerRange: 75,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -645,7 +694,7 @@ class AILevelGenerator {
             patrolAxis: 'x',
             minX: midX + 20,
             maxX: midX + Math.min(180, stepWidths[midStep] - 20),
-            speed: 2.2,
+            speed: 3.2,
             zone: 'mid'
         });
 
@@ -663,7 +712,7 @@ class AILevelGenerator {
             y: doorFloor,
             w: 48,
             h: 35,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -673,7 +722,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: doorFloor,
-            triggerRange: 42,
+            triggerRange: 75,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -682,8 +731,8 @@ class AILevelGenerator {
             y: doorY,
             w: 32,
             h: 46,
-            shiftX: -90,
-            triggerRange: 75,
+            shiftX: -100,
+            triggerRange: 85,
             zone: 'exit'
         });
 
@@ -758,7 +807,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -767,7 +816,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 26,
                 h: 16,
-                triggerRange: 35,
+                triggerRange: 75,
                 zone: 'entry'
             },
             {
@@ -777,7 +826,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38,
+                triggerRange: 75,
                 zone: 'entry'
             },
             {
@@ -786,7 +835,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 55,
                 h: 14,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
 
@@ -798,8 +847,8 @@ class AILevelGenerator {
                 targetY: normalCeilY + 15,
                 w: 38,
                 h: 105,
-                triggerRange: 45,
-                pauseDuration: 50,
+                triggerRange: 75,
+                pauseDuration: 45,
                 zone: 'mid'
             },
             {
@@ -809,7 +858,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 42,
+                triggerRange: 75,
                 zone: 'mid'
             },
             {
@@ -827,7 +876,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38,
+                triggerRange: 75,
                 zone: 'mid'
             },
             {
@@ -836,7 +885,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 26,
                 h: 16,
-                triggerRange: 36,
+                triggerRange: 70,
                 zone: 'mid'
             },
             {
@@ -844,9 +893,9 @@ class AILevelGenerator {
                 x: Math.min(boundsW - 180, Math.round(midStart + midSpan * 0.95)),
                 y: floorY,
                 groundY: floorY,
-                radius: 16,
-                vx: -4.2 - difficulty * 0.35,
-                triggerRange: 85,
+                radius: 17,
+                vx: -5.4 - difficulty * 0.4,
+                triggerRange: 105,
                 zone: 'mid'
             },
 
@@ -857,7 +906,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'exit'
             },
             {
@@ -867,7 +916,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38,
+                triggerRange: 75,
                 zone: 'exit'
             },
             {
@@ -883,8 +932,8 @@ class AILevelGenerator {
                 y: doorY,
                 w: 32,
                 h: 46,
-                shiftX: -80,
-                triggerRange: 60,
+                shiftX: -100,
+                triggerRange: 85,
                 zone: 'exit'
             }
         ];
@@ -1026,7 +1075,7 @@ class AILevelGenerator {
             y: bottomFloor,
             w: 55,
             h: 14,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'entry'
         });
         candidateTrapSlots.push({
@@ -1035,7 +1084,7 @@ class AILevelGenerator {
             y: bottomFloor,
             w: 48,
             h: 35,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'entry'
         });
         candidateTrapSlots.push({
@@ -1044,7 +1093,7 @@ class AILevelGenerator {
             y: bottomFloor,
             w: 26,
             h: 16,
-            triggerRange: 36,
+            triggerRange: 75,
             zone: 'entry'
         });
 
@@ -1072,7 +1121,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: midFloor,
-            triggerRange: 45,
+            triggerRange: 75,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1083,7 +1132,7 @@ class AILevelGenerator {
             patrolAxis: 'x',
             minX: 200,
             maxX: boundsW - 200,
-            speed: 2.2,
+            speed: 3.2,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1093,8 +1142,8 @@ class AILevelGenerator {
             targetY: midFloor - cHeight + 15,
             w: 40,
             h: 100,
-            triggerRange: 45,
-            pauseDuration: 48,
+            triggerRange: 75,
+            pauseDuration: 45,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1105,7 +1154,7 @@ class AILevelGenerator {
             h: 75,
             exitX: spawnX + 20,
             exitY: bottomFloor - 20,
-            exitVy: 2.0,
+            exitVy: 3.2,
             zone: 'mid'
         });
 
@@ -1116,7 +1165,7 @@ class AILevelGenerator {
             y: topFloor,
             w: 26,
             h: 16,
-            triggerRange: 35,
+            triggerRange: 70,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1124,9 +1173,9 @@ class AILevelGenerator {
             x: boundsW - 130,
             y: topFloor,
             groundY: topFloor,
-            radius: 16,
-            vx: -4.2 - difficulty * 0.35,
-            triggerRange: 80,
+            radius: 17,
+            vx: -5.4 - difficulty * 0.4,
+            triggerRange: 105,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1135,7 +1184,7 @@ class AILevelGenerator {
             y: topFloor,
             w: 48,
             h: 35,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1145,7 +1194,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: topFloor,
-            triggerRange: 40,
+            triggerRange: 75,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1154,8 +1203,8 @@ class AILevelGenerator {
             y: doorY,
             w: 32,
             h: 46,
-            shiftX: 80,
-            triggerRange: 75,
+            shiftX: 95,
+            triggerRange: 85,
             zone: 'exit'
         });
 
@@ -1230,7 +1279,7 @@ class AILevelGenerator {
                 y: tier1Floor,
                 w: 55,
                 h: 14,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -1239,7 +1288,7 @@ class AILevelGenerator {
                 y: tier1Floor,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -1249,7 +1298,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: tier1Floor,
-                triggerRange: 38,
+                triggerRange: 75,
                 zone: 'entry'
             },
 
@@ -1276,7 +1325,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: tier2Floor,
-                triggerRange: 42,
+                triggerRange: 75,
                 zone: 'mid'
             },
 
@@ -1287,8 +1336,8 @@ class AILevelGenerator {
                 targetY: tier2Floor - cHeight + 20,
                 w: 40,
                 h: 100,
-                triggerRange: 45,
-                pauseDuration: 50,
+                triggerRange: 75,
+                pauseDuration: 45,
                 zone: 'mid'
             },
             {
@@ -1299,7 +1348,7 @@ class AILevelGenerator {
                 h: 75,
                 exitX: 130,
                 exitY: tier1Floor - 15,
-                exitVy: 2.0,
+                exitVy: 3.2,
                 zone: 'mid'
             },
 
@@ -1310,7 +1359,7 @@ class AILevelGenerator {
                 y: tier3Floor,
                 w: 26,
                 h: 16,
-                triggerRange: 35,
+                triggerRange: 70,
                 zone: 'exit'
             },
             {
@@ -1319,8 +1368,8 @@ class AILevelGenerator {
                 y: tier3Floor,
                 groundY: tier3Floor,
                 radius: 17,
-                vx: -4.5 - difficulty * 0.35,
-                triggerRange: 85,
+                vx: -5.4 - difficulty * 0.4,
+                triggerRange: 105,
                 zone: 'exit'
             },
             {
@@ -1331,7 +1380,7 @@ class AILevelGenerator {
                 patrolAxis: 'x',
                 minX: 200,
                 maxX: 360,
-                speed: 2.2,
+                speed: 3.2,
                 zone: 'exit'
             },
             {
@@ -1340,7 +1389,7 @@ class AILevelGenerator {
                 y: tier3Floor,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'exit'
             },
             {
@@ -1349,8 +1398,8 @@ class AILevelGenerator {
                 y: tier3Floor - 46,
                 w: 32,
                 h: 46,
-                shiftX: -85,
-                triggerRange: 75,
+                shiftX: -100,
+                triggerRange: 85,
                 zone: 'exit'
             }
         ];
@@ -1427,7 +1476,7 @@ class AILevelGenerator {
                 y: groundFloor,
                 w: 32,
                 h: 10,
-                boostVy: -8.5,
+                boostVy: -9.5,
                 zone: 'entry'
             },
             {
@@ -1436,7 +1485,7 @@ class AILevelGenerator {
                 y: groundFloor,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -1445,7 +1494,7 @@ class AILevelGenerator {
                 y: groundFloor,
                 w: 26,
                 h: 16,
-                triggerRange: 35,
+                triggerRange: 75,
                 zone: 'entry'
             },
 
@@ -1456,7 +1505,7 @@ class AILevelGenerator {
                 y: dividerY,
                 w: 55,
                 h: 14,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'mid'
             },
             {
@@ -1471,9 +1520,9 @@ class AILevelGenerator {
                 x: 80 + entryW + midW - 30,
                 y: dividerY,
                 groundY: dividerY,
-                radius: 16,
-                vx: -4.2 - difficulty * 0.35,
-                triggerRange: 80,
+                radius: 17,
+                vx: -5.4 - difficulty * 0.4,
+                triggerRange: 105,
                 zone: 'mid'
             },
             {
@@ -1483,7 +1532,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: dividerY,
-                triggerRange: 40,
+                triggerRange: 75,
                 zone: 'mid'
             },
             {
@@ -1493,8 +1542,8 @@ class AILevelGenerator {
                 targetY: 140,
                 w: 40,
                 h: 85,
-                triggerRange: 45,
-                pauseDuration: 48,
+                triggerRange: 75,
+                pauseDuration: 45,
                 zone: 'mid'
             },
 
@@ -1506,7 +1555,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: groundFloor,
-                triggerRange: 42,
+                triggerRange: 75,
                 zone: 'mid'
             },
             {
@@ -1517,7 +1566,7 @@ class AILevelGenerator {
                 patrolAxis: 'x',
                 minX: 80 + entryW + Math.round(midW * 0.55),
                 maxX: 80 + entryW + Math.round(midW * 0.85),
-                speed: 2.2,
+                speed: 3.2,
                 zone: 'mid'
             },
             {
@@ -1528,7 +1577,7 @@ class AILevelGenerator {
                 h: 75,
                 exitX: 110,
                 exitY: groundFloor - 20,
-                exitVy: 2.5,
+                exitVy: 3.2,
                 zone: 'mid'
             },
 
@@ -1547,7 +1596,7 @@ class AILevelGenerator {
                 y: groundFloor,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'exit'
             },
             {
@@ -1557,7 +1606,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: groundFloor,
-                triggerRange: 40,
+                triggerRange: 75,
                 zone: 'exit'
             },
             {
@@ -1566,8 +1615,8 @@ class AILevelGenerator {
                 y: groundFloor - 46,
                 w: 32,
                 h: 46,
-                shiftX: -85,
-                triggerRange: 75,
+                shiftX: -100,
+                triggerRange: 85,
                 zone: 'exit'
             }
         ];
@@ -1644,9 +1693,9 @@ class AILevelGenerator {
 
             // Springboard on lower island or collapsing stepping floor
             if (i % 2 !== 0) {
-                staticTraps.push({ type: 'spring_pad', x: curX + Math.round(islandW * 0.5), y: islFloorY, w: 32, h: 10, boostVy: -8.6 });
+                staticTraps.push({ type: 'spring_pad', x: curX + Math.round(islandW * 0.5), y: islFloorY, w: 32, h: 10, boostVy: -9.6 });
             } else {
-                candidateTrapSlots.push({ type: 'collapsing_floor', x: curX + 10, y: islFloorY, w: Math.min(48, islandW - 10), h: 35, dropSpeed: 2.2 });
+                candidateTrapSlots.push({ type: 'collapsing_floor', x: curX + 10, y: islFloorY, w: Math.min(48, islandW - 10), h: 35, dropSpeed: 5.0 });
             }
             curX += islandW;
         }
@@ -1661,7 +1710,7 @@ class AILevelGenerator {
         pathwayCorridors.push({ x: boundsW - 80 - exitW, y: ceilY, w: exitW, h: floorY - ceilY });
 
         // Springboard on Entry platform
-        staticTraps.push({ type: 'spring_pad', x: 80 + entryW - 45, y: floorY, w: 32, h: 10, boostVy: -7.8 });
+        staticTraps.push({ type: 'spring_pad', x: 80 + entryW - 45, y: floorY, w: 32, h: 10, boostVy: -9.2 });
 
         // Zone 1: Entry / Approach Traps
         candidateTrapSlots.push({
@@ -1670,7 +1719,7 @@ class AILevelGenerator {
             y: floorY,
             w: 55,
             h: 14,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'entry'
         });
         candidateTrapSlots.push({
@@ -1679,7 +1728,7 @@ class AILevelGenerator {
             y: floorY,
             w: 48,
             h: 35,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'entry'
         });
         candidateTrapSlots.push({
@@ -1689,7 +1738,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: floorY,
-            triggerRange: 40,
+            triggerRange: 75,
             zone: 'entry'
         });
         candidateTrapSlots.push({
@@ -1698,7 +1747,7 @@ class AILevelGenerator {
             y: floorY,
             w: 26,
             h: 16,
-            triggerRange: 35,
+            triggerRange: 75,
             zone: 'entry'
         });
 
@@ -1709,7 +1758,7 @@ class AILevelGenerator {
             y: floorY - 15,
             w: Math.min(55, islandW - 10),
             h: 14,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1719,7 +1768,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: floorY,
-            triggerRange: 42,
+            triggerRange: 75,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1730,7 +1779,7 @@ class AILevelGenerator {
             patrolAxis: 'y',
             minY: ceilY + 15,
             maxY: floorY - 30,
-            speed: 1.8 + difficulty * 0.2,
+            speed: 2.8 + difficulty * 0.2,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1740,7 +1789,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: floorY,
-            triggerRange: 40,
+            triggerRange: 75,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1749,7 +1798,7 @@ class AILevelGenerator {
             y: floorY,
             w: 26,
             h: 16,
-            triggerRange: 35,
+            triggerRange: 70,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1760,7 +1809,7 @@ class AILevelGenerator {
             h: 70,
             exitX: 120,
             exitY: floorY - 20,
-            exitVy: 2.5,
+            exitVy: 3.2,
             zone: 'mid'
         });
 
@@ -1781,7 +1830,7 @@ class AILevelGenerator {
             patrolAxis: 'x',
             minX: boundsW - 80 - exitW + 20,
             maxX: boundsW - 100,
-            speed: 2.0,
+            speed: 3.0,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1791,7 +1840,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: floorY,
-            triggerRange: 38,
+            triggerRange: 75,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1800,7 +1849,7 @@ class AILevelGenerator {
             y: floorY,
             w: 48,
             h: 35,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1809,8 +1858,8 @@ class AILevelGenerator {
             y: floorY - 46,
             w: 32,
             h: 46,
-            shiftX: -85,
-            triggerRange: 75,
+            shiftX: -100,
+            triggerRange: 85,
             zone: 'exit'
         });
 
@@ -1869,7 +1918,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -1878,7 +1927,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 26,
                 h: 16,
-                triggerRange: 35,
+                triggerRange: 75,
                 zone: 'entry'
             },
             {
@@ -1887,7 +1936,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 55,
                 h: 14,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -1897,7 +1946,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38,
+                triggerRange: 75,
                 zone: 'entry'
             }
         ];
@@ -1912,8 +1961,8 @@ class AILevelGenerator {
                 targetY: ceilY + 10,
                 w: 42,
                 h: 105,
-                triggerRange: 48,
-                pauseDuration: 48 + rngInt(0, 15),
+                triggerRange: 75,
+                pauseDuration: 42 + rngInt(0, 10),
                 zone: 'mid'
             });
 
@@ -1943,7 +1992,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: floorY,
-            triggerRange: 45,
+            triggerRange: 75,
             zone: 'mid'
         });
         candidateTrapSlots.push({
@@ -1958,9 +2007,9 @@ class AILevelGenerator {
             x: Math.min(boundsW - 200, 240 + Math.round((numCrushers - 1) * span) + 80),
             y: floorY,
             groundY: floorY,
-            radius: 16,
-            vx: -4.2 - difficulty * 0.35,
-            triggerRange: 85,
+            radius: 17,
+            vx: -5.4 - difficulty * 0.4,
+            triggerRange: 105,
             zone: 'mid'
         });
 
@@ -1979,7 +2028,7 @@ class AILevelGenerator {
             y: floorY,
             w: 48,
             h: 35,
-            dropSpeed: 2.2,
+            dropSpeed: 5.0,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1989,7 +2038,7 @@ class AILevelGenerator {
             w: 22,
             h: 22,
             groundY: floorY,
-            triggerRange: 40,
+            triggerRange: 75,
             zone: 'exit'
         });
         candidateTrapSlots.push({
@@ -1998,8 +2047,8 @@ class AILevelGenerator {
             y: floorY - 46,
             w: 32,
             h: 46,
-            shiftX: -85,
-            triggerRange: 75,
+            shiftX: -100,
+            triggerRange: 85,
             zone: 'exit'
         });
 
@@ -2073,7 +2122,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 55,
                 h: 14,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -2082,7 +2131,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'entry'
             },
             {
@@ -2092,7 +2141,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38,
+                triggerRange: 75,
                 zone: 'entry'
             },
             {
@@ -2101,7 +2150,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 26,
                 h: 16,
-                triggerRange: 35,
+                triggerRange: 75,
                 zone: 'entry'
             },
 
@@ -2120,7 +2169,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 42,
+                triggerRange: 75,
                 zone: 'mid'
             },
             {
@@ -2129,8 +2178,8 @@ class AILevelGenerator {
                 y: floorY,
                 groundY: floorY,
                 radius: 17 + rngInt(0, 3),
-                vx: -4.2 - difficulty * 0.35,
-                triggerRange: 90,
+                vx: -5.4 - difficulty * 0.4,
+                triggerRange: 110,
                 zone: 'mid'
             },
             {
@@ -2139,8 +2188,8 @@ class AILevelGenerator {
                 y: floorY,
                 groundY: floorY,
                 radius: 16,
-                vx: -3.8 - difficulty * 0.3,
-                triggerRange: 60,
+                vx: -4.8 - difficulty * 0.35,
+                triggerRange: 90,
                 zone: 'mid'
             },
             {
@@ -2151,7 +2200,7 @@ class AILevelGenerator {
                 patrolAxis: 'x',
                 minX: 240,
                 maxX: 360,
-                speed: 1.8,
+                speed: 3.2,
                 zone: 'mid'
             },
             {
@@ -2161,7 +2210,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 42,
+                triggerRange: 75,
                 zone: 'mid'
             },
             {
@@ -2170,7 +2219,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 26,
                 h: 16,
-                triggerRange: 35,
+                triggerRange: 70,
                 zone: 'mid'
             },
             {
@@ -2181,7 +2230,7 @@ class AILevelGenerator {
                 h: 70,
                 exitX: 120,
                 exitY: floorY - 20,
-                exitVy: 2.5,
+                exitVy: 3.2,
                 zone: 'mid'
             },
 
@@ -2200,7 +2249,7 @@ class AILevelGenerator {
                 y: floorY,
                 w: 48,
                 h: 35,
-                dropSpeed: 2.2,
+                dropSpeed: 5.0,
                 zone: 'exit'
             },
             {
@@ -2210,7 +2259,7 @@ class AILevelGenerator {
                 w: 22,
                 h: 22,
                 groundY: floorY,
-                triggerRange: 38,
+                triggerRange: 75,
                 zone: 'exit'
             },
             {
@@ -2219,8 +2268,8 @@ class AILevelGenerator {
                 y: floorY - 46,
                 w: 32,
                 h: 46,
-                shiftX: -85,
-                triggerRange: 75,
+                shiftX: -100,
+                triggerRange: 85,
                 zone: 'exit'
             }
         ];

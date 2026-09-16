@@ -435,7 +435,7 @@ class VanishingFloorTrap {
         this.isFloorTrap = true;
         this.state = 'dormant';
         this.vy = 0;
-        this.dropSpeed = def.dropSpeed || 1.8;
+        this.dropSpeed = def.dropSpeed || 4.8;
     }
 
     update(player, particles, onTrigger) {
@@ -501,7 +501,7 @@ class PistonCrusherTrap {
         this.pauseDuration = def.pauseDuration || 50;
 
         this.triggerX = def.triggerX || (this.x + this.w / 2);
-        this.triggerRange = def.triggerRange || 50;
+        this.triggerRange = def.triggerRange || 75;
 
         this.vy = 0;
         this.shakeOffset = 0;
@@ -582,12 +582,12 @@ class RollingBallTrap {
     constructor(def) {
         this.x = def.x;
         this.radius = def.radius || 18;
-        this.vx = def.vx || -4.2;
+        this.vx = def.vx || -5.2;
         this.groundY = def.groundY || 345;
         this.rotation = 0;
         this.state = 'dormant';
         this.triggerX = def.triggerX || (this.x - 110);
-        this.triggerRange = def.triggerRange || 65;
+        this.triggerRange = def.triggerRange || 85;
         this.shatterTimer = 0;
         this.active = true;
     }
@@ -832,8 +832,8 @@ class EmergingSpikeTrap {
         this.spikeHeight = def.h || 16;
         this.currentHeight = 0;
         this.state = 'dormant';
-        this.triggerRange = def.triggerRange || 36;
-        this.riseSpeed = def.riseSpeed || 4.5;
+        this.triggerRange = def.triggerRange || 65;
+        this.riseSpeed = def.riseSpeed || 6.0;
     }
 
     update(player, gameOrParticles, onTrigger) {
@@ -921,7 +921,7 @@ class DroppingCeilingSpikeTrap {
         this.vy = 0;
         this.state = 'dormant';
         this.triggerX = def.triggerX || (this.x + this.w / 2);
-        this.triggerRange = def.triggerRange || 38;
+        this.triggerRange = def.triggerRange || 75;
         this.shatterTimer = 0;
     }
 
@@ -1619,7 +1619,7 @@ class FallingPlatformTrap {
         this.state = 'dormant'; // 'dormant', 'shaking', 'falling', 'gone'
         this.shakeTimer = 0;
         this.vy = 0;
-        this.dropSpeed = def.dropSpeed || 2.2;
+        this.dropSpeed = def.dropSpeed || 5.0;
         this.isSolid = true;
         this.isPlatform = true;
     }
@@ -1636,7 +1636,7 @@ class FallingPlatformTrap {
 
             if (isOverX && isNearY) {
                 this.state = 'shaking';
-                this.shakeTimer = 14;
+                this.shakeTimer = 8;
                 if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
                 if (onTrigger) onTrigger(this);
             }

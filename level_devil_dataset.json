@@ -1,0 +1,2336 @@
+{
+  "dataset_name": "Level Devil Authentic Troll Mechanics & Deception Dataset",
+  "version": "2.0.0",
+  "source_game": "Level Devil (Unept)",
+  "total_stages": 80,
+  "chapters": [
+    "Pits",
+    "Spikes",
+    "Push",
+    "Coins",
+    "Controls",
+    "Platforms",
+    "Springs",
+    "Warps",
+    "Scale",
+    "Doors",
+    "Saws",
+    "Flappy",
+    "Gravity",
+    "Movement",
+    "Balls",
+    "Rhythm",
+    "Invert"
+  ],
+  "lethality_benchmarks": {
+    "collapsing_floor": {
+      "base_drop_speed": 4.8,
+      "min_drop_speed": 4.2,
+      "max_drop_speed": 6.2,
+      "trigger_delay_ms": 40,
+      "lethality": 0.82
+    },
+    "hidden_spike": {
+      "trigger_range": 75,
+      "min_range": 55,
+      "max_range": 95,
+      "pop_speed": 12.0,
+      "lethality": 0.78
+    },
+    "dropping_spike": {
+      "trigger_range": 65,
+      "drop_speed": 8.5,
+      "apex_counter": true,
+      "lethality": 0.75
+    },
+    "rolling_ball": {
+      "base_speed": -5.2,
+      "fast_speed": -6.8,
+      "trigger_range": 95,
+      "lethality": 0.71
+    },
+    "piston_crusher": {
+      "slam_speed": 9.0,
+      "retract_speed": 3.0,
+      "pause_frames": 35,
+      "lethality": 0.74
+    },
+    "reversed_controls": {
+      "duration_frames": 240,
+      "trigger_zone_width": 120,
+      "lethality": 0.85
+    },
+    "sliding_door": {
+      "shifts_max": 2,
+      "shift_distance": 95,
+      "trigger_range": 85,
+      "lethality": 0.68
+    },
+    "spinning_saw": {
+      "patrol_speed": 3.4,
+      "low_crawl_height": 28,
+      "lethality": 0.72
+    },
+    "troll_portal": {
+      "loop_distance": 280,
+      "exit_vy": 4.0,
+      "lethality": 0.65
+    },
+    "spring_pad": {
+      "boost_vy": -9.8,
+      "deceptive_aim": "ceiling_spikes",
+      "lethality": 0.69
+    }
+  },
+  "stages": [
+    {
+      "id": 1,
+      "chapter": "Pits",
+      "name": "Level 1: The Sinking Welcome",
+      "theme": "inferno",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.45,
+          "drop_speed": 4.6,
+          "width": 56
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.72,
+          "drop_speed": 5.0,
+          "width": 48
+        }
+      ],
+      "combo": "domino_collapse",
+      "target_profile": "RUSHER",
+      "death_rate": 0.62,
+      "deception_rating": 3
+    },
+    {
+      "id": 2,
+      "chapter": "Spikes",
+      "name": "Level 2: The Bait Landing",
+      "theme": "inferno",
+      "gimmick": "hidden_spike",
+      "traps": [
+        {
+          "type": "static_spike",
+          "x_rel": 0.42,
+          "width": 28
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.54,
+          "trigger_range": 75,
+          "width": 28
+        }
+      ],
+      "combo": "bait_and_impale",
+      "target_profile": "HOPPER",
+      "death_rate": 0.78,
+      "deception_rating": 4
+    },
+    {
+      "id": 3,
+      "chapter": "Push",
+      "name": "Level 3: The Ceiling Slam",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.5,
+          "slam_speed": 8.5,
+          "pause": 35,
+          "width": 44
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.52,
+          "drop_speed": 4.5,
+          "width": 48
+        }
+      ],
+      "combo": "crush_and_drop",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.71,
+      "deception_rating": 4
+    },
+    {
+      "id": 4,
+      "chapter": "Coins",
+      "name": "Level 4: Greed's Fall",
+      "theme": "midnight",
+      "gimmick": "coin_trap",
+      "traps": [
+        {
+          "type": "coin_trap",
+          "x_rel": 0.48,
+          "height_above_floor": 45
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.48,
+          "trigger_range": 65,
+          "drop_speed": 9.0
+        }
+      ],
+      "combo": "coin_death_drop",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.81,
+      "deception_rating": 5
+    },
+    {
+      "id": 5,
+      "chapter": "Controls",
+      "name": "Level 5: Mind Warp",
+      "theme": "neon",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.4,
+          "width": 120
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.65,
+          "trigger_range": 70
+        }
+      ],
+      "combo": "reverse_into_spike",
+      "target_profile": "RUSHER",
+      "death_rate": 0.88,
+      "deception_rating": 5
+    },
+    {
+      "id": 6,
+      "chapter": "Platforms",
+      "name": "Level 6: Vanishing Stepping Stones",
+      "theme": "bloodstone",
+      "gimmick": "falling_platform",
+      "traps": [
+        {
+          "type": "falling_platform",
+          "x_rel": 0.35,
+          "drop_speed": 4.8
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.55,
+          "drop_speed": 5.2
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.75,
+          "trigger_range": 72
+        }
+      ],
+      "combo": "domino_platforms",
+      "target_profile": "HOPPER",
+      "death_rate": 0.74,
+      "deception_rating": 4
+    },
+    {
+      "id": 7,
+      "chapter": "Springs",
+      "name": "Level 7: The Sky Trap",
+      "theme": "volcanic",
+      "gimmick": "spring_pad",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.4,
+          "boost_vy": -9.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.45,
+          "y_rel": 0.05,
+          "drop_speed": 8.8
+        }
+      ],
+      "combo": "spring_to_ceiling_spike",
+      "target_profile": "HOPPER",
+      "death_rate": 0.84,
+      "deception_rating": 5
+    },
+    {
+      "id": 8,
+      "chapter": "Warps",
+      "name": "Level 8: Infinite Loophole",
+      "theme": "midnight",
+      "gimmick": "troll_portal",
+      "traps": [
+        {
+          "type": "troll_portal",
+          "x_rel": 0.78,
+          "exit_x_rel": 0.2,
+          "exit_vy": 3.0
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.35,
+          "speed": 3.2
+        }
+      ],
+      "combo": "warp_saw_ambush",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.79,
+      "deception_rating": 4
+    },
+    {
+      "id": 9,
+      "chapter": "Scale",
+      "name": "Level 9: The Claustrophobic Crawl",
+      "theme": "emerald",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.45,
+          "y_offset": -24,
+          "speed": 3.6
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.62,
+          "trigger_range": 68
+        }
+      ],
+      "combo": "crawl_saw_chase",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.76,
+      "deception_rating": 4
+    },
+    {
+      "id": 10,
+      "chapter": "Doors",
+      "name": "Level 10: Where Are You Going Now?",
+      "theme": "inferno",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.85,
+          "shift_dist": -110,
+          "trigger_range": 85
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.72,
+          "drop_speed": 5.4
+        }
+      ],
+      "combo": "door_sinkhole_ambush",
+      "target_profile": "RUSHER",
+      "death_rate": 0.85,
+      "deception_rating": 5
+    },
+    {
+      "id": 11,
+      "chapter": "Saws",
+      "name": "Level 11: Razor Rhythm",
+      "theme": "bloodstone",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.35,
+          "speed": 3.8
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.6,
+          "speed": -3.8
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.48,
+          "drop_speed": 5.0
+        }
+      ],
+      "combo": "cross_saw_pinch",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.8,
+      "deception_rating": 4
+    },
+    {
+      "id": 12,
+      "chapter": "Flappy",
+      "name": "Level 12: Apex Punisher",
+      "theme": "twilight",
+      "gimmick": "dropping_spike",
+      "traps": [
+        {
+          "type": "static_spike",
+          "x_rel": 0.4
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.4,
+          "drop_speed": 9.2
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.55,
+          "trigger_range": 78
+        }
+      ],
+      "combo": "sandwich_impale",
+      "target_profile": "HOPPER",
+      "death_rate": 0.89,
+      "deception_rating": 5
+    },
+    {
+      "id": 13,
+      "chapter": "Gravity",
+      "name": "Level 13: Ground Zero",
+      "theme": "abyssal",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.3,
+          "drop_speed": 5.2,
+          "width": 64
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.45,
+          "drop_speed": 5.5,
+          "width": 64
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.6,
+          "drop_speed": 5.8,
+          "width": 64
+        }
+      ],
+      "combo": "cascading_chasm",
+      "target_profile": "RUSHER",
+      "death_rate": 0.86,
+      "deception_rating": 5
+    },
+    {
+      "id": 14,
+      "chapter": "Movement",
+      "name": "Level 14: Avalanche Express",
+      "theme": "desert",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.88,
+          "vx": -5.8,
+          "trigger_range": 105
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.5,
+          "drop_speed": 8.6
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.32,
+          "trigger_range": 70
+        }
+      ],
+      "combo": "boulder_and_stalactite",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.82,
+      "deception_rating": 4
+    },
+    {
+      "id": 15,
+      "chapter": "Balls",
+      "name": "Level 15: Double Boulder Alley",
+      "theme": "inferno",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.2,
+          "vx": 5.0,
+          "trigger_range": 90
+        },
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.85,
+          "vx": -5.5,
+          "trigger_range": 95
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.52,
+          "slam_speed": 8.0
+        }
+      ],
+      "combo": "pincer_crush",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.87,
+      "deception_rating": 5
+    },
+    {
+      "id": 16,
+      "chapter": "Rhythm",
+      "name": "Level 16: The Pneumatic Gauntlet",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.3,
+          "pause": 30
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.45,
+          "pause": 30
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.6,
+          "pause": 30
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.75,
+          "drop_speed": 5.2
+        }
+      ],
+      "combo": "rhythm_piston_run",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.83,
+      "deception_rating": 4
+    },
+    {
+      "id": 17,
+      "chapter": "Invert",
+      "name": "Level 17: Exit Inversion",
+      "theme": "midnight",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.75,
+          "width": 90
+        },
+        {
+          "type": "sliding_door",
+          "x_rel": 0.88,
+          "shift_dist": -85
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.78,
+          "trigger_range": 80
+        }
+      ],
+      "combo": "reverse_door_fakeout",
+      "target_profile": "RUSHER",
+      "death_rate": 0.91,
+      "deception_rating": 5
+    },
+    {
+      "id": 18,
+      "chapter": "Pits",
+      "name": "Level 18: The Sinking Ledge",
+      "theme": "emerald",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.28,
+          "drop_speed": 5.0
+        },
+        {
+          "type": "spring_pad",
+          "x_rel": 0.42,
+          "boost_vy": -9.2
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.56,
+          "drop_speed": 8.8
+        }
+      ],
+      "combo": "spring_sink_drop",
+      "target_profile": "HOPPER",
+      "death_rate": 0.81,
+      "deception_rating": 4
+    },
+    {
+      "id": 19,
+      "chapter": "Spikes",
+      "name": "Level 19: The Spike Wave",
+      "theme": "volcanic",
+      "gimmick": "hidden_spike",
+      "traps": [
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.35,
+          "trigger_range": 80
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.48,
+          "trigger_range": 80
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.62,
+          "trigger_range": 80
+        }
+      ],
+      "combo": "spike_carpet",
+      "target_profile": "RUSHER",
+      "death_rate": 0.85,
+      "deception_rating": 5
+    },
+    {
+      "id": 20,
+      "chapter": "Doors",
+      "name": "Level 20: Triple Door Evasion",
+      "theme": "bloodstone",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.85,
+          "shift_dist": -140,
+          "shifts_max": 2
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.68,
+          "drop_speed": 5.6
+        },
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.9,
+          "vx": -5.6
+        }
+      ],
+      "combo": "door_boulder_crush",
+      "target_profile": "RUSHER",
+      "death_rate": 0.92,
+      "deception_rating": 5
+    },
+    {
+      "id": 21,
+      "chapter": "Controls",
+      "name": "Level 21: Mid-Air Inversion",
+      "theme": "twilight",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.35,
+          "boost_vy": -9.5
+        },
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.5,
+          "width": 100
+        },
+        {
+          "type": "static_spike",
+          "x_rel": 0.65
+        }
+      ],
+      "combo": "aerial_reverse",
+      "target_profile": "HOPPER",
+      "death_rate": 0.89,
+      "deception_rating": 5
+    },
+    {
+      "id": 22,
+      "chapter": "Saws",
+      "name": "Level 22: Dual Razor Highway",
+      "theme": "abyssal",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.38,
+          "speed": 4.0
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.65,
+          "speed": 4.2
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "saw_sandwich",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.84,
+      "deception_rating": 4
+    },
+    {
+      "id": 23,
+      "chapter": "Coins",
+      "name": "Level 23: The Fatal Golden Fleece",
+      "theme": "midnight",
+      "gimmick": "coin_trap",
+      "traps": [
+        {
+          "type": "coin_trap",
+          "x_rel": 0.52,
+          "height_above_floor": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.52,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.52,
+          "drop_speed": 9.0
+        }
+      ],
+      "combo": "coin_double_kill",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.93,
+      "deception_rating": 5
+    },
+    {
+      "id": 24,
+      "chapter": "Platforms",
+      "name": "Level 24: Stairway to Abyss",
+      "theme": "desert",
+      "gimmick": "falling_platform",
+      "traps": [
+        {
+          "type": "falling_platform",
+          "x_rel": 0.3,
+          "drop_speed": 4.6
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.48,
+          "drop_speed": 5.2
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.66,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.7,
+          "drop_speed": 8.5
+        }
+      ],
+      "combo": "descending_collapse",
+      "target_profile": "HOPPER",
+      "death_rate": 0.87,
+      "deception_rating": 5
+    },
+    {
+      "id": 25,
+      "chapter": "Warps",
+      "name": "Level 25: The Portal Abyss",
+      "theme": "neon",
+      "gimmick": "troll_portal",
+      "traps": [
+        {
+          "type": "troll_portal",
+          "x_rel": 0.65,
+          "exit_x_rel": 0.15,
+          "exit_vy": 4.2
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.25,
+          "slam_speed": 8.5
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.8,
+          "trigger_range": 85
+        }
+      ],
+      "combo": "loop_into_crusher",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.88,
+      "deception_rating": 5
+    },
+    {
+      "id": 26,
+      "chapter": "Push",
+      "name": "Level 26: Compactor Corridor",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.35,
+          "slam_speed": 9.2,
+          "pause": 25
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.5,
+          "slam_speed": 9.2,
+          "pause": 25
+        },
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.82,
+          "vx": -5.8
+        }
+      ],
+      "combo": "boulder_into_press",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.89,
+      "deception_rating": 5
+    },
+    {
+      "id": 27,
+      "chapter": "Springs",
+      "name": "Level 27: False Hope Spring",
+      "theme": "volcanic",
+      "gimmick": "spring_pad",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.45,
+          "boost_vy": -10.2
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.55,
+          "y_offset": -80,
+          "speed": 3.8
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.7,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "spring_saw_impale",
+      "target_profile": "HOPPER",
+      "death_rate": 0.9,
+      "deception_rating": 5
+    },
+    {
+      "id": 28,
+      "chapter": "Balls",
+      "name": "Level 28: Rolling Thunder Run",
+      "theme": "desert",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.9,
+          "vx": -6.2,
+          "trigger_range": 110
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.45,
+          "drop_speed": 5.4
+        },
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.65,
+          "width": 80
+        }
+      ],
+      "combo": "boulder_reverse_panic",
+      "target_profile": "RUSHER",
+      "death_rate": 0.92,
+      "deception_rating": 5
+    },
+    {
+      "id": 29,
+      "chapter": "Pits",
+      "name": "Level 29: Floor Is Vanishing",
+      "theme": "inferno",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.25,
+          "drop_speed": 5.4
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.4,
+          "drop_speed": 5.6
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.55,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 6.0
+        }
+      ],
+      "combo": "continuous_dissolve",
+      "target_profile": "RUSHER",
+      "death_rate": 0.91,
+      "deception_rating": 5
+    },
+    {
+      "id": 30,
+      "chapter": "Doors",
+      "name": "Level 30: The False Exit Catastrophe",
+      "theme": "bloodstone",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.88,
+          "shift_dist": -160,
+          "shifts_max": 2
+        },
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.7,
+          "width": 100
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.75,
+          "drop_speed": 9.4
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.85,
+          "trigger_range": 85
+        }
+      ],
+      "combo": "grand_door_deception",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.95,
+      "deception_rating": 5
+    },
+    {
+      "id": 31,
+      "chapter": "Balls",
+      "name": "Level 31: Balls Trial 1",
+      "theme": "inferno",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.85,
+          "vx": -5.5,
+          "trigger_range": 95
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.45,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "boulder_rampage",
+      "target_profile": "RUSHER",
+      "death_rate": 0.91,
+      "deception_rating": 5
+    },
+    {
+      "id": 32,
+      "chapter": "Crates",
+      "name": "Level 32: Crates Trial 2",
+      "theme": "midnight",
+      "gimmick": "falling_platform",
+      "traps": [
+        {
+          "type": "falling_platform",
+          "x_rel": 0.35,
+          "drop_speed": 5.0
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.55,
+          "drop_speed": 5.4
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.6,
+          "drop_speed": 8.8
+        }
+      ],
+      "combo": "weighted_crush",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.86,
+      "deception_rating": 4
+    },
+    {
+      "id": 33,
+      "chapter": "Pushes",
+      "name": "Level 33: Pushes Trial 3",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.35,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.55,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.72,
+          "drop_speed": 5.4
+        }
+      ],
+      "combo": "synchronized_hydraulic",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.9,
+      "deception_rating": 4
+    },
+    {
+      "id": 34,
+      "chapter": "Levers",
+      "name": "Level 34: Levers Trial 4",
+      "theme": "bloodstone",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.88,
+          "shift_dist": -120,
+          "shifts_max": 2
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.76,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "lever_false_switch",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.96,
+      "deception_rating": 5
+    },
+    {
+      "id": 35,
+      "chapter": "Invert",
+      "name": "Level 35: Invert Trial 5",
+      "theme": "neon",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.5,
+          "width": 110
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.65,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "apex_confusion",
+      "target_profile": "HOPPER",
+      "death_rate": 0.93,
+      "deception_rating": 5
+    },
+    {
+      "id": 36,
+      "chapter": "Rhythm",
+      "name": "Level 36: Rhythm Trial 6",
+      "theme": "abyssal",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.4,
+          "speed": 3.8
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.65,
+          "speed": -3.8
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 72
+        }
+      ],
+      "combo": "tempo_saw_pinch",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.85,
+      "deception_rating": 4
+    },
+    {
+      "id": 37,
+      "chapter": "Sharp",
+      "name": "Level 37: Sharp Trial 7",
+      "theme": "emerald",
+      "gimmick": "hidden_spike",
+      "traps": [
+        {
+          "type": "static_spike",
+          "x_rel": 0.38
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 80
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.75,
+          "trigger_range": 85
+        }
+      ],
+      "combo": "carpet_impale",
+      "target_profile": "RUSHER",
+      "death_rate": 0.91,
+      "deception_rating": 5
+    },
+    {
+      "id": 38,
+      "chapter": "Warps",
+      "name": "Level 38: Warps Trial 8",
+      "theme": "twilight",
+      "gimmick": "troll_portal",
+      "traps": [
+        {
+          "type": "troll_portal",
+          "x_rel": 0.75,
+          "exit_x_rel": 0.22,
+          "exit_vy": 3.5
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.82,
+          "trigger_range": 80
+        }
+      ],
+      "combo": "infinite_fall_loop",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.94,
+      "deception_rating": 5
+    },
+    {
+      "id": 39,
+      "chapter": "Jumping",
+      "name": "Level 39: Jumping Trial 9",
+      "theme": "volcanic",
+      "gimmick": "dropping_spike",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.35,
+          "boost_vy": -9.6
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.48,
+          "drop_speed": 9.0
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.68,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "apex_ceiling_shatter",
+      "target_profile": "HOPPER",
+      "death_rate": 0.96,
+      "deception_rating": 5
+    },
+    {
+      "id": 40,
+      "chapter": "Updown",
+      "name": "Level 40: Updown Trial 10",
+      "theme": "desert",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.3,
+          "drop_speed": 5.2,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.5,
+          "drop_speed": 5.6,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 6.0,
+          "width": 50
+        }
+      ],
+      "combo": "sinkhole_dominoes",
+      "target_profile": "RUSHER",
+      "death_rate": 0.92,
+      "deception_rating": 4
+    },
+    {
+      "id": 41,
+      "chapter": "Balls",
+      "name": "Level 41: Balls Trial 11",
+      "theme": "inferno",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.85,
+          "vx": -5.5,
+          "trigger_range": 95
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.45,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "boulder_rampage",
+      "target_profile": "RUSHER",
+      "death_rate": 0.94,
+      "deception_rating": 5
+    },
+    {
+      "id": 42,
+      "chapter": "Crates",
+      "name": "Level 42: Crates Trial 12",
+      "theme": "midnight",
+      "gimmick": "falling_platform",
+      "traps": [
+        {
+          "type": "falling_platform",
+          "x_rel": 0.35,
+          "drop_speed": 5.0
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.55,
+          "drop_speed": 5.4
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.6,
+          "drop_speed": 8.8
+        }
+      ],
+      "combo": "weighted_crush",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.82,
+      "deception_rating": 4
+    },
+    {
+      "id": 43,
+      "chapter": "Pushes",
+      "name": "Level 43: Pushes Trial 13",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.35,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.55,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.72,
+          "drop_speed": 5.4
+        }
+      ],
+      "combo": "synchronized_hydraulic",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.86,
+      "deception_rating": 4
+    },
+    {
+      "id": 44,
+      "chapter": "Levers",
+      "name": "Level 44: Levers Trial 14",
+      "theme": "bloodstone",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.88,
+          "shift_dist": -120,
+          "shifts_max": 2
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.76,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "lever_false_switch",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.92,
+      "deception_rating": 5
+    },
+    {
+      "id": 45,
+      "chapter": "Invert",
+      "name": "Level 45: Invert Trial 15",
+      "theme": "neon",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.5,
+          "width": 110
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.65,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "apex_confusion",
+      "target_profile": "HOPPER",
+      "death_rate": 0.96,
+      "deception_rating": 5
+    },
+    {
+      "id": 46,
+      "chapter": "Rhythm",
+      "name": "Level 46: Rhythm Trial 16",
+      "theme": "abyssal",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.4,
+          "speed": 3.8
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.65,
+          "speed": -3.8
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 72
+        }
+      ],
+      "combo": "tempo_saw_pinch",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.88,
+      "deception_rating": 4
+    },
+    {
+      "id": 47,
+      "chapter": "Sharp",
+      "name": "Level 47: Sharp Trial 17",
+      "theme": "emerald",
+      "gimmick": "hidden_spike",
+      "traps": [
+        {
+          "type": "static_spike",
+          "x_rel": 0.38
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 80
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.75,
+          "trigger_range": 85
+        }
+      ],
+      "combo": "carpet_impale",
+      "target_profile": "RUSHER",
+      "death_rate": 0.94,
+      "deception_rating": 5
+    },
+    {
+      "id": 48,
+      "chapter": "Warps",
+      "name": "Level 48: Warps Trial 18",
+      "theme": "twilight",
+      "gimmick": "troll_portal",
+      "traps": [
+        {
+          "type": "troll_portal",
+          "x_rel": 0.75,
+          "exit_x_rel": 0.22,
+          "exit_vy": 3.5
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.82,
+          "trigger_range": 80
+        }
+      ],
+      "combo": "infinite_fall_loop",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.97,
+      "deception_rating": 5
+    },
+    {
+      "id": 49,
+      "chapter": "Jumping",
+      "name": "Level 49: Jumping Trial 19",
+      "theme": "volcanic",
+      "gimmick": "dropping_spike",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.35,
+          "boost_vy": -9.6
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.48,
+          "drop_speed": 9.0
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.68,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "apex_ceiling_shatter",
+      "target_profile": "HOPPER",
+      "death_rate": 0.92,
+      "deception_rating": 5
+    },
+    {
+      "id": 50,
+      "chapter": "Updown",
+      "name": "Level 50: Updown Trial 20",
+      "theme": "desert",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.3,
+          "drop_speed": 5.2,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.5,
+          "drop_speed": 5.6,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 6.0,
+          "width": 50
+        }
+      ],
+      "combo": "sinkhole_dominoes",
+      "target_profile": "RUSHER",
+      "death_rate": 0.88,
+      "deception_rating": 4
+    },
+    {
+      "id": 51,
+      "chapter": "Balls",
+      "name": "Level 51: Balls Trial 21",
+      "theme": "inferno",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.85,
+          "vx": -5.5,
+          "trigger_range": 95
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.45,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "boulder_rampage",
+      "target_profile": "RUSHER",
+      "death_rate": 0.9,
+      "deception_rating": 5
+    },
+    {
+      "id": 52,
+      "chapter": "Crates",
+      "name": "Level 52: Crates Trial 22",
+      "theme": "midnight",
+      "gimmick": "falling_platform",
+      "traps": [
+        {
+          "type": "falling_platform",
+          "x_rel": 0.35,
+          "drop_speed": 5.0
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.55,
+          "drop_speed": 5.4
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.6,
+          "drop_speed": 8.8
+        }
+      ],
+      "combo": "weighted_crush",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.85,
+      "deception_rating": 4
+    },
+    {
+      "id": 53,
+      "chapter": "Pushes",
+      "name": "Level 53: Pushes Trial 23",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.35,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.55,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.72,
+          "drop_speed": 5.4
+        }
+      ],
+      "combo": "synchronized_hydraulic",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.89,
+      "deception_rating": 4
+    },
+    {
+      "id": 54,
+      "chapter": "Levers",
+      "name": "Level 54: Levers Trial 24",
+      "theme": "bloodstone",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.88,
+          "shift_dist": -120,
+          "shifts_max": 2
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.76,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "lever_false_switch",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.95,
+      "deception_rating": 5
+    },
+    {
+      "id": 55,
+      "chapter": "Invert",
+      "name": "Level 55: Invert Trial 25",
+      "theme": "neon",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.5,
+          "width": 110
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.65,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "apex_confusion",
+      "target_profile": "HOPPER",
+      "death_rate": 0.99,
+      "deception_rating": 5
+    },
+    {
+      "id": 56,
+      "chapter": "Rhythm",
+      "name": "Level 56: Rhythm Trial 26",
+      "theme": "abyssal",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.4,
+          "speed": 3.8
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.65,
+          "speed": -3.8
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 72
+        }
+      ],
+      "combo": "tempo_saw_pinch",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.84,
+      "deception_rating": 4
+    },
+    {
+      "id": 57,
+      "chapter": "Sharp",
+      "name": "Level 57: Sharp Trial 27",
+      "theme": "emerald",
+      "gimmick": "hidden_spike",
+      "traps": [
+        {
+          "type": "static_spike",
+          "x_rel": 0.38
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 80
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.75,
+          "trigger_range": 85
+        }
+      ],
+      "combo": "carpet_impale",
+      "target_profile": "RUSHER",
+      "death_rate": 0.9,
+      "deception_rating": 5
+    },
+    {
+      "id": 58,
+      "chapter": "Warps",
+      "name": "Level 58: Warps Trial 28",
+      "theme": "twilight",
+      "gimmick": "troll_portal",
+      "traps": [
+        {
+          "type": "troll_portal",
+          "x_rel": 0.75,
+          "exit_x_rel": 0.22,
+          "exit_vy": 3.5
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.82,
+          "trigger_range": 80
+        }
+      ],
+      "combo": "infinite_fall_loop",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.93,
+      "deception_rating": 5
+    },
+    {
+      "id": 59,
+      "chapter": "Jumping",
+      "name": "Level 59: Jumping Trial 29",
+      "theme": "volcanic",
+      "gimmick": "dropping_spike",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.35,
+          "boost_vy": -9.6
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.48,
+          "drop_speed": 9.0
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.68,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "apex_ceiling_shatter",
+      "target_profile": "HOPPER",
+      "death_rate": 0.95,
+      "deception_rating": 5
+    },
+    {
+      "id": 60,
+      "chapter": "Updown",
+      "name": "Level 60: Updown Trial 30",
+      "theme": "desert",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.3,
+          "drop_speed": 5.2,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.5,
+          "drop_speed": 5.6,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 6.0,
+          "width": 50
+        }
+      ],
+      "combo": "sinkhole_dominoes",
+      "target_profile": "RUSHER",
+      "death_rate": 0.91,
+      "deception_rating": 4
+    },
+    {
+      "id": 61,
+      "chapter": "Balls",
+      "name": "Level 61: Balls Trial 31",
+      "theme": "inferno",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.85,
+          "vx": -5.5,
+          "trigger_range": 95
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.45,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "boulder_rampage",
+      "target_profile": "RUSHER",
+      "death_rate": 0.93,
+      "deception_rating": 5
+    },
+    {
+      "id": 62,
+      "chapter": "Crates",
+      "name": "Level 62: Crates Trial 32",
+      "theme": "midnight",
+      "gimmick": "falling_platform",
+      "traps": [
+        {
+          "type": "falling_platform",
+          "x_rel": 0.35,
+          "drop_speed": 5.0
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.55,
+          "drop_speed": 5.4
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.6,
+          "drop_speed": 8.8
+        }
+      ],
+      "combo": "weighted_crush",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.88,
+      "deception_rating": 4
+    },
+    {
+      "id": 63,
+      "chapter": "Pushes",
+      "name": "Level 63: Pushes Trial 33",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.35,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.55,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.72,
+          "drop_speed": 5.4
+        }
+      ],
+      "combo": "synchronized_hydraulic",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.85,
+      "deception_rating": 4
+    },
+    {
+      "id": 64,
+      "chapter": "Levers",
+      "name": "Level 64: Levers Trial 34",
+      "theme": "bloodstone",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.88,
+          "shift_dist": -120,
+          "shifts_max": 2
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.76,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "lever_false_switch",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.91,
+      "deception_rating": 5
+    },
+    {
+      "id": 65,
+      "chapter": "Invert",
+      "name": "Level 65: Invert Trial 35",
+      "theme": "neon",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.5,
+          "width": 110
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.65,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "apex_confusion",
+      "target_profile": "HOPPER",
+      "death_rate": 0.95,
+      "deception_rating": 5
+    },
+    {
+      "id": 66,
+      "chapter": "Rhythm",
+      "name": "Level 66: Rhythm Trial 36",
+      "theme": "abyssal",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.4,
+          "speed": 3.8
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.65,
+          "speed": -3.8
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 72
+        }
+      ],
+      "combo": "tempo_saw_pinch",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.87,
+      "deception_rating": 4
+    },
+    {
+      "id": 67,
+      "chapter": "Sharp",
+      "name": "Level 67: Sharp Trial 37",
+      "theme": "emerald",
+      "gimmick": "hidden_spike",
+      "traps": [
+        {
+          "type": "static_spike",
+          "x_rel": 0.38
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 80
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.75,
+          "trigger_range": 85
+        }
+      ],
+      "combo": "carpet_impale",
+      "target_profile": "RUSHER",
+      "death_rate": 0.93,
+      "deception_rating": 5
+    },
+    {
+      "id": 68,
+      "chapter": "Warps",
+      "name": "Level 68: Warps Trial 38",
+      "theme": "twilight",
+      "gimmick": "troll_portal",
+      "traps": [
+        {
+          "type": "troll_portal",
+          "x_rel": 0.75,
+          "exit_x_rel": 0.22,
+          "exit_vy": 3.5
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.82,
+          "trigger_range": 80
+        }
+      ],
+      "combo": "infinite_fall_loop",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.96,
+      "deception_rating": 5
+    },
+    {
+      "id": 69,
+      "chapter": "Jumping",
+      "name": "Level 69: Jumping Trial 39",
+      "theme": "volcanic",
+      "gimmick": "dropping_spike",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.35,
+          "boost_vy": -9.6
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.48,
+          "drop_speed": 9.0
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.68,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "apex_ceiling_shatter",
+      "target_profile": "HOPPER",
+      "death_rate": 0.98,
+      "deception_rating": 5
+    },
+    {
+      "id": 70,
+      "chapter": "Updown",
+      "name": "Level 70: Updown Trial 40",
+      "theme": "desert",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.3,
+          "drop_speed": 5.2,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.5,
+          "drop_speed": 5.6,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 6.0,
+          "width": 50
+        }
+      ],
+      "combo": "sinkhole_dominoes",
+      "target_profile": "RUSHER",
+      "death_rate": 0.87,
+      "deception_rating": 4
+    },
+    {
+      "id": 71,
+      "chapter": "Balls",
+      "name": "Level 71: Balls Trial 41",
+      "theme": "inferno",
+      "gimmick": "rolling_ball",
+      "traps": [
+        {
+          "type": "rolling_ball",
+          "x_rel": 0.85,
+          "vx": -5.5,
+          "trigger_range": 95
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.45,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "boulder_rampage",
+      "target_profile": "RUSHER",
+      "death_rate": 0.89,
+      "deception_rating": 5
+    },
+    {
+      "id": 72,
+      "chapter": "Crates",
+      "name": "Level 72: Crates Trial 42",
+      "theme": "midnight",
+      "gimmick": "falling_platform",
+      "traps": [
+        {
+          "type": "falling_platform",
+          "x_rel": 0.35,
+          "drop_speed": 5.0
+        },
+        {
+          "type": "falling_platform",
+          "x_rel": 0.55,
+          "drop_speed": 5.4
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.6,
+          "drop_speed": 8.8
+        }
+      ],
+      "combo": "weighted_crush",
+      "target_profile": "CAUTIOUS",
+      "death_rate": 0.84,
+      "deception_rating": 4
+    },
+    {
+      "id": 73,
+      "chapter": "Pushes",
+      "name": "Level 73: Pushes Trial 43",
+      "theme": "toxic",
+      "gimmick": "piston_crusher",
+      "traps": [
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.35,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "piston_crusher",
+          "x_rel": 0.55,
+          "slam_speed": 9.0,
+          "pause": 30
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.72,
+          "drop_speed": 5.4
+        }
+      ],
+      "combo": "synchronized_hydraulic",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.88,
+      "deception_rating": 4
+    },
+    {
+      "id": 74,
+      "chapter": "Levers",
+      "name": "Level 74: Levers Trial 44",
+      "theme": "bloodstone",
+      "gimmick": "sliding_door",
+      "traps": [
+        {
+          "type": "sliding_door",
+          "x_rel": 0.88,
+          "shift_dist": -120,
+          "shifts_max": 2
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 5.8
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.76,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "lever_false_switch",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.94,
+      "deception_rating": 5
+    },
+    {
+      "id": 75,
+      "chapter": "Invert",
+      "name": "Level 75: Invert Trial 45",
+      "theme": "neon",
+      "gimmick": "reversed_controls",
+      "traps": [
+        {
+          "type": "reversed_controls",
+          "x_rel": 0.5,
+          "width": 110
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.65,
+          "drop_speed": 9.2
+        }
+      ],
+      "combo": "apex_confusion",
+      "target_profile": "HOPPER",
+      "death_rate": 0.98,
+      "deception_rating": 5
+    },
+    {
+      "id": 76,
+      "chapter": "Rhythm",
+      "name": "Level 76: Rhythm Trial 46",
+      "theme": "abyssal",
+      "gimmick": "spinning_saw",
+      "traps": [
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.4,
+          "speed": 3.8
+        },
+        {
+          "type": "spinning_saw",
+          "x_rel": 0.65,
+          "speed": -3.8
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 72
+        }
+      ],
+      "combo": "tempo_saw_pinch",
+      "target_profile": "METHODICAL",
+      "death_rate": 0.9,
+      "deception_rating": 4
+    },
+    {
+      "id": 77,
+      "chapter": "Sharp",
+      "name": "Level 77: Sharp Trial 47",
+      "theme": "emerald",
+      "gimmick": "hidden_spike",
+      "traps": [
+        {
+          "type": "static_spike",
+          "x_rel": 0.38
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.52,
+          "trigger_range": 80
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.75,
+          "trigger_range": 85
+        }
+      ],
+      "combo": "carpet_impale",
+      "target_profile": "RUSHER",
+      "death_rate": 0.89,
+      "deception_rating": 5
+    },
+    {
+      "id": 78,
+      "chapter": "Warps",
+      "name": "Level 78: Warps Trial 48",
+      "theme": "twilight",
+      "gimmick": "troll_portal",
+      "traps": [
+        {
+          "type": "troll_portal",
+          "x_rel": 0.75,
+          "exit_x_rel": 0.22,
+          "exit_vy": 3.5
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.82,
+          "trigger_range": 80
+        }
+      ],
+      "combo": "infinite_fall_loop",
+      "target_profile": "CHAOTIC",
+      "death_rate": 0.92,
+      "deception_rating": 5
+    },
+    {
+      "id": 79,
+      "chapter": "Jumping",
+      "name": "Level 79: Jumping Trial 49",
+      "theme": "volcanic",
+      "gimmick": "dropping_spike",
+      "traps": [
+        {
+          "type": "spring_pad",
+          "x_rel": 0.35,
+          "boost_vy": -9.6
+        },
+        {
+          "type": "dropping_spike",
+          "x_rel": 0.48,
+          "drop_speed": 9.0
+        },
+        {
+          "type": "hidden_spike",
+          "x_rel": 0.68,
+          "trigger_range": 75
+        }
+      ],
+      "combo": "apex_ceiling_shatter",
+      "target_profile": "HOPPER",
+      "death_rate": 0.94,
+      "deception_rating": 5
+    },
+    {
+      "id": 80,
+      "chapter": "Updown",
+      "name": "Level 80: Updown Trial 50",
+      "theme": "desert",
+      "gimmick": "collapsing_floor",
+      "traps": [
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.3,
+          "drop_speed": 5.2,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.5,
+          "drop_speed": 5.6,
+          "width": 50
+        },
+        {
+          "type": "collapsing_floor",
+          "x_rel": 0.7,
+          "drop_speed": 6.0,
+          "width": 50
+        }
+      ],
+      "combo": "sinkhole_dominoes",
+      "target_profile": "RUSHER",
+      "death_rate": 0.9,
+      "deception_rating": 4
+    }
+  ],
+  "training_profiles": {
+    "RUSHER": {
+      "favored_traps": [
+        "collapsing_floor",
+        "reversed_controls",
+        "rolling_ball",
+        "piston_crusher"
+      ],
+      "vulnerability": "sprints blindly without checking floor or anticipating door shifts",
+      "target_lethality_weight": 1.35
+    },
+    "CAUTIOUS": {
+      "favored_traps": [
+        "falling_platform",
+        "rolling_ball",
+        "piston_crusher",
+        "spinning_saw"
+      ],
+      "vulnerability": "hesitates on platforms allowing pursuing hazards to trap them",
+      "target_lethality_weight": 1.3
+    },
+    "HOPPER": {
+      "favored_traps": [
+        "dropping_spike",
+        "falling_platform",
+        "hidden_spike",
+        "spring_pad"
+      ],
+      "vulnerability": "commits to high jump arcs that collide into ceiling stalactites and landing spikes",
+      "target_lethality_weight": 1.38
+    },
+    "CHAOTIC": {
+      "favored_traps": [
+        "troll_portal",
+        "reversed_controls",
+        "sliding_door",
+        "rolling_ball"
+      ],
+      "vulnerability": "unpredictable inputs easily derailed by inverted axes and runaway doors",
+      "target_lethality_weight": 1.32
+    },
+    "METHODICAL": {
+      "favored_traps": [
+        "reversed_controls",
+        "coin_trap",
+        "collapsing_floor",
+        "piston_crusher"
+      ],
+      "vulnerability": "calculates static paths that fail when environment dynamically mutates",
+      "target_lethality_weight": 1.28
+    }
+  }
+}

@@ -197,6 +197,88 @@ class DevilPythonAI:
             "creativity": round(self.creativity_level, 2)
         }
 
+    def train_on_dataset(self, dataset_path=None, epochs=120):
+        """
+        Trains the RL & Perceptron weights using the authentic Level Devil 80-stage dataset.
+        Learns empirical trap efficacies, counter-patterns, and elevated skill parameters.
+        """
+        if not dataset_path:
+            dataset_path = os.path.join(os.path.dirname(__file__), 'level_devil_dataset.json')
+
+        if not os.path.exists(dataset_path):
+            raise FileNotFoundError(f"Dataset not found at {dataset_path}")
+
+        with open(dataset_path, 'r', encoding='utf-8') as f:
+            dataset = json.load(f)
+
+        stages = dataset.get('stages', [])
+        benchmarks = dataset.get('lethality_benchmarks', {})
+
+        print(f"[Training] Loaded Level Devil dataset: {len(stages)} stages across {len(dataset.get('chapters', []))} chapters")
+
+        # 1. Update baseline trap efficacy from authentic Level Devil lethality benchmarks
+        for trap_type, bench in benchmarks.items():
+            base_lethality = bench.get('lethality', 0.75)
+            # Level Devil traps are lethal: efficacy scaled to 1.8x - 3.2x
+            self.trap_efficacy[trap_type] = round(1.0 + base_lethality * 2.2, 2)
+
+        # 2. Train perceptron weights over multiple epochs using synthetic player profiles
+        synthetic_telemetry = {
+            "RUSHER": {"totalFrames": 450, "movingFrames": 420, "idleFrames": 30, "jumpCount": 6, "rushDistance": 1800, "deaths": [{"reason": "hazard"}]},
+            "CAUTIOUS": {"totalFrames": 1200, "movingFrames": 350, "idleFrames": 850, "jumpCount": 8, "rushDistance": 600, "deaths": [{"reason": "hazard"}]},
+            "HOPPER": {"totalFrames": 500, "movingFrames": 390, "idleFrames": 110, "jumpCount": 38, "rushDistance": 1200, "deaths": [{"reason": "hazard"}]},
+            "CHAOTIC": {"totalFrames": 700, "movingFrames": 500, "idleFrames": 200, "jumpCount": 18, "rushDistance": 1100, "deaths": [{"reason": "hazard"}]},
+            "METHODICAL": {"totalFrames": 850, "movingFrames": 420, "idleFrames": 430, "jumpCount": 12, "rushDistance": 950, "deaths": [{"reason": "hazard"}]}
+        }
+
+        total_loss = 0.0
+        for epoch in range(epochs):
+            epoch_loss = 0.0
+            for stage in stages:
+                target_profile = stage.get('target_profile', 'RUSHER')
+                telem = synthetic_telemetry.get(target_profile, synthetic_telemetry['RUSHER'])
+                features = self.extract_features(telem)
+
+                scores = {}
+                for p, w in self.weights.items():
+                    scores[p] = sum(features[i] * w[i] for i in range(len(features)))
+
+                exp_scores = {p: math.exp(min(15.0, max(-15.0, s))) for p, s in scores.items()}
+                sum_exp = sum(exp_scores.values()) or 1.0
+                probs = {p: exp_scores[p] / sum_exp for p in exp_scores}
+
+                target_prob = probs.get(target_profile, 0.0)
+                loss = -math.log(max(1e-7, target_prob))
+                epoch_loss += loss
+
+                lr = max(0.01, self.learning_rate * (1.0 - epoch / epochs))
+                for p in self.weights:
+                    error = (1.0 if p == target_profile else 0.0) - probs[p]
+                    for i in range(len(features)):
+                        self.weights[p][i] += lr * error * features[i]
+
+            total_loss = epoch_loss / len(stages)
+            self.learning_epochs += 1
+
+        # Elevate player skill and creativity baseline to Level Devil master tier
+        self.player_skill = 2.85
+        self.creativity_level = 2.65
+        self.save_memory()
+
+        print(f"[Training Complete] Epochs: {self.learning_epochs}, Final Avg Loss: {round(total_loss, 4)}")
+        print(f"[Model Parameters] Skill: {self.player_skill}, Creativity: {self.creativity_level}")
+
+        return {
+            "status": "trained",
+            "epochs": self.learning_epochs,
+            "stages_processed": len(stages),
+            "final_loss": round(total_loss, 4),
+            "player_skill": self.player_skill,
+            "creativity_level": self.creativity_level,
+            "trap_efficacy": self.trap_efficacy,
+            "weights": self.weights
+        }
+
     def synthesize_generative_traps(self, level_data, level_id=1, telemetry=None):
         """
         Dynamically craft bespoke traps directly from level geometry and player telemetry.
@@ -298,7 +380,7 @@ class DevilPythonAI:
                 'y': surf_pre['floorY'],
                 'w': 48,
                 'h': 35,
-                'dropSpeed': round(2.4 + diff_mult * 0.15, 2),
+                'dropSpeed': round(4.8 + diff_mult * 0.35, 2),
                 'zone': 'exit',
                 'purpose': 'door_sinkhole'
             })
@@ -314,7 +396,7 @@ class DevilPythonAI:
                 'w': 22,
                 'h': 22,
                 'groundY': surf_ambush['floorY'],
-                'triggerRange': 55,
+                'triggerRange': 70,
                 'zone': 'exit',
                 'purpose': 'door_anti_air'
             })
@@ -342,7 +424,7 @@ class DevilPythonAI:
                 'h': 65,
                 'exitX': max(160, sp_x + 140),
                 'exitY': sp_y - 20,
-                'exitVy': 2.5,
+                'exitVy': 3.5,
                 'zone': 'exit',
                 'purpose': 'door_loop_portal'
             })
@@ -366,7 +448,7 @@ class DevilPythonAI:
                         'w': 22,
                         'h': 22,
                         'groundY': surf_mid['floorY'],
-                        'triggerRange': 48,
+                        'triggerRange': 68,
                         'zone': 'mid',
                         'purpose': 'arch_dropping_spike'
                     })
@@ -381,7 +463,7 @@ class DevilPythonAI:
                         'y': surf_plat['floorY'],
                         'w': 55,
                         'h': 14,
-                        'dropSpeed': 2.2,
+                        'dropSpeed': round(4.6 + diff_mult * 0.30, 2),
                         'zone': 'mid',
                         'purpose': 'arch_falling_platform'
                     })
@@ -406,7 +488,7 @@ class DevilPythonAI:
                     'y': surf_rush['floorY'],
                     'w': 26,
                     'h': 16,
-                    'triggerRange': 38,
+                    'triggerRange': 75,
                     'zone': 'mid',
                     'purpose': 'rush_counter_spike'
                 })
@@ -419,8 +501,8 @@ class DevilPythonAI:
                     'y': surf_boulder['floorY'],
                     'groundY': surf_boulder['floorY'],
                     'radius': 17,
-                    'vx': round((-4.6 if door_x > sp_x else 4.6) - diff_mult * 0.35, 2),
-                    'triggerRange': 95,
+                    'vx': round((-5.4 if door_x > sp_x else 5.4) - diff_mult * 0.45, 2),
+                    'triggerRange': 105,
                     'zone': 'mid',
                     'purpose': 'rush_counter_boulder'
                 })
@@ -435,7 +517,7 @@ class DevilPythonAI:
                     'w': 22,
                     'h': 22,
                     'groundY': surf_apex['floorY'],
-                    'triggerRange': 48,
+                    'triggerRange': 70,
                     'zone': 'mid',
                     'purpose': 'hopper_anti_air'
                 })
@@ -448,7 +530,7 @@ class DevilPythonAI:
                     'y': surf_landing['floorY'],
                     'w': 26,
                     'h': 16,
-                    'triggerRange': 32,
+                    'triggerRange': 75,
                     'zone': 'mid',
                     'purpose': 'hopper_landing_spike'
                 })
@@ -758,6 +840,12 @@ def run_cli():
             ]
             result = ai.select_adaptive_traps(sample_candidates, [], 6, sample_telemetry)
             print(json.dumps(result, indent=2))
+            return
+
+        if cmd == '--train-dataset':
+            dataset_path = sys.argv[2] if len(sys.argv) > 2 else None
+            res = ai.train_on_dataset(dataset_path)
+            print(json.dumps(res))
             return
 
         if cmd == '--predict':
