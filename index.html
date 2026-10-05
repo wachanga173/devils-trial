@@ -169,11 +169,11 @@
     <header class="game-header">
         <div class="header-left">
             <h1 class="game-title">DEVIL'S TRIAL</h1>
-            <button id="modeToggle" class="mode-badge" title="Click to switch between Adaptive AI and Static trap modes">
-                <span><svg class="ui-icon"><use href="#icon-brain"></use></svg> AI DIRECTOR:</span> <strong style="color: #ffca28;">ADAPTIVE ON</strong>
-            </button>
-            <div id="aiBadge" class="mode-badge" style="cursor: default;" title="Machine Learning model predicting player behavior">
-                <span>AI PREDICTION:</span> <strong style="color: #ffca28;">ANALYZING...</strong>
+            <div class="mode-badge" style="cursor: default;" title="Current Thematic Chapter">
+                <span><svg class="ui-icon"><use href="#icon-flame"></use></svg> CHAPTER:</span> <strong id="chapterTitle" style="color: #ffca28;">The Descent of Deception</strong>
+            </div>
+            <div class="mode-badge" style="cursor: default;" title="200 Handcrafted Authentic Rage Trials">
+                <span><svg class="ui-icon"><use href="#icon-devil"></use></svg> CAMPAIGN:</span> <strong style="color: #00e5ff;">200 TRIALS</strong>
             </div>
         </div>
         <div class="header-right">
@@ -229,15 +229,6 @@
                 
                 <div class="modal-options">
                     <div class="option-group">
-                        <label for="levelSelector">Select Level:</label>
-                        <select id="levelSelector" class="custom-select">
-                            <option value="0">Level 1: The Descent</option>
-                            <option value="1">Level 2: The Rolling Boulder</option>
-                            <option value="2">Level 3: The Portal Loop</option>
-                            <option value="3">Level 4: Where Are You Going?</option>
-                        </select>
-                    </div>
-                    <div class="option-group">
                         <label for="themeSelector">Visual Theme:</label>
                         <select id="themeSelector" class="custom-select">
                             <option value="inferno">Inferno Ochre (Classic)</option>
@@ -264,6 +255,40 @@
                     <a id="pausePortfolioBtn" class="btn-secondary btn-portfolio-link" href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer">
                         <svg class="ui-icon"><use href="#icon-code"></use></svg> DEVELOPER PORTFOLIO <svg class="ui-icon"><use href="#icon-external"></use></svg>
                     </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grand Ending Victory Overlay (Triggers upon beating Level 200) -->
+        <div id="endingOverlay" class="overlay-modal ending-modal" style="display: none;">
+            <div class="modal-content ending-modal-content">
+                <div class="ending-trophy-banner">
+                    <svg class="ui-icon ui-icon-xl" style="color: #ffd700; width: 44px; height: 44px;"><use href="#icon-devil"></use></svg>
+                    <span class="ending-crown">👑</span>
+                </div>
+                <h2 class="modal-title ending-title">ALL 200 TRIALS CONQUERED!</h2>
+                <p class="ending-subtitle">You have conquered the ultimate gauntlet of alive rage maps!</p>
+                <div class="ending-devil-quote">
+                    <p>"NOOO! IMPOSSIBLE!! You actually survived ALL 200 of my trials?! I yield... you are the TRUE DEVIL OF PLATFORMERS!"</p>
+                </div>
+                <div class="ending-stats-grid">
+                    <div class="ending-stat-box">
+                        <span class="ending-stat-label">TOTAL DEATHS</span>
+                        <strong id="endingDeathCount" class="ending-stat-val">0</strong>
+                    </div>
+                    <div class="ending-stat-box">
+                        <span class="ending-stat-label">TRIALS CLEARED</span>
+                        <strong class="ending-stat-val" style="color: #69f0ae;">200 / 200</strong>
+                    </div>
+                    <div class="ending-stat-box">
+                        <span class="ending-stat-label">DEVIL'S RATING</span>
+                        <strong id="endingMasteryRating" class="ending-stat-val" style="color: #ffca28;">DEVIL CONQUEROR</strong>
+                    </div>
+                </div>
+                <div class="modal-buttons ending-buttons">
+                    <button id="endingReplayAnimationBtn" class="btn-primary">WATCH VICTORY CINEMATIC AGAIN</button>
+                    <button id="endingRestartBtn" class="btn-secondary">START NEW RUN (LEVEL 1)</button>
+                    <button id="endingReplayLevel200Btn" class="btn-secondary">REPLAY LEVEL 200 FINALE</button>
                 </div>
             </div>
         </div>
@@ -693,12 +718,10 @@
     <!-- Scripts with cache busting -->
     <script src="./icons.js?v=28"></script>
     <script src="./audio.js?v=26"></script>
-    <script src="./ai.js?v=26"></script>
-    <script src="./levelGenerator.js?v=26"></script>
     <script src="./character.js?v=26"></script>
     <script src="./physics.js?v=26"></script>
-    <script src="./traps.js?v=26"></script>
-    <script src="./levels.js?v=26"></script>
-    <script src="./game.js?v=28"></script>
+    <script src="./traps.js?v=29"></script>
+    <script src="./levels.js?v=29"></script>
+    <script src="./game.js?v=29"></script>
 </body>
 </html>

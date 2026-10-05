@@ -1,4 +1,4 @@
-// game.js - Infinite Progressive Devil's Trial with AI Director & Adaptive Shifting Door
+// game.js - 200 Handcrafted Authentic Devil's Trials with Alive Maps & Grand Ending
 class Game {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
@@ -7,8 +7,6 @@ class Game {
         this.physics = new Physics();
         this.renderer = new CharacterRenderer();
         this.trapManager = new TrapManager();
-        this.ai = new DevilAI(); // ML Behavioral Telemetry Model
-        this.levelGen = new AILevelGenerator(); // Procedural AI Level Architect
 
         this.currentLevelIndex = 0;
         this.currentLevel = LEVELS[0];
@@ -83,24 +81,33 @@ class Game {
         this.deathDisplay = document.getElementById('deathCount');
         this.levelDisplay = document.getElementById('levelNumber');
         this.levelTitleDisplay = document.getElementById('levelTitle');
-        this.modeToggleBtn = document.getElementById('modeToggle');
-        this.aiBadge = document.getElementById('aiBadge');
-        if (this.ai && this.ai.checkPythonStatus) {
-            this.ai.checkPythonStatus().then(() => this.updateAIBadge());
-        }
         this.pauseOverlay = document.getElementById('pauseOverlay');
         this.themeSelector = document.getElementById('themeSelector');
-        this.levelSelector = document.getElementById('levelSelector');
         this.resumeBtn = document.getElementById('resumeBtn');
         this.restartBtn = document.getElementById('restartBtn');
 
-        if (this.levelSelector) {
-            this.levelSelector.addEventListener('change', (e) => {
-                const targetIdx = parseInt(e.target.value, 10);
-                if (!isNaN(targetIdx)) {
-                    this.loadLevel(targetIdx);
-                    if (this.gameState === 'paused') this.togglePause();
-                }
+        // Ending modal buttons
+        this.endingOverlay = document.getElementById('endingOverlay');
+        const endingReplayAnimationBtn = document.getElementById('endingReplayAnimationBtn');
+        const endingRestartBtn = document.getElementById('endingRestartBtn');
+        const endingReplayLevel200Btn = document.getElementById('endingReplayLevel200Btn');
+
+        if (endingReplayAnimationBtn) {
+            endingReplayAnimationBtn.addEventListener('click', () => {
+                if (this.endingOverlay) this.endingOverlay.style.display = 'none';
+                this.endingTimer = 0;
+            });
+        }
+        if (endingRestartBtn) {
+            endingRestartBtn.addEventListener('click', () => {
+                if (this.endingOverlay) this.endingOverlay.style.display = 'none';
+                this.loadLevel(0);
+            });
+        }
+        if (endingReplayLevel200Btn) {
+            endingReplayLevel200Btn.addEventListener('click', () => {
+                if (this.endingOverlay) this.endingOverlay.style.display = 'none';
+                this.loadLevel(LEVELS.length - 1);
             });
         }
 
@@ -110,15 +117,6 @@ class Game {
             levelBadgeHud.title = 'Click to open Pause & Level Select Menu';
             levelBadgeHud.addEventListener('click', () => {
                 this.togglePause();
-            });
-        }
-
-        if (this.modeToggleBtn) {
-            this.modeToggleBtn.addEventListener('click', () => {
-                this.trapManager.chaosMode = !this.trapManager.chaosMode;
-                this.updateModeButton();
-                this.respawnPlayer(false);
-                this.saveGame();
             });
         }
 
@@ -744,9 +742,7 @@ class Game {
                 currentLevelIndex: this.currentLevelIndex,
                 deathCount: this.deathCount,
                 currentThemeKey: this.currentThemeKey,
-                chaosMode: this.trapManager.chaosMode,
-                lastSaved: new Date().toISOString(),
-                ai: (this.ai && this.ai.serializeTelemetry) ? this.ai.serializeTelemetry() : null
+                lastSaved: new Date().toISOString()
             };
             localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
             return true;
@@ -777,13 +773,8 @@ class Game {
             if (!data || typeof data !== 'object') return false;
 
             if (typeof data.currentLevelIndex === 'number' && data.currentLevelIndex >= 0) {
-                // If saved progress is past canonical levels (e.g. from previously loaded broken level 6),
-                // reset to Level 1 so player immediately enjoys the authentic campaign levels!
-                if (data.currentLevelIndex >= 4) {
-                    this.currentLevelIndex = 0;
-                } else {
-                    this.currentLevelIndex = data.currentLevelIndex;
-                }
+                const maxLvlIdx = (typeof LEVELS !== 'undefined' && LEVELS.length > 0) ? (LEVELS.length - 1) : 199;
+                this.currentLevelIndex = Math.min(maxLvlIdx, data.currentLevelIndex);
             }
             if (typeof data.deathCount === 'number' && data.deathCount >= 0) {
                 this.deathCount = data.deathCount;
@@ -793,13 +784,6 @@ class Game {
                 this.currentThemeKey = data.currentThemeKey;
                 this.theme = THEMES[this.currentThemeKey];
                 if (this.themeSelector) this.themeSelector.value = this.currentThemeKey;
-            }
-            if (typeof data.chaosMode === 'boolean') {
-                this.trapManager.chaosMode = data.chaosMode;
-                this.updateModeButton();
-            }
-            if (data.ai && this.ai && this.ai.deserializeTelemetry) {
-                this.ai.deserializeTelemetry(data.ai);
             }
             return true;
         } catch (e) {
@@ -893,7 +877,7 @@ class Game {
         const sizeBytes = charCount * 2; // UTF-16 in LocalStorage
         const sizeKB = (sizeBytes / 1024).toFixed(2);
 
-        let progressStr = `Level ${this.currentLevel ? this.currentLevel.id : ((this.currentLevelIndex || 0) + 1)} | ${this.deathCount || 0} Deaths | E${(this.ai && this.ai.learningEpochs) || 0}`;
+        let progressStr = `Level ${this.currentLevel ? this.currentLevel.id : ((this.currentLevelIndex || 0) + 1)} / ${LEVELS.length} | ${this.deathCount || 0} Deaths`;
         let lastSavedStr = 'Not saved yet';
 
         if (raw) {
@@ -903,7 +887,7 @@ class Game {
                     lastSavedStr = new Date(parsed.lastSaved).toLocaleString();
                 }
                 if (typeof parsed.currentLevelIndex === 'number' && typeof parsed.deathCount === 'number') {
-                    progressStr = `Level ${parsed.currentLevelIndex + 1} | ${parsed.deathCount} Deaths | E${(parsed.ai && parsed.ai.learningEpochs) || 0} Epochs`;
+                    progressStr = `Level ${parsed.currentLevelIndex + 1} / ${LEVELS.length} | ${parsed.deathCount} Deaths`;
                 }
             } catch (e) {}
         }
@@ -1235,12 +1219,9 @@ class Game {
         this.deathCount = 0;
         this.currentThemeKey = 'inferno';
         this.theme = THEMES[this.currentThemeKey];
-        this.trapManager.chaosMode = true;
-        this.ai = new DevilAI();
 
         if (this.deathDisplay) this.deathDisplay.innerText = '0';
         if (this.themeSelector) this.themeSelector.value = this.currentThemeKey;
-        this.updateModeButton();
         this.loadLevel(0);
 
         this.refreshStorageModalUI();
@@ -1303,47 +1284,14 @@ class Game {
         });
     }
 
-    updateModeButton() {
-        if (!this.modeToggleBtn) return;
-        const brainIco = (typeof DT_ICONS !== 'undefined') ? DT_ICONS.svg('brain') : '';
-        if (this.trapManager.chaosMode) {
-            this.modeToggleBtn.innerHTML = `<span>${brainIco} AI DIRECTOR:</span> <strong style="color: #ffca28;">ADAPTIVE ON</strong>`;
-        } else {
-            this.modeToggleBtn.innerHTML = `<span>${brainIco} AI DIRECTOR:</span> <strong style="color: #90caf9;">STATIC FIXED</strong>`;
-        }
-    }
-
-    updateAIBadge() {
-        if (!this.aiBadge) return;
-        const profile = this.ai.currentProfile;
-        const conf = this.ai.confidence;
-        const epochs = this.ai.learningEpochs || 0;
-        const skill = (this.ai.playerSkillEstimate || 1.0).toFixed(1);
-        let color = '#ffca28';
-        if (profile === 'RUSHER') color = '#ff5252';
-        else if (profile === 'CAUTIOUS') color = '#69f0ae';
-        else if (profile === 'HOPPER') color = '#40c4ff';
-        else if (profile === 'CHAOTIC') color = '#e040fb';
-        else if (profile === 'METHODICAL') color = '#00e676';
-
-        const engineBadge = (this.ai && this.ai.pythonConnected)
-            ? `<span style="background: rgba(46, 125, 50, 0.35); border: 1px solid #4caf50; color: #a5d6a7; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">PYTHON RL</span>`
-            : `<span style="background: rgba(30, 136, 229, 0.25); border: 1px solid #42a5f5; color: #90caf9; padding: 1px 5px; border-radius: 3px; font-size: 10px; margin-right: 5px; font-weight: 700;">JS RL</span>`;
-
-        this.aiBadge.innerHTML = `${engineBadge}<span>AI PREDICTION:</span> <strong style="color: ${color};">${profile} (${conf}%)</strong> <span style="opacity: 0.8; font-size: 11px; margin-left: 4px;">| LEARN: E${epochs}</span>`;
-        this.aiBadge.title = `${this.ai.activeCounterStrategy} (Skill: ${skill}x, Creativity: ${(this.ai.creativityLevel || 1.0).toFixed(1)})`;
-    }
-
     loadLevel(index) {
-        this.currentLevelIndex = index;
-
-        if (this.currentLevelIndex < LEVELS.length) {
-            this.currentLevel = LEVELS[this.currentLevelIndex];
-        } else {
-            const newLevelNumber = this.currentLevelIndex + 1;
-            this.currentLevel = this.levelGen.generateLevel(newLevelNumber, this.ai);
-            LEVELS.push(this.currentLevel);
+        if (index >= LEVELS.length) {
+            this.startEndingCelebration();
+            return;
         }
+
+        this.currentLevelIndex = index;
+        this.currentLevel = LEVELS[this.currentLevelIndex];
 
         if (this.currentLevel.theme && THEMES[this.currentLevel.theme]) {
             this.currentThemeKey = this.currentLevel.theme;
@@ -1351,22 +1299,15 @@ class Game {
             if (this.themeSelector) this.themeSelector.value = this.currentThemeKey;
         }
 
-        const genTag = this.currentLevel.isAIGenerated ? " [AI GEN]" : "";
-        if (this.levelDisplay) this.levelDisplay.innerText = `LEVEL ${this.currentLevel.id}${genTag}`;
+        if (this.levelDisplay) this.levelDisplay.innerText = `LEVEL ${this.currentLevel.id} / ${LEVELS.length}`;
         if (this.levelTitleDisplay) this.levelTitleDisplay.innerText = this.currentLevel.title;
-        if (this.levelSelector) {
-            if (this.currentLevelIndex < 4) {
-                this.levelSelector.value = String(this.currentLevelIndex);
-            }
+        const chapterTitle = document.getElementById('chapterTitle');
+        if (chapterTitle && this.currentLevel.chapter) {
+            chapterTitle.innerText = this.currentLevel.chapter;
         }
 
         this.respawnPlayer(false);
         this.saveGame();
-
-        // Background prefetch next trap configuration from Python RL model
-        if (this.currentLevel && this.currentLevel.candidateTrapSlots && this.ai && this.ai.prefetchPythonPrediction) {
-            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps, this.currentLevel);
-        }
     }
 
     respawnPlayer(incrementDeath = false) {
@@ -1394,11 +1335,11 @@ class Game {
         this.reversedTimer = 0;
         this.gameState = 'playing';
 
-        // 1. Setup / Shuffle traps adapted by AI model
-        this.trapManager.setupLevel(this.currentLevel, this.ai);
+        // 1. Setup handcrafted traps
+        this.trapManager.setupLevel(this.currentLevel);
 
-        // 2. Initialize the Adaptive Shifting Door (reacts to player playstyle!)
-        this.door = new AdaptiveDoor(this.currentLevel.door, this.currentLevel, this.ai);
+        // 2. Initialize the Evasive Shifting Door
+        this.door = new AdaptiveDoor(this.currentLevel.door, this.currentLevel);
 
         // 3. Recalculate solids: dynamically slice floor around active vanishing floors
         this.currentSolids = getActiveLevelSolids(this.currentLevel, this.trapManager.traps);
@@ -1410,8 +1351,6 @@ class Game {
         this.camera.y = Math.max(0, Math.min(maxCamY, spawn.y - 240));
         this.camera.targetX = this.camera.x;
         this.camera.targetY = this.camera.y;
-
-        this.updateAIBadge();
     }
 
     playerDie(reason, trapType = null) {
@@ -1423,19 +1362,10 @@ class Game {
         this.deathCount++;
         if (this.deathDisplay) this.deathDisplay.innerText = this.deathCount;
 
-        const fatalTrap = trapType || (reason === 'pit' ? 'collapsing_floor' : reason);
-        this.ai.recordDeath(reason, this.player.x, this.player.y, this.currentLevel.id, fatalTrap);
-
-        // Prefetch counter-traps for the upcoming respawn
-        if (this.currentLevel && this.currentLevel.candidateTrapSlots && this.ai && this.ai.prefetchPythonPrediction) {
-            this.ai.prefetchPythonPrediction(this.currentLevel.id, this.currentLevel.candidateTrapSlots, this.currentLevel.staticTraps, this.currentLevel);
-        }
-
         this.shake(12, 6);
         if (window.soundFX) window.soundFX.playDeath();
 
         this.spawnDeathParticles(this.player.x, this.player.y - 12, this.player.vx, this.player.vy);
-        this.updateAIBadge();
         this.saveGame();
     }
 
@@ -1531,11 +1461,6 @@ class Game {
 
         if (this.shakeTimer > 0) this.shakeTimer--;
 
-        // AI Telemetry Learning
-        if (this.gameState === 'playing') {
-            this.ai.recordFrame(this.player, this.input, this.door);
-        }
-
         // Particle updates
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
@@ -1596,9 +1521,9 @@ class Game {
                 this.currentLevel.bounds
             );
 
-            // Update Adaptive Door (reacts to player velocity/jump/hesitation!)
+            // Update Adaptive Door
             if (this.door) {
-                this.door.update(this.player, this.ai, this);
+                this.door.update(this.player, null, this);
             }
 
             // Hazards collision
@@ -1614,7 +1539,7 @@ class Game {
             }
         } else if (this.gameState === 'door_entering') {
             // Player steps inside door threshold, and door physically slams shut!
-            this.door.update(this.player, this.ai, this);
+            this.door.update(this.player, null, this);
             const doorTargetX = this.door.x + this.door.w / 2;
             this.player.x += (doorTargetX - this.player.x) * 0.25;
             this.player.y = this.door.y + this.door.h;
@@ -1629,8 +1554,14 @@ class Game {
         } else if (this.gameState === 'level_complete') {
             this.winTimer--;
             if (this.winTimer <= 0) {
-                this.loadLevel(this.currentLevelIndex + 1);
+                if (this.currentLevelIndex >= LEVELS.length - 1) {
+                    this.startEndingCelebration();
+                } else {
+                    this.loadLevel(this.currentLevelIndex + 1);
+                }
             }
+        } else if (this.gameState === 'game_completed') {
+            this.updateEndingCelebration();
         }
     }
 
@@ -1652,9 +1583,6 @@ class Game {
         this.winTimer = 48;
         if (window.soundFX) window.soundFX.playWin();
 
-        // Feed stage completion to AI model for online adaptation
-        this.ai.recordStageClear(this.currentLevel.id, this.ai.telemetry.totalFrames);
-        this.updateAIBadge();
         this.saveGame();
 
         for (let i = 0; i < 30; i++) {
@@ -1672,6 +1600,249 @@ class Game {
                 gravity: 0.12
             });
         }
+    }
+
+    startEndingCelebration() {
+        this.gameState = 'game_completed';
+        this.endingTimer = 0;
+        this.particles = [];
+        if (window.soundFX && window.soundFX.playWin) {
+            window.soundFX.playWin();
+        }
+        // Snap camera to origin
+        this.camera.x = 0;
+        this.camera.y = 0;
+        this.camera.targetX = 0;
+        this.camera.targetY = 0;
+
+        const deathEl = document.getElementById('endingDeathCount');
+        const ratingEl = document.getElementById('endingMasteryRating');
+        if (deathEl) deathEl.innerText = this.deathCount;
+        if (ratingEl) {
+            if (this.deathCount <= 100) ratingEl.innerText = 'DIVINE SPEEDRUNNER';
+            else if (this.deathCount <= 300) ratingEl.innerText = 'DEVIL CONQUEROR';
+            else if (this.deathCount <= 700) ratingEl.innerText = 'IRON WILL SURVIVOR';
+            else ratingEl.innerText = 'INDOMITABLE MASTER';
+        }
+    }
+
+    updateEndingCelebration() {
+        this.endingTimer = (this.endingTimer || 0) + 1;
+
+        // Continuous fireworks & confetti
+        if (this.endingTimer % 4 === 0) {
+            const burstX = 120 + Math.random() * 600;
+            const burstY = 80 + Math.random() * 180;
+            const colors = ['#ffd700', '#ff1744', '#00e5ff', '#69f0ae', '#e040fb', '#ffffff', '#ff9100'];
+            const col = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < 10; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spd = 2.0 + Math.random() * 4.5;
+                this.particles.push({
+                    x: burstX,
+                    y: burstY,
+                    vx: Math.cos(angle) * spd,
+                    vy: Math.sin(angle) * spd,
+                    gravity: 0.08,
+                    life: 55 + Math.floor(Math.random() * 30),
+                    color: col,
+                    size: 2.5 + Math.random() * 2.5
+                });
+            }
+        }
+
+        // Show ending modal overlay after intro animation plays
+        if (this.endingTimer === 90 && this.endingOverlay) {
+            this.endingOverlay.style.display = 'flex';
+        }
+    }
+
+    drawEndingAnimation(ctx) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(12, 10, 10, 0.88)';
+        ctx.fillRect(0, 0, w, h);
+
+        const timer = this.endingTimer || 0;
+        const cx = w / 2;
+        const cy = 180;
+
+        // 1. Radiant backdrop glow
+        const glow = ctx.createRadialGradient(cx, cy, 20, cx, cy, 240);
+        glow.addColorStop(0, 'rgba(255, 82, 82, 0.35)');
+        glow.addColorStop(0.5, 'rgba(255, 215, 0, 0.15)');
+        glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 240, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Animated Defeated Devil Boss
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // Devil Body & Head
+        ctx.fillStyle = '#c62828';
+        ctx.beginPath();
+        // Horns
+        ctx.moveTo(-35, -40);
+        ctx.quadraticCurveTo(-60, -85, -25, -70);
+        ctx.lineTo(-20, -45);
+        ctx.lineTo(20, -45);
+        ctx.lineTo(25, -70);
+        ctx.quadraticCurveTo(60, -85, 35, -40);
+        // Head
+        ctx.arc(0, -10, 45, 0, Math.PI);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#2b0a0a';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Shocked Trembling Eyes
+        const eyeWiden = Math.min(1.8, 1 + timer * 0.01);
+        const eyeShake = (Math.random() - 0.5) * 2;
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.ellipse(-18 + eyeShake, -20, 12 * eyeWiden, 15 * eyeWiden, 0, 0, Math.PI * 2);
+        ctx.ellipse(18 + eyeShake, -20, 12 * eyeWiden, 15 * eyeWiden, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#2b0a0a';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Tiny Horrified Pupils
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(-18 + eyeShake, -20, 3, 0, Math.PI * 2);
+        ctx.arc(18 + eyeShake, -20, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Wide Dropping Jaw / Mouth
+        ctx.fillStyle = '#1a0505';
+        ctx.beginPath();
+        ctx.ellipse(0, 15 + Math.sin(timer * 0.1) * 3, 22, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffebee';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Animated Sweat Droplets spraying
+        for (let s = 0; s < 4; s++) {
+            const sweatPhase = (timer * 0.1 + s * 1.5) % 6;
+            const sx = (s % 2 === 0 ? -1 : 1) * (45 + sweatPhase * 8);
+            const sy = -30 - sweatPhase * 4;
+            ctx.fillStyle = '#80d8ff';
+            ctx.beginPath();
+            ctx.arc(sx, sy, Math.max(1, 4 - sweatPhase * 0.5), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Waving White Surrender Flag
+        const flagAngle = Math.sin(timer * 0.14) * 0.35 - 0.3;
+        ctx.save();
+        ctx.translate(50, 5);
+        ctx.rotate(flagAngle);
+        // Flagpole
+        ctx.strokeStyle = '#d7ccc8';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 20);
+        ctx.lineTo(0, -65);
+        ctx.stroke();
+        // White Flag Cloth
+        const wave = Math.sin(timer * 0.2) * 5;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(0, -65);
+        ctx.quadraticCurveTo(25, -65 + wave, 50, -60);
+        ctx.lineTo(50, -35);
+        ctx.quadraticCurveTo(25, -40 - wave, 0, -40);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#cfd8dc';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#b0bec5';
+        ctx.font = 'bold 8px monospace';
+        ctx.fillText('YIELD', 8, -48);
+        ctx.restore();
+
+        ctx.restore(); // restore devil translate
+
+        // 3. Speech Bubble
+        ctx.fillStyle = 'rgba(25, 20, 20, 0.95)';
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        const bw = 380;
+        const bh = 56;
+        const bx = cx - bw / 2;
+        const by = cy - 130;
+        if (typeof ctx.roundRect === 'function') {
+            ctx.beginPath();
+            ctx.roundRect(bx, by, bw, bh, 8);
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.strokeRect(bx, by, bw, bh);
+        }
+        ctx.fillStyle = '#ff8a80';
+        ctx.font = 'bold 13px var(--font-ui, sans-serif)';
+        ctx.textAlign = 'center';
+        ctx.fillText('"IMPOSSIBLE... YOU ACTUALLY SURVIVED ALL 200 TRIALS?!"', cx, by + 24);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 12px var(--font-ui, sans-serif)';
+        ctx.fillText('"I YIELD! You are the TRUE DEVIL OF PLATFORMERS!"', cx, by + 44);
+
+        // 4. Player Character doing Victory Dance with Crown
+        const hopY = Math.abs(Math.sin(timer * 0.12)) * 14;
+        const px = cx;
+        const py = 370 - hopY;
+        this.renderer.draw(ctx, px, py, 0, -1, true, 1, '#ffffff', false);
+
+        // Floating Golden Crown above Player
+        ctx.save();
+        ctx.translate(px, py - 36);
+        ctx.fillStyle = '#ffd700';
+        ctx.strokeStyle = '#ff8f00';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-12, 6);
+        ctx.lineTo(-14, -8);
+        ctx.lineTo(-6, -2);
+        ctx.lineTo(0, -12);
+        ctx.lineTo(6, -2);
+        ctx.lineTo(14, -8);
+        ctx.lineTo(12, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Crown jewels
+        ctx.fillStyle = '#e91e63';
+        ctx.beginPath();
+        ctx.arc(-8, 2, 1.8, 0, Math.PI * 2);
+        ctx.arc(0, 2, 1.8, 0, Math.PI * 2);
+        ctx.arc(8, 2, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 5. Grand Trophy Title Text
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '900 24px var(--font-ui, sans-serif)';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 12;
+        ctx.fillText('ALL 200 TRIALS CONQUERED!', cx, 430);
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#ded6cf';
+        ctx.font = '12px var(--font-ui, sans-serif)';
+        ctx.fillText(`TOTAL DEATHS: ${this.deathCount}  |  ESC TO CHOOSE ANY TRIAL`, cx, 452);
+
+        ctx.restore();
     }
 
     spawnDust(x, y) {
@@ -1958,8 +2129,13 @@ class Game {
             ctx.fillText("STAGE CLEARED!", screenW / 2, screenH / 2 - 8);
             ctx.font = '14px "Courier New", monospace';
             ctx.fillStyle = '#ffca28';
-            ctx.fillText("AI Director synthesizing next challenge...", screenW / 2, screenH / 2 + 22);
+            ctx.fillText("Preparing next trial...", screenW / 2, screenH / 2 + 22);
             ctx.restore();
+        }
+
+        // 9. Grand Ending Victory Animation (Level 200 Conquest!)
+        if (this.gameState === 'game_completed') {
+            this.drawEndingAnimation(ctx);
         }
     }
 

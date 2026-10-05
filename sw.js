@@ -16,8 +16,6 @@ const PRECACHE_ASSETS = [
     './manifest.json',
     './icon.svg',
     './audio.js',
-    './ai.js',
-    './levelGenerator.js',
     './character.js',
     './physics.js',
     './traps.js',

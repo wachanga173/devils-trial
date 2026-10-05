@@ -60,50 +60,24 @@ class TrapManager {
         this.chaosMode = true;
     }
 
-    setupLevel(levelData, aiModel) {
+    setupLevel(levelData) {
         this.traps = [];
         this.activeHazards = [];
         this.level = levelData;
 
-        // Guaranteed visible bait traps (e.g. stationary spikes)
+        // Guaranteed visible static traps
         for (const st of (levelData.staticTraps || [])) {
             this.createTrap(st);
         }
 
-        const candidateSlots = levelData.candidateTrapSlots || [];
-        if (candidateSlots.length > 0) {
-            if (this.chaosMode && aiModel) {
-                const adaptiveTraps = aiModel.selectAdaptiveTraps(candidateSlots, levelData.staticTraps, levelData.id || 1, levelData);
-                for (const slot of adaptiveTraps) {
-                    this.createTrap(slot);
-                }
-            } else if (this.chaosMode) {
-                const shuffled = [...candidateSlots].sort(() => Math.random() - 0.5);
-                const activeXSpans = (levelData.staticTraps || []).map(st => ({
-                    start: st.x,
-                    end: st.x + (st.w || 28),
-                    isStatic: true
-                }));
-                for (const slot of shuffled) {
-                    const slotStart = slot.x;
-                    const slotEnd = slot.x + (slot.w || 32);
-                    const overlaps = activeXSpans.some(span => {
-                        const minGap = span.isStatic ? 55 : 20;
-                        return !(slotEnd <= span.start - minGap || slotStart >= span.end + minGap);
-                    });
-                    if (!overlaps) {
-                        this.createTrap(slot);
-                        activeXSpans.push({ start: slotStart, end: slotEnd });
-                        if (activeXSpans.length >= 8) break;
-                    }
-                }
-            } else {
-                for (const slot of candidateSlots) {
-                    if (slot.defaultActive !== false) {
-                        this.createTrap(slot);
-                    }
-                }
-            }
+        // Handcrafted traps array
+        for (const t of (levelData.traps || [])) {
+            this.createTrap(t);
+        }
+
+        // Candidate trap slots (for legacy levels 1-3)
+        for (const slot of (levelData.candidateTrapSlots || [])) {
+            this.createTrap(slot);
         }
     }
 
@@ -111,25 +85,25 @@ class TrapManager {
         if (!def) return;
         const d = { ...def };
 
-        // Surface alignment guarantee: clamp and snap coordinates so traps never spawn inside blocks
+        // Surface alignment guarantee: snap coordinates only when not explicitly set
         if (this.level && typeof getSurfaceAt === 'function') {
             const centerX = d.x + (d.w || 26) / 2;
             const surf = getSurfaceAt(this.level, centerX, d.y);
             if (['hidden_spike', 'static_spike', 'collapsing_floor', 'spring_pad', 'falling_platform'].includes(d.type)) {
-                d.y = surf.floorY;
+                if (d.y === undefined) d.y = surf.floorY;
             } else if (d.type === 'coin_trap') {
-                d.y = surf.floorY - 35;
+                if (d.y === undefined) d.y = surf.floorY - 35;
             } else if (d.type === 'dropping_spike') {
-                d.y = surf.ceilY;
-                d.groundY = surf.floorY;
+                if (d.y === undefined) d.y = surf.ceilY;
+                if (d.groundY === undefined) d.groundY = surf.floorY;
             } else if (d.type === 'rolling_ball') {
-                d.y = surf.floorY;
-                d.groundY = surf.floorY;
+                if (d.y === undefined) d.y = surf.floorY;
+                if (d.groundY === undefined) d.groundY = surf.floorY;
             } else if (d.type === 'piston_crusher') {
-                d.startY = surf.ceilY - 25;
-                d.targetY = surf.ceilY + 15;
+                if (d.startY === undefined) d.startY = surf.ceilY - 25;
+                if (d.targetY === undefined) d.targetY = surf.ceilY + 15;
             } else if (d.type === 'reversed_controls') {
-                d.y = surf.floorY - (d.h || 35);
+                if (d.y === undefined) d.y = surf.floorY - (d.h || 35);
             }
         }
         let trap = null;
