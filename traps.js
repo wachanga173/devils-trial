@@ -1416,7 +1416,7 @@ class SpringPadTrap {
         this.y = def.y;
         this.w = def.w || 32;
         this.h = def.h || 12;
-        this.boostVy = def.boostVy || -11.5;
+        this.boostVy = def.boostVy || -12.0;
         this.compressTimer = 0;
         this.active = true;
     }
@@ -1427,8 +1427,10 @@ class SpringPadTrap {
         if (player && player.alive) {
             const pLeft = player.x - player.width / 2;
             const pRight = player.x + player.width / 2;
-            const landsOn = pRight > this.x && pLeft < this.x + this.w && Math.abs(player.y - this.y) < 6;
+            const landsOn = pRight > this.x && pLeft < this.x + this.w && 
+                (Math.abs(player.y - this.y) < 8 || (player.y >= this.y - 6 && player.y - player.vy <= this.y + 4));
             if (landsOn && player.vy >= 0) {
+                player.y = this.y - 2;
                 player.vy = this.boostVy;
                 player.onGround = false;
                 player.isJumping = false; // Preserves full spring bounce momentum regardless of jump key state

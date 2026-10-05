@@ -134,7 +134,7 @@ function getScaling(lvl) {
     else if (lvl >= 141) shifts = 4;
 
     const shiftDist = Math.round(80 + prog * 35); // 80 to 115 px
-    const boostVy = -(10.0 + prog * 1.5);
+    const boostVy = -12.0; // Mathematical sweet spot: peaks feet at y=179.5 (20.5px above upper terrace floor 200) and head at y=155.5 (20.5px below ceiling 135)
 
     return {
         prog,
@@ -339,8 +339,8 @@ function buildSAscent(id, title, theme) {
     const count = getTargetHazardCount(id);
 
     const pool = [
-        { type: 'spring_pad', x: 620, y: 345, w: 36, h: 14, boostVy: s.boostVy },
-        { type: 'static_spike', x: 625, y: 135, w: 26, h: 16, isCeiling: true },
+        { type: 'spring_pad', x: 620, y: 345, w: 36, h: 14, boostVy: s.boostVy || -12.0 },
+        { type: 'static_spike', x: 654, y: 135, w: 26, h: 16, isCeiling: true },
         { type: 'static_spike', x: 360, y: 345, w: 28, h: 15 },
         { type: 'collapsing_floor', x: 300, y: 200, w: 48, h: 35, dropSpeed: s.dropSpd },
         { type: 'spinning_saw', x: 420, y: 170, radius: 18, patrolAxis: 'x', minX: 360, maxX: 480, speed: s.sawSpd },
@@ -348,7 +348,7 @@ function buildSAscent(id, title, theme) {
         { type: 'hidden_spike', x: 230, y: 200, w: 26, h: 16, triggerRange: 36 },
         { type: 'collapsing_floor', x: 480, y: 345, w: 50, h: 35, dropSpeed: s.dropSpd },
         { type: 'spinning_saw', x: 260, y: 315, radius: 18, patrolAxis: 'x', minX: 200, maxX: 320, speed: s.sawSpd },
-        { type: 'dropping_spike', x: 590, y: 135, w: 22, h: 22, groundY: 345, triggerRange: 45 },
+        { type: 'dropping_spike', x: 540, y: 135, w: 22, h: 22, groundY: 200, triggerRange: 45 },
         { type: 'reversed_controls', x: 205, y: 150, w: 70, h: 50 },
         { type: 'rolling_ball', x: 550, y: 345, groundY: 345, radius: 17, vx: s.ballSpd, triggerRange: 85 },
         { type: 'static_spike', x: 370, y: 200, w: 26, h: 15 },
@@ -699,17 +699,17 @@ function buildTwinRoutes(id, title, theme) {
     const count = getTargetHazardCount(id);
 
     const pool = [
-        { type: 'spring_pad', x: 190, y: 345, w: 34, h: 14, boostVy: -9.8 },
-        { type: 'static_spike', x: 350, y: 220, w: 28, h: 15 },
+        { type: 'spring_pad', x: 190, y: 345, w: 34, h: 14, boostVy: -11.0 },
+        { type: 'static_spike', x: 380, y: 220, w: 28, h: 15 },
         { type: 'collapsing_floor', x: 320, y: 345, w: 50, h: 35, dropSpeed: s.dropSpd },
         { type: 'dropping_spike', x: 480, y: 150, w: 22, h: 22, groundY: 220, triggerRange: 40 },
-        { type: 'piston_crusher', x: 440, startY: 220, targetY: 260, w: 38, h: 85, triggerRange: 45, pauseDuration: s.crusherPause },
+        { type: 'piston_crusher', x: 450, startY: 220, targetY: 260, w: 38, h: 85, triggerRange: 45, pauseDuration: s.crusherPause },
         { type: 'hidden_spike', x: 550, y: 345, w: 26, h: 16, triggerRange: 36 },
         { type: 'spinning_saw', x: 520, y: 195, radius: 16, patrolAxis: 'x', minX: 470, maxX: 570, speed: s.sawSpd },
         { type: 'rolling_ball', x: 620, y: 345, groundY: 345, radius: 17, vx: s.ballSpd, triggerRange: 75 },
         { type: 'dropping_spike', x: 380, y: 260, w: 22, h: 22, groundY: 345, triggerRange: 40 },
         { type: 'collapsing_floor', x: 420, y: 220, w: 45, h: 35, dropSpeed: s.dropSpd },
-        { type: 'reversed_controls', x: 260, y: 310, w: 100, h: 45 },
+        { type: 'reversed_controls', x: 290, y: 310, w: 90, h: 45 },
         { type: 'piston_crusher', x: 520, startY: 220, targetY: 260, w: 38, h: 85, triggerRange: 45, pauseDuration: s.crusherPause },
         { type: 'static_spike', x: 670, y: 345, w: 26, h: 15 },
         { type: 'dropping_spike', x: 680, y: 240, w: 22, h: 22, groundY: 345, triggerRange: 38 },
@@ -725,16 +725,16 @@ function buildTwinRoutes(id, title, theme) {
         bounds: { width: 840, height: 480 },
         playerSpawn: { x: 110, y: 345, facing: 1 },
         pathwayCorridors: [
-            { x: 80, y: 240, w: 140, h: 105 },
-            { x: 220, y: 150, w: 420, h: 70 },
-            { x: 220, y: 260, w: 420, h: 85 },
+            { x: 80, y: 150, w: 200, h: 195 },
+            { x: 280, y: 150, w: 360, h: 70 },
+            { x: 280, y: 260, w: 360, h: 85 },
             { x: 640, y: 240, w: 120, h: 105 }
         ],
         solids: [
             { x: 0, y: 0, w: 840, h: 150 },
             { x: 0, y: 150, w: 80, h: 330 },
             { x: 760, y: 150, w: 80, h: 330 },
-            { x: 220, y: 220, w: 420, h: 40 },
+            { x: 280, y: 220, w: 360, h: 40 },
             { x: 80, y: 345, w: 680, h: 135 }
         ],
         door: { x: 700, y: 299, w: 32, h: 46, open: true, shiftsMax: s.shifts, shiftDirection: -1, shiftDistance: s.shiftDist },
