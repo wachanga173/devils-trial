@@ -101,7 +101,7 @@
             window.addEventListener('orientationchange', window.dtDetectDevice);
         })();
     </script>
-    <link rel="stylesheet" href="./style.css?v=28">
+    <link rel="stylesheet" href="./style.css?v=30">
 </head>
 <body>
     <!-- Master SVG Vector Icon Sprite (Crisp across 4K & Mobile displays) -->
@@ -169,30 +169,30 @@
     <header class="game-header">
         <div class="header-left">
             <h1 class="game-title">DEVIL'S TRIAL</h1>
-            <div class="mode-badge" style="cursor: default;" title="Current Thematic Chapter">
-                <span><svg class="ui-icon"><use href="#icon-flame"></use></svg> CHAPTER:</span> <strong id="chapterTitle" style="color: #ffca28;">The Descent of Deception</strong>
+            <div class="mode-badge chapter-badge" style="cursor: default;" title="Current Thematic Chapter">
+                <span><svg class="ui-icon"><use href="#icon-flame"></use></svg> <span class="badge-label">CHAPTER:</span></span> <strong id="chapterTitle" class="chapter-title-text" style="color: #ffca28;">The Descent of Deception</strong>
             </div>
-            <div class="mode-badge" style="cursor: default;" title="200 Handcrafted Authentic Rage Trials">
-                <span><svg class="ui-icon"><use href="#icon-devil"></use></svg> CAMPAIGN:</span> <strong style="color: #00e5ff;">200 TRIALS</strong>
+            <div class="mode-badge campaign-badge" style="cursor: default;" title="200 Handcrafted Authentic Rage Trials">
+                <span><svg class="ui-icon"><use href="#icon-devil"></use></svg></span> <strong style="color: #00e5ff;">200 TRIALS</strong>
             </div>
         </div>
         <div class="header-right">
             <a id="headerPortfolioBtn" class="storage-hud-btn portfolio-hud-btn" href="https://peter-wachanga.vercel.app" target="_blank" rel="noopener noreferrer" title="Developer Portfolio: Peter Wachanga">
-                <svg class="ui-icon"><use href="#icon-code"></use></svg> DEV
+                <svg class="ui-icon"><use href="#icon-code"></use></svg> <span class="btn-text">DEV</span>
             </a>
             <button id="pwaInstallBtn" class="pwa-install-badge" title="Install Devil's Trial as an App (Shared LocalStorage & Landscape)">
                 <span class="pwa-icon"><svg class="ui-icon"><use href="#icon-download"></use></svg></span>
                 <span class="pwa-text">INSTALL</span>
             </button>
-            <div class="stat-pill">
-                <span><svg class="ui-icon" style="color: #ff5252;"><use href="#icon-skull"></use></svg> DEATHS:</span>
+            <div class="stat-pill" title="Total Deaths in Campaign">
+                <span><svg class="ui-icon" style="color: #ff5252;"><use href="#icon-skull"></use></svg> <span class="stat-label">DEATHS:</span></span>
                 <span id="deathCount" class="count">0</span>
             </div>
             <button id="headerStorageBtn" class="storage-hud-btn" title="View Device Storage Location & Save Data">
-                <svg class="ui-icon"><use href="#icon-save"></use></svg> DATA
+                <svg class="ui-icon"><use href="#icon-save"></use></svg> <span class="btn-text">DATA</span>
             </button>
             <button id="headerLegalBtn" class="storage-hud-btn" title="View Terms, Privacy Policy & FAQs">
-                <svg class="ui-icon"><use href="#icon-file-text"></use></svg> LEGAL
+                <svg class="ui-icon"><use href="#icon-file-text"></use></svg> <span class="btn-text">LEGAL</span>
             </button>
         </div>
     </header>
@@ -716,12 +716,12 @@
     </footer>
 
     <!-- Scripts with cache busting -->
-    <script src="./icons.js?v=28"></script>
-    <script src="./audio.js?v=26"></script>
-    <script src="./character.js?v=26"></script>
-    <script src="./physics.js?v=26"></script>
-    <script src="./traps.js?v=29"></script>
-    <script src="./levels.js?v=29"></script>
-    <script src="./game.js?v=29"></script>
+    <script src="./icons.js?v=30"></script>
+    <script src="./audio.js?v=30"></script>
+    <script src="./character.js?v=30"></script>
+    <script src="./physics.js?v=30"></script>
+    <script src="./traps.js?v=30"></script>
+    <script src="./levels.js?v=30"></script>
+    <script src="./game.js?v=30"></script>
 </body>
 </html>

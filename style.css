@@ -10,7 +10,7 @@
     --accent-green: #69f0ae;
     --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-retro: 'Press Start 2P', monospace;
-    --reserved-h: 150px;
+    --reserved-h: 96px;
 }
 
 /* ========================================================= */
@@ -80,8 +80,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 8px 12px;
+    justify-content: safe center;
+    padding: 6px 10px;
+    box-sizing: border-box;
 }
 
 /* Header bar */
@@ -91,40 +92,65 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 0 4px;
-    gap: 8px;
+    gap: 6px;
+    margin-bottom: 5px;
+    padding: 0 2px;
+    box-sizing: border-box;
     flex-shrink: 0;
+    flex-wrap: nowrap;
 }
 
 .header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    gap: 5px;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .game-title {
     font-family: var(--font-retro);
-    font-size: clamp(11px, 2.4vw, 14px);
+    font-size: clamp(10px, 1.8vw, 12px);
     color: var(--accent-gold);
-    letter-spacing: 1px;
+    letter-spacing: 0.6px;
     text-shadow: 2px 2px 0px #000;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .mode-badge {
     background: #1e1915;
     border: 1px solid var(--border-color);
-    padding: 5px 10px;
+    padding: 3px 6px;
     border-radius: 6px;
-    font-size: clamp(9px, 1.8vw, 11px);
+    font-size: clamp(7.5px, 1.1vw, 9px);
     font-weight: 600;
-    cursor: pointer;
+    cursor: default;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 3px;
     white-space: nowrap;
+    box-sizing: border-box;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.mode-badge.chapter-badge {
+    max-width: clamp(110px, 20vw, 220px);
+}
+
+#chapterTitle {
+    display: inline-block;
+    max-width: clamp(65px, 12vw, 130px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
+}
+
+.mode-badge.campaign-badge {
+    flex-shrink: 0;
 }
 
 .mode-badge:hover {
@@ -135,26 +161,31 @@ body {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
     flex-shrink: 0;
+    justify-content: flex-end;
+    min-width: 0;
 }
 
 .stat-pill {
     background: #1e1915;
     border: 1px solid var(--border-color);
-    padding: 5px 10px;
+    padding: 3px 6px;
     border-radius: 6px;
     font-family: var(--font-retro);
-    font-size: clamp(8px, 1.8vw, 10px);
-    display: flex;
+    font-size: clamp(7.5px, 1.1vw, 8.5px);
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 3px;
     white-space: nowrap;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .stat-pill .count {
     color: var(--accent-red);
-    font-size: clamp(10px, 2vw, 12px);
+    font-size: clamp(9px, 1.4vw, 11px);
+    font-weight: bold;
 }
 
 /* Game Stage & Screen Frame */
@@ -616,46 +647,79 @@ html.touch-controls-forced:not(.phone-landscape) .footer-info {
     }
 }
 
-/* Compact Mobile Screens (< 600px width) */
-@media (max-width: 600px) {
-    :root {
-        --reserved-h: 165px;
-    }
-    body {
-        padding: 6px 8px;
-        justify-content: flex-start;
-    }
-    .game-header {
-        margin-bottom: 6px;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 6px;
-    }
-    .header-left {
-        justify-content: space-between;
-        width: 100%;
-        gap: 6px;
-    }
-    .header-right {
-        display: none; /* Merged or hidden in favor of in-game death pill */
-    }
-    .mode-badge {
-        font-size: 9px;
-        padding: 4px 8px;
+/* Responsive Header & Layout for Tablet & Narrow Screens (<= 760px) */
+@media (max-width: 760px) {
+    .badge-label {
+        display: none; /* Hide 'CHAPTER:' label text to save room */
     }
 }
 
-/* Extremely Small Mobile Screens (< 380px width) */
-@media (max-width: 380px) {
+/* Compact Mobile Screens (< 640px width) */
+@media (max-width: 640px) {
     :root {
-        --reserved-h: 175px;
+        --reserved-h: 120px;
+    }
+    body {
+        padding: 4px 6px;
+        justify-content: safe center;
+    }
+    .game-header {
+        flex-wrap: wrap;
+        justify-content: center;
+        row-gap: 5px;
+        margin-bottom: 4px;
+    }
+    .header-left {
+        width: 100%;
+        justify-content: space-between;
+        gap: 4px;
+    }
+    .header-right {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    .stat-label {
+        display: none; /* Hide 'DEATHS:' label text */
+    }
+    #chapterTitle {
+        max-width: 110px;
+    }
+}
+
+/* Extremely Small Mobile Screens (< 420px width) */
+@media (max-width: 420px) {
+    :root {
+        --reserved-h: 125px;
     }
     .game-title {
-        font-size: 10px;
+        font-size: 9.5px;
     }
-    .mode-badge {
-        font-size: 8px;
-        padding: 3px 6px;
+    .mode-badge, .stat-pill, .storage-hud-btn, .pwa-install-badge {
+        font-size: 7.5px;
+        padding: 2.5px 4.5px;
+    }
+    #chapterTitle {
+        max-width: 80px;
+    }
+}
+
+/* Tiny Mobile Screens (< 350px width) */
+@media (max-width: 350px) {
+    :root {
+        --reserved-h: 130px;
+    }
+    .storage-hud-btn .btn-text,
+    .pwa-install-badge .pwa-text {
+        display: none; /* Icons only on tiny screens to guarantee zero cutoff */
+    }
+    .storage-hud-btn, .pwa-install-badge {
+        padding: 3px 5px;
+    }
+    #chapterTitle {
+        max-width: 60px;
     }
     .touch-btn {
         width: 52px;
@@ -669,38 +733,60 @@ html.touch-controls-forced:not(.phone-landscape) .footer-info {
     }
 }
 
-/* Viewport scaling for landscape / laptops (scales canvas cleanly without activating touch controls) */
-@media (orientation: landscape) and (max-height: 700px), (max-height: 540px) {
+/* Viewport scaling for landscape / short laptop screens */
+@media (max-height: 700px) {
     :root {
-        --reserved-h: 34px;
+        --reserved-h: 80px;
     }
     body {
         padding: 2px 6px;
-        justify-content: center;
+        justify-content: safe center;
     }
     .game-header {
-        max-width: min(840px, calc((100dvh - 34px) * (840 / 480)));
+        max-width: min(840px, calc((100dvh - var(--reserved-h)) * (840 / 480)));
         margin-bottom: 2px;
         gap: 4px;
+        flex-wrap: nowrap;
     }
     .header-left {
-        gap: 6px;
+        gap: 3px;
+        flex-wrap: nowrap;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+    .header-right {
+        gap: 3px;
+        flex-wrap: nowrap;
+        flex-shrink: 0;
+        min-width: 0;
     }
     .game-title {
         font-size: 9px;
     }
-    .mode-badge {
-        font-size: 8px;
-        padding: 2px 6px;
+    .mode-badge, .stat-pill, .storage-hud-btn, .pwa-install-badge {
+        font-size: 7.5px;
+        padding: 2px 4px;
+        gap: 2px;
     }
-    .stat-pill {
-        font-size: 8px;
-        padding: 2px 6px;
+    .badge-label, .stat-label {
+        display: none;
+    }
+    #chapterTitle {
+        max-width: 80px;
     }
     .screen-wrapper {
-        max-height: calc(100dvh - 34px);
-        max-width: calc((100dvh - 34px) * (840 / 480));
+        max-height: calc(100dvh - var(--reserved-h));
+        max-width: min(840px, calc((100dvh - var(--reserved-h)) * (840 / 480)));
     }
+}
+
+/* Small phone in landscape: footer is hidden, touch gamepad is on-screen */
+html.device-phone.phone-landscape {
+    --reserved-h: 34px;
+}
+html.device-phone.phone-landscape .screen-wrapper {
+    max-height: calc(100dvh - 34px);
+    max-width: calc((100dvh - 34px) * (840 / 480));
 }
 
 /* Mobile Phone Landscape Gamepad Overlay (STRICT: Phones Only!) */
@@ -980,13 +1066,19 @@ html.device-desktop .rotate-overlay,
 .storage-hud-btn {
     background: #1e1915;
     border: 1px solid var(--border-color);
-    padding: 5px 8px;
+    padding: 3px 6px;
     border-radius: 6px;
     font-family: var(--font-retro);
-    font-size: clamp(8px, 1.6vw, 9px);
+    font-size: clamp(7.5px, 1.1vw, 8.5px);
     color: var(--accent-gold);
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    box-sizing: border-box;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .storage-hud-btn:hover {
@@ -1234,18 +1326,20 @@ html.device-desktop .rotate-overlay,
 .pwa-install-badge {
     background: linear-gradient(135deg, #1b5e20 0%, #0d3b11 100%);
     border: 1px solid #4caf50;
-    padding: 5px 9px;
+    padding: 3px 6px;
     border-radius: 6px;
     font-family: var(--font-retro);
-    font-size: clamp(8px, 1.6vw, 9px);
+    font-size: clamp(7.5px, 1.1vw, 8.5px);
     color: #e8f5e9;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 3px;
     transition: all 0.2s ease;
     white-space: nowrap;
     box-shadow: 0 2px 8px rgba(76, 175, 80, 0.35);
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .pwa-install-badge:hover {
