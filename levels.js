@@ -1084,12 +1084,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.06
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -1196,12 +1198,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.07
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -1296,12 +1300,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.08
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -1576,12 +1582,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.1
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -2399,12 +2407,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.14
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -2520,12 +2530,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.15
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -2630,12 +2642,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.16
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -2930,12 +2944,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.18
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -3827,12 +3843,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.23
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -3957,12 +3975,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.23
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -4077,12 +4097,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.24
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -4395,12 +4417,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.26
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -5318,12 +5342,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.31
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -5362,12 +5388,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.31
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       }
     ]
   },
@@ -5456,12 +5484,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.31
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -5501,12 +5531,14 @@ const LEVELS = [
         "pauseDuration": 49
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.31
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       }
     ]
   },
@@ -5584,12 +5616,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.32
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -5920,12 +5954,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.34
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -6869,12 +6905,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.39
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -6913,12 +6951,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.39
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       }
     ]
   },
@@ -7007,12 +7047,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.39
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -7052,12 +7094,14 @@ const LEVELS = [
         "pauseDuration": 47
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.39
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       }
     ]
   },
@@ -7135,12 +7179,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.4
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -7487,12 +7533,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.42
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -7550,12 +7598,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.42
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       }
     ]
   },
@@ -8486,12 +8536,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.47
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -8530,12 +8582,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.47
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -8634,12 +8688,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.47
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -8679,12 +8735,14 @@ const LEVELS = [
         "pauseDuration": 46
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.47
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -8769,12 +8827,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.48
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -9121,12 +9181,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.5
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -9184,12 +9246,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.5
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       }
     ]
   },
@@ -10120,12 +10184,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.55
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -10164,12 +10230,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.55
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -10268,12 +10336,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.55
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -10313,12 +10383,14 @@ const LEVELS = [
         "pauseDuration": 44
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.55
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -10403,12 +10475,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.56
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -10473,12 +10547,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.56
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       }
     ]
   },
@@ -10772,12 +10848,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.58
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -10835,12 +10913,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.58
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -11817,12 +11897,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.63
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -11861,12 +11943,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.63
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -11972,12 +12056,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.64
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -12017,12 +12103,14 @@ const LEVELS = [
         "pauseDuration": 43
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.64
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -12116,12 +12204,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.64
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -12186,12 +12276,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.64
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       }
     ]
   },
@@ -12485,12 +12577,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.66
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -12548,12 +12642,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.66
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -13530,12 +13626,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.71
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -13574,12 +13672,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.71
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -13685,12 +13785,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.72
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -13730,12 +13832,14 @@ const LEVELS = [
         "pauseDuration": 41
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.72
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -13829,12 +13933,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.72
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -13899,12 +14005,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.72
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       }
     ]
   },
@@ -14198,12 +14306,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.74
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -14261,12 +14371,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.74
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -15272,12 +15384,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.79
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -15316,12 +15430,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.79
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -15437,12 +15553,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.8
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -15482,12 +15600,14 @@ const LEVELS = [
         "pauseDuration": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.8
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -15591,12 +15711,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.8
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -15661,12 +15783,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.8
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -15977,12 +16101,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.82
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -16040,12 +16166,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.82
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -17080,12 +17208,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.87
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -17124,12 +17254,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.87
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -17245,12 +17377,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.88
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -17290,12 +17424,14 @@ const LEVELS = [
         "pauseDuration": 39
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.88
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -17399,12 +17535,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.88
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -17469,12 +17607,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.88
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -17785,12 +17925,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.9
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -17848,12 +17990,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.9
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -18888,12 +19032,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.95
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -18932,12 +19078,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.95
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -19053,12 +19201,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.96
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -19098,12 +19248,14 @@ const LEVELS = [
         "pauseDuration": 37
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.96
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -19207,12 +19359,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 2.96
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -19277,12 +19431,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.96
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -19611,12 +19767,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 2.98
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -19674,12 +19832,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 2.98
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -20765,12 +20925,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.03
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -20809,12 +20971,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.03
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -20939,12 +21103,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.04
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -20984,12 +21150,14 @@ const LEVELS = [
         "pauseDuration": 36
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.04
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -21018,12 +21186,14 @@ const LEVELS = [
         "triggerRange": 60
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 610,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.04
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       }
     ]
   },
@@ -21101,12 +21271,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.05
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -21171,12 +21343,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.05
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -21505,12 +21679,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.06
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -21568,12 +21744,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.06
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -22659,12 +22837,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.11
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -22703,12 +22883,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.11
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -22833,12 +23015,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.12
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -22878,12 +23062,14 @@ const LEVELS = [
         "pauseDuration": 34
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.12
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -22912,12 +23098,14 @@ const LEVELS = [
         "triggerRange": 60
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 610,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.12
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       }
     ]
   },
@@ -22995,12 +23183,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.13
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -23065,12 +23255,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.13
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -23399,12 +23591,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.14
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -23462,12 +23656,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.14
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -24581,12 +24777,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.19
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -24625,12 +24823,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.19
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -24669,12 +24869,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 600,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.19
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       }
     ]
   },
@@ -24763,12 +24965,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.2
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -24808,12 +25012,14 @@ const LEVELS = [
         "pauseDuration": 33
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.2
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -24842,12 +25048,14 @@ const LEVELS = [
         "triggerRange": 60
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 610,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.2
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -24932,12 +25140,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.21
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -25002,12 +25212,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.21
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -25027,12 +25239,14 @@ const LEVELS = [
         "pauseDuration": 33
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 350,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.21
+        "direction": "left",
+        "speed": 2.5,
+        "shiftDistance": 50
       }
     ]
   },
@@ -25351,12 +25565,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.22
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -25414,12 +25630,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.22
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -26557,12 +26775,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.27
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -26601,12 +26821,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.27
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -26645,12 +26867,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 600,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.27
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       }
     ]
   },
@@ -26739,12 +26963,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.28
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -26784,12 +27010,14 @@ const LEVELS = [
         "pauseDuration": 32
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.28
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -26818,12 +27046,14 @@ const LEVELS = [
         "triggerRange": 60
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 610,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.28
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -26908,12 +27138,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.29
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -26978,12 +27210,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.29
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -27003,12 +27237,14 @@ const LEVELS = [
         "pauseDuration": 31
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 350,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.29
+        "direction": "left",
+        "speed": 2.5,
+        "shiftDistance": 50
       }
     ]
   },
@@ -27327,12 +27563,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.3
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -27390,12 +27628,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.3
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -28533,12 +28773,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.35
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -28577,12 +28819,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.35
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -28621,12 +28865,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 600,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.35
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       }
     ]
   },
@@ -28715,12 +28961,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.36
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -28760,12 +29008,14 @@ const LEVELS = [
         "pauseDuration": 30
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.36
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -28794,12 +29044,14 @@ const LEVELS = [
         "triggerRange": 60
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 610,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.36
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -28884,12 +29136,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.37
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -28954,12 +29208,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.37
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -28979,12 +29235,14 @@ const LEVELS = [
         "pauseDuration": 30
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 350,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.37
+        "direction": "left",
+        "speed": 2.5,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -29321,12 +29579,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.38
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -29384,12 +29644,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.38
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -30585,12 +30847,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.43
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -30629,12 +30893,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.43
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -30673,12 +30939,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 600,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.43
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "static_spike",
@@ -30774,12 +31042,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.44
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -30819,12 +31089,14 @@ const LEVELS = [
         "pauseDuration": 29
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.44
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -30853,12 +31125,14 @@ const LEVELS = [
         "triggerRange": 60
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 610,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.44
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -30952,12 +31226,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.45
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -31022,12 +31298,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.45
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -31047,12 +31325,14 @@ const LEVELS = [
         "pauseDuration": 29
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 350,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.45
+        "direction": "left",
+        "speed": 2.5,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -31389,12 +31669,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.46
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -31452,12 +31734,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.46
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -32653,12 +32937,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.51
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -32697,12 +32983,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.51
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -32741,12 +33029,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 600,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.51
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "static_spike",
@@ -32842,12 +33132,14 @@ const LEVELS = [
         "triggerRange": 45
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 490,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.52
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "hidden_spike",
@@ -32887,12 +33179,14 @@ const LEVELS = [
         "pauseDuration": 27
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 330,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.52
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 50
       },
       {
         "type": "reversed_controls",
@@ -32921,12 +33215,14 @@ const LEVELS = [
         "triggerRange": 60
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 610,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.52
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -33020,12 +33316,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 530,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.53
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 55
       },
       {
         "type": "dropping_spike",
@@ -33090,12 +33388,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 650,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.53
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "static_spike",
@@ -33115,12 +33415,14 @@ const LEVELS = [
         "pauseDuration": 27
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 350,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.53
+        "direction": "left",
+        "speed": 2.5,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -33457,12 +33759,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 320,
         "y": 345,
         "w": 50,
         "h": 35,
-        "dropSpeed": 3.54
+        "direction": "right",
+        "speed": 2.6,
+        "shiftDistance": 50
       },
       {
         "type": "dropping_spike",
@@ -33520,12 +33824,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 420,
         "y": 220,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.54
+        "direction": "shift_away",
+        "speed": 3,
+        "shiftDistance": 45
       },
       {
         "type": "reversed_controls",
@@ -34721,12 +35027,14 @@ const LEVELS = [
         "h": 15
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 310,
         "y": 345,
         "w": 48,
         "h": 35,
-        "dropSpeed": 3.59
+        "direction": "right",
+        "speed": 2.8,
+        "shiftDistance": 60
       },
       {
         "type": "piston_crusher",
@@ -34765,12 +35073,14 @@ const LEVELS = [
         "triggerRange": 80
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 450,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.59
+        "direction": "shift_away",
+        "speed": 3.2,
+        "shiftDistance": 50
       },
       {
         "type": "piston_crusher",
@@ -34809,12 +35119,14 @@ const LEVELS = [
         "triggerRange": 40
       },
       {
-        "type": "collapsing_floor",
+        "type": "shifting_ground",
         "x": 600,
         "y": 345,
         "w": 45,
         "h": 35,
-        "dropSpeed": 3.59
+        "direction": "left",
+        "speed": 2.8,
+        "shiftDistance": 55
       },
       {
         "type": "static_spike",
@@ -35034,11 +35346,12 @@ function getActiveLevelSolids(level, activeTraps) {
     const isFallingPlatform = (t) => (typeof FallingPlatformTrap !== 'undefined' && t instanceof FallingPlatformTrap);
     const isVanishingTrap = (t) => (typeof VanishingFloorTrap !== 'undefined' && t instanceof VanishingFloorTrap);
 
-    const floorTraps = (activeTraps || []).filter(t => isVanishingTrap(t) || isFallingPlatform(t));
+    const floorTraps = (activeTraps || []).filter(t => isVanishingTrap(t) || isFallingPlatform(t) || t.isFloorTrap || t.isGroundTrap);
     if (floorTraps.length === 0) {
         return [...level.solids];
     }
 
+    const boundsH = (level.bounds && level.bounds.height) ? level.bounds.height : 480;
     const resolvedSolids = [];
     for (const solid of level.solids) {
         const cuttingTraps = floorTraps.filter(t => {
@@ -35055,6 +35368,20 @@ function getActiveLevelSolids(level, activeTraps) {
 
             let curX = solid.x;
             for (const trap of cuttingTraps) {
+                trap.solidH = solid.h;
+                trap.isWorldBottom = (solid.y + solid.h >= boundsH - 10);
+                if (!trap.isWorldBottom && level.solids) {
+                    const solidsBelow = level.solids.filter(s => 
+                        s !== solid && 
+                        s.y >= solid.y + solid.h - 5 && 
+                        (trap.x + trap.w > s.x) && (trap.x < s.x + s.w)
+                    );
+                    if (solidsBelow.length > 0) {
+                        solidsBelow.sort((a, b) => a.y - b.y);
+                        trap.floorBelowY = solidsBelow[0].y;
+                    }
+                }
+
                 const trapLeft = Math.max(solid.x, trap.x);
                 const trapRight = Math.min(solid.x + solid.w, trap.x + trap.w);
 

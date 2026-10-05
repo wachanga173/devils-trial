@@ -1980,27 +1980,48 @@ class Game {
             ctx.fillRect(solid.x, solid.y, solid.w, solid.h);
         }
 
-        // 3. SEAMLESS VANISHING GROUND & FALLING FLOOR BLOCKS:
+        // 3. SEAMLESS DYNAMIC GROUND IN ANY DIRECTION & VACATED GAP CARVING:
         for (const trap of this.trapManager.traps) {
             if (trap instanceof VanishingFloorTrap) {
-                if (trap.state === 'dropping') {
-                    ctx.fillStyle = this.theme.pathColor;
-                    ctx.fillRect(trap.x, trap.initialY, trap.w, trap.y - trap.initialY);
+                const initX = trap.initialX !== undefined ? trap.initialX : trap.x;
+                const initY = trap.initialY !== undefined ? trap.initialY : trap.y;
+                const solidH = trap.solidH || trap.h || 35;
+                const isBottom = trap.isWorldBottom !== undefined ? trap.isWorldBottom : (initY + solidH >= levelH - 15);
+                const maxCarveH = isBottom ? (levelH - initY) : solidH;
 
-                    ctx.fillStyle = this.theme.bgColor;
-                    ctx.fillRect(trap.x, trap.y, trap.w, trap.h);
-                } else if (trap.state === 'gone') {
-                    ctx.fillStyle = this.theme.pathColor;
-                    ctx.fillRect(trap.x, trap.initialY, trap.w, levelH - trap.initialY);
+                ctx.fillStyle = this.theme.pathColor;
+
+                if (trap.state === 'gone') {
+                    ctx.fillRect(initX, initY, trap.w, maxCarveH);
+                } else if (trap.state !== 'dormant') {
+                    // Carve vacated gap left behind by moving ground
+                    if (trap.y > initY) {
+                        const holeH = Math.min(maxCarveH, trap.y - initY);
+                        ctx.fillRect(initX, initY, trap.w, holeH);
+                    } else if (trap.y < initY) {
+                        const gapTop = Math.max(initY, trap.y + maxCarveH);
+                        const holeH = Math.max(0, (initY + maxCarveH) - gapTop);
+                        if (holeH > 0) ctx.fillRect(initX, gapTop, trap.w, holeH);
+                    }
+                    if (trap.x > initX) {
+                        const holeW = Math.min(trap.w, trap.x - initX);
+                        ctx.fillRect(initX, initY, holeW, maxCarveH);
+                    } else if (trap.x < initX) {
+                        const gapLeft = Math.max(initX, trap.x + trap.w);
+                        const holeW = Math.max(0, (initX + trap.w) - gapLeft);
+                        if (holeW > 0) ctx.fillRect(gapLeft, initY, holeW, maxCarveH);
+                    }
                 }
             } else if (typeof FallingPlatformTrap !== 'undefined' && trap instanceof FallingPlatformTrap) {
-                // Carve pit space behind falling platform when it drops into the ground
+                const isBottom = trap.isWorldBottom !== undefined ? trap.isWorldBottom : (trap.initialY + (trap.solidH || trap.h || 40) >= levelH - 15);
+                const maxCarveH = isBottom ? (levelH - trap.initialY) : (trap.solidH || trap.h || 40);
                 if (trap.state === 'falling') {
+                    const holeH = Math.min(maxCarveH, Math.max(0, trap.y - trap.initialY));
                     ctx.fillStyle = this.theme.pathColor;
-                    ctx.fillRect(trap.x, trap.initialY, trap.w, Math.max(0, trap.y - trap.initialY));
+                    ctx.fillRect(trap.x, trap.initialY, trap.w, holeH);
                 } else if (trap.state === 'gone') {
                     ctx.fillStyle = this.theme.pathColor;
-                    ctx.fillRect(trap.x, trap.initialY, trap.w, levelH - trap.initialY);
+                    ctx.fillRect(trap.x, trap.initialY, trap.w, maxCarveH);
                 }
             }
         }

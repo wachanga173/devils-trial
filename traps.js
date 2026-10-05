@@ -89,7 +89,7 @@ class TrapManager {
         if (this.level && typeof getSurfaceAt === 'function') {
             const centerX = d.x + (d.w || 26) / 2;
             const surf = getSurfaceAt(this.level, centerX, d.y);
-            if (['hidden_spike', 'static_spike', 'collapsing_floor', 'spring_pad', 'falling_platform'].includes(d.type)) {
+            if (['hidden_spike', 'static_spike', 'collapsing_floor', 'vanishing_floor', 'shifting_ground', 'moving_ground', 'spring_pad', 'falling_platform'].includes(d.type)) {
                 if (d.y === undefined) d.y = surf.floorY;
             } else if (d.type === 'coin_trap') {
                 if (d.y === undefined) d.y = surf.floorY - 35;
@@ -109,6 +109,9 @@ class TrapManager {
         let trap = null;
         switch (d.type) {
             case 'collapsing_floor':
+            case 'vanishing_floor':
+            case 'shifting_ground':
+            case 'moving_ground':
                 trap = new VanishingFloorTrap(d);
                 break;
             case 'piston_crusher':
@@ -397,49 +400,215 @@ class AdaptiveDoor {
     }
 }
 
-// --- 1. VANISHING FLOOR TRAP ---
+// --- 1. VANISHING FLOOR / MULTI-DIRECTIONAL GROUND TRAP ---
 class VanishingFloorTrap {
     constructor(def) {
         this.x = def.x;
         this.y = def.y;
         this.w = def.w;
         this.h = def.h || 35;
+        this.initialX = def.x;
         this.initialY = def.y;
         this.isSolid = true;
         this.isFloorTrap = true;
-        this.state = 'dormant';
+        this.isGroundTrap = true;
+        this.state = 'dormant'; // 'dormant', 'moving', 'arrived', 'gone'
+        this.direction = def.direction || 'down'; // 'down', 'up', 'left', 'right', 'shift_away', 'patrol_x', 'patrol_y'
+        this.triggerMode = def.triggerMode || 'step'; // 'step', 'proximity', 'continuous'
+        this.triggerRange = def.triggerRange || 75;
+        this.speed = def.speed || def.dropSpeed || (this.direction === 'down' ? 4.8 : 2.8);
+        this.shiftDistance = def.shiftDistance || def.maxDistance || (['left', 'right', 'shift_away'].includes(this.direction) ? 65 : 120);
+        this.floorBelowY = def.floorBelowY;
+        this.solidH = def.solidH;
+        this.vx = 0;
         this.vy = 0;
-        this.dropSpeed = def.dropSpeed || 4.8;
+        this.patrolDir = def.dir || 1;
+        this.shiftDir = def.shiftDir || 1;
+        this.carryPlayer = def.carryPlayer !== undefined ? def.carryPlayer : true;
+
+        if (this.triggerMode === 'continuous') {
+            this.state = 'moving';
+            this.initVelocity();
+        }
     }
 
-    update(player, particles, onTrigger) {
+    initVelocity() {
+        if (this.direction === 'down') {
+            this.vy = this.speed;
+            this.vx = 0;
+        } else if (this.direction === 'up') {
+            this.vy = -this.speed;
+            this.vx = 0;
+        } else if (this.direction === 'left') {
+            this.vx = -this.speed;
+            this.vy = 0;
+        } else if (this.direction === 'right') {
+            this.vx = this.speed;
+            this.vy = 0;
+        } else if (this.direction === 'shift_away') {
+            this.vx = this.shiftDir * this.speed * 1.4;
+            this.vy = 0;
+        } else if (this.direction === 'patrol_x') {
+            this.vx = this.patrolDir * this.speed;
+            this.vy = 0;
+        } else if (this.direction === 'patrol_y') {
+            this.vy = this.patrolDir * this.speed;
+            this.vx = 0;
+        }
+    }
+
+    update(player, game, onTrigger) {
         if (this.state === 'dormant') {
-            const pLeft = player.x - player.width / 2;
-            const pRight = player.x + player.width / 2;
-            const pBottom = player.y;
+            let triggered = false;
+            if (this.triggerMode === 'step' || this.triggerMode === 'proximity') {
+                const pLeft = player.x - player.width / 2;
+                const pRight = player.x + player.width / 2;
+                const pBottom = player.y;
 
-            const isOverX = pRight > this.x + 2 && pLeft < this.x + this.w - 2;
-            const isNearY = Math.abs(pBottom - this.y) < 5;
+                const isOverX = pRight > this.x + 2 && pLeft < this.x + this.w - 2;
+                const isNearY = Math.abs(pBottom - this.y) <= 6;
 
-            if (isOverX && isNearY) {
-                this.state = 'dropping';
-                this.vy = this.dropSpeed;
-                if (window.soundFX) window.soundFX.playCrumble();
+                if (isOverX && isNearY) {
+                    triggered = true;
+                } else if (this.triggerMode === 'proximity') {
+                    const distCenterX = Math.abs(player.x - (this.x + this.w / 2));
+                    const distCenterY = Math.abs(player.y - this.y);
+                    if (distCenterX < this.triggerRange && distCenterY < 70) {
+                        triggered = true;
+                    }
+                }
+
+                if (triggered && this.direction === 'shift_away') {
+                    this.shiftDir = player.x < (this.x + this.w / 2) ? 1 : -1;
+                }
+            }
+
+            if (triggered) {
+                this.state = 'moving';
+                this.initVelocity();
+                if (window.soundFX && window.soundFX.playCrumble) window.soundFX.playCrumble();
                 if (onTrigger) onTrigger(this);
             }
-        } else if (this.state === 'dropping') {
-            this.vy += 0.55;
-            this.y += this.vy;
+        }
 
-            if (this.y - this.initialY > 6) {
-                this.isSolid = false;
-            }
+        if (this.state === 'moving') {
+            const pLeft = player.x - player.width / 2;
+            const pRight = player.x + player.width / 2;
+            const isStandingOnTop = player.onGround && !player.isJumping &&
+                (pRight > this.x + 2 && pLeft < this.x + this.w - 2) &&
+                Math.abs(player.y - this.y) <= 6;
 
-            if (this.y > 600) {
-                this.state = 'gone';
-                this.isSolid = false;
+            if (this.direction === 'down') {
+                this.vy += 0.55;
+                this.y += this.vy;
+
+                if (this.y - this.initialY > 6) {
+                    this.isSolid = false;
+                }
+
+                const limitY = this.floorBelowY !== undefined ? (this.floorBelowY - this.h) : 600;
+                if (this.y >= limitY) {
+                    this.state = 'gone';
+                    this.isSolid = false;
+                    if (game && game.spawnDust) {
+                        game.spawnDust(this.x + this.w / 2, limitY + this.h);
+                    }
+                }
+            } else if (this.direction === 'up') {
+                this.vy = -this.speed;
+                this.y += this.vy;
+
+                if (isStandingOnTop && this.carryPlayer) {
+                    player.y = this.y;
+                    player.vy = 0;
+                    player.onGround = true;
+                }
+
+                if (this.initialY - this.y >= this.shiftDistance) {
+                    this.y = this.initialY - this.shiftDistance;
+                    this.vy = 0;
+                    this.state = 'arrived';
+                }
+            } else if (this.direction === 'left') {
+                this.vx = -this.speed;
+                this.x += this.vx;
+
+                if (isStandingOnTop && this.carryPlayer) {
+                    player.x += this.vx;
+                }
+
+                if (this.initialX - this.x >= this.shiftDistance) {
+                    this.x = this.initialX - this.shiftDistance;
+                    this.vx = 0;
+                    this.state = 'arrived';
+                }
+            } else if (this.direction === 'right') {
+                this.vx = this.speed;
+                this.x += this.vx;
+
+                if (isStandingOnTop && this.carryPlayer) {
+                    player.x += this.vx;
+                }
+
+                if (this.x - this.initialX >= this.shiftDistance) {
+                    this.x = this.initialX + this.shiftDistance;
+                    this.vx = 0;
+                    this.state = 'arrived';
+                }
+            } else if (this.direction === 'shift_away') {
+                this.vx = this.shiftDir * this.speed * 1.4;
+                this.x += this.vx;
+
+                if (Math.abs(this.x - this.initialX) >= this.shiftDistance) {
+                    this.vx = 0;
+                    this.state = 'arrived';
+                }
+            } else if (this.direction === 'patrol_x') {
+                this.vx = this.patrolDir * this.speed;
+                this.x += this.vx;
+
+                if (isStandingOnTop && this.carryPlayer) {
+                    player.x += this.vx;
+                }
+
+                if (this.x >= this.initialX + this.shiftDistance) {
+                    this.x = this.initialX + this.shiftDistance;
+                    this.patrolDir = -1;
+                } else if (this.x <= this.initialX - this.shiftDistance) {
+                    this.x = this.initialX - this.shiftDistance;
+                    this.patrolDir = 1;
+                }
+            } else if (this.direction === 'patrol_y') {
+                this.vy = this.patrolDir * this.speed;
+                this.y += this.vy;
+
+                if (isStandingOnTop && this.carryPlayer) {
+                    player.y = this.y;
+                    player.vy = 0;
+                    player.onGround = true;
+                }
+
+                if (this.y >= this.initialY + this.shiftDistance) {
+                    this.y = this.initialY + this.shiftDistance;
+                    this.patrolDir = -1;
+                } else if (this.y <= this.initialY - this.shiftDistance) {
+                    this.y = this.initialY - this.shiftDistance;
+                    this.patrolDir = 1;
+                }
             }
         }
+    }
+
+    getSolidBox() {
+        if (!this.isSolid || this.state === 'gone') return null;
+        return {
+            x: this.x,
+            y: this.y,
+            w: this.w,
+            h: this.solidH || this.h,
+            vx: this.vx || 0,
+            vy: this.vy || 0
+        };
     }
 
     getHazardBox() {
@@ -447,12 +616,14 @@ class VanishingFloorTrap {
     }
 
     draw(ctx, theme) {
-        if (this.state === 'dropping') {
-            ctx.save();
-            ctx.fillStyle = theme.bgColor;
-            ctx.fillRect(this.x, this.y, this.w, this.h);
-            ctx.restore();
-        }
+        if (this.state === 'gone') return;
+        const limitY = this.floorBelowY !== undefined ? (this.floorBelowY - (this.solidH || this.h)) : 600;
+        if (this.y > limitY) return;
+
+        ctx.save();
+        ctx.fillStyle = theme.bgColor;
+        ctx.fillRect(this.x, this.y, this.w, this.solidH || this.h);
+        ctx.restore();
     }
 }
 
@@ -1145,7 +1316,7 @@ class TrollPortalTrap {
     }
 }
 
-// --- 8. SPINNING SAWBLADE TRAP (RAZORS) ---
+// --- 8. SPINNING SAWBLADE TRAP (UNPREDICTABLE RANDOM RAZORS) ---
 class SpinningSawbladeTrap {
     constructor(def) {
         this.x = def.x;
@@ -1154,62 +1325,145 @@ class SpinningSawbladeTrap {
         this.startY = def.y;
         this.radius = def.radius || 20;
         this.teethCount = def.teethCount || 10;
-        this.rotation = 0;
-        this.rotSpeed = def.rotSpeed || 0.24;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.baseRotSpeed = def.rotSpeed || 0.25;
+        this.rotSpeed = this.baseRotSpeed;
 
-        this.patrolAxis = def.patrolAxis || 'none'; // 'none', 'x', 'y'
-        this.minX = def.minX !== undefined ? def.minX : def.x - 60;
-        this.maxX = def.maxX !== undefined ? def.maxX : def.x + 60;
-        this.minY = def.minY !== undefined ? def.minY : def.y - 60;
-        this.maxY = def.maxY !== undefined ? def.maxY : def.y + 60;
-        this.speed = def.speed || 2.2;
-        this.dir = def.dir || 1;
+        this.baseSpeed = def.speed || 2.4;
         this.active = true;
+
+        // Dynamic 2D Random Wandering Bounds
+        const hSpan = (def.maxX !== undefined && def.minX !== undefined) 
+            ? (def.maxX - def.minX) / 2 
+            : 65;
+        this.minX = def.minX !== undefined ? def.minX : Math.max(def.x - hSpan, def.x - 75);
+        this.maxX = def.maxX !== undefined ? def.maxX : Math.min(def.x + hSpan, def.x + 75);
+        if (this.maxX <= this.minX) {
+            this.minX = def.x - 50;
+            this.maxX = def.x + 50;
+        }
+
+        // Vertical boundary: respect tight crawl ducts if radius is small
+        if (def.minY !== undefined && def.maxY !== undefined) {
+            this.minY = def.minY;
+            this.maxY = def.maxY;
+        } else if (def.patrolAxis === 'y') {
+            this.minY = def.y - 45;
+            this.maxY = def.y + 45;
+        } else {
+            const vSpan = (this.radius <= 13) ? 4 : 22;
+            this.minY = def.y - vSpan;
+            this.maxY = def.y + vSpan;
+        }
+        if (this.maxY <= this.minY) {
+            this.minY = def.y - 10;
+            this.maxY = def.y + 10;
+        }
+
+        // Initialize random 2D heading and velocity
+        const angle = Math.random() * Math.PI * 2;
+        this.vx = Math.cos(angle) * this.baseSpeed;
+        this.vy = Math.sin(angle) * (this.radius <= 13 ? 0.35 : this.baseSpeed * 0.7);
+
+        this.wanderTimer = Math.floor(Math.random() * 40) + 25;
+        this.speedMod = 1.0;
+        this.bobPhase = Math.random() * Math.PI * 2;
     }
 
     update(player, game, onTrigger) {
         this.rotation += this.rotSpeed;
 
-        if (this.patrolAxis === 'x') {
-            this.x += this.speed * this.dir;
-            if (this.x >= this.maxX) {
-                this.x = this.maxX;
-                this.dir = -1;
-            } else if (this.x <= this.minX) {
-                this.x = this.minX;
-                this.dir = 1;
-            }
-        } else if (this.patrolAxis === 'y') {
-            this.y += this.speed * this.dir;
-            if (this.y >= this.maxY) {
-                this.y = this.maxY;
-                this.dir = -1;
-            } else if (this.y <= this.minY) {
-                this.y = this.minY;
-                this.dir = 1;
-            }
+        // 1. Random velocity and heading perturbation timer
+        this.wanderTimer--;
+        if (this.wanderTimer <= 0) {
+            this.wanderTimer = Math.floor(Math.random() * 45) + 30;
+            // Modulate speed unpredictably between 0.75x and 1.4x
+            this.speedMod = 0.75 + Math.random() * 0.65;
+            // Random heading perturbation angle
+            const angleDrift = (Math.random() - 0.5) * 1.4;
+            const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy) || this.baseSpeed;
+            let currentAngle = Math.atan2(this.vy, this.vx) + angleDrift;
+
+            // Compute new randomized velocity vector
+            const vScale = (this.radius <= 13) ? 0.35 : 0.85;
+            this.vx = Math.cos(currentAngle) * currentSpeed;
+            this.vy = Math.sin(currentAngle) * (currentSpeed * vScale);
         }
 
-        // Audio & sparks when player approaches
+        // 2. Organic sinusoidal micro-bobbing
+        this.bobPhase += 0.08;
+        const bobX = Math.cos(this.bobPhase * 0.75) * 0.35;
+        const bobY = Math.sin(this.bobPhase) * (this.radius <= 13 ? 0.15 : 0.45);
+
+        // 3. Apply 2D movement
+        this.x += (this.vx * this.speedMod) + bobX;
+        this.y += (this.vy * this.speedMod) + bobY;
+
+        // 4. Soft organic boundary deflections with randomized bounce angles
+        if (this.x <= this.minX) {
+            this.x = this.minX;
+            this.vx = Math.abs(this.vx) * (0.85 + Math.random() * 0.3);
+            this.vy += (Math.random() - 0.5) * (this.radius <= 13 ? 0.3 : 1.2);
+        } else if (this.x >= this.maxX) {
+            this.x = this.maxX;
+            this.vx = -Math.abs(this.vx) * (0.85 + Math.random() * 0.3);
+            this.vy += (Math.random() - 0.5) * (this.radius <= 13 ? 0.3 : 1.2);
+        }
+
+        if (this.y <= this.minY) {
+            this.y = this.minY;
+            this.vy = Math.abs(this.vy) * (0.85 + Math.random() * 0.3);
+            this.vx += (Math.random() - 0.5) * 1.2;
+        } else if (this.y >= this.maxY) {
+            this.y = this.maxY;
+            this.vy = -Math.abs(this.vy) * (0.85 + Math.random() * 0.3);
+            this.vx += (Math.random() - 0.5) * 1.2;
+        }
+
+        // Velocity stabilization guard: maintain energetic yet controlled wander speed
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (speed < 1.2) {
+            this.vx *= 1.4;
+            this.vy *= 1.4;
+        } else if (speed > 4.8) {
+            this.vx *= 0.8;
+            this.vy *= 0.8;
+        }
+
+        // 5. Proximity Excitement & Menacing Audio/Sparks
         if (player && game) {
             const dx = player.x - this.x;
             const dy = player.y - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 140 && Math.random() < 0.04 && window.soundFX && window.soundFX.playSawBuzz) {
-                window.soundFX.playSawBuzz();
-            }
-            if (game.particles && Math.random() < 0.2) {
-                game.particles.push({
-                    x: this.x + (Math.random() - 0.5) * this.radius,
-                    y: this.y + (Math.random() - 0.5) * this.radius,
-                    vx: (Math.random() - 0.5) * 3,
-                    vy: (Math.random() - 0.5) * 3,
-                    life: 8,
-                    maxLife: 8,
-                    color: '#ffeb3b',
-                    size: 1.5,
-                    gravity: 0.1
-                });
+
+            if (dist < 135) {
+                // Excited state: spin accelerates and occasional spark burst
+                this.rotSpeed = this.baseRotSpeed * 1.5;
+
+                // Subtle predatory micro-drift when player enters hunting zone
+                if (Math.random() < 0.08) {
+                    this.vx += Math.sign(dx) * 0.4;
+                }
+
+                if (Math.random() < 0.04 && window.soundFX && window.soundFX.playSawBuzz) {
+                    window.soundFX.playSawBuzz();
+                }
+
+                if (game.particles && Math.random() < 0.28) {
+                    game.particles.push({
+                        x: this.x + (Math.random() - 0.5) * this.radius,
+                        y: this.y + (Math.random() - 0.5) * this.radius,
+                        vx: (Math.random() - 0.5) * 3.5,
+                        vy: (Math.random() - 0.5) * 3.5,
+                        life: 9,
+                        maxLife: 9,
+                        color: '#ffeb3b',
+                        size: 1.6,
+                        gravity: 0.1
+                    });
+                }
+            } else {
+                this.rotSpeed = this.baseRotSpeed;
             }
         }
     }
@@ -1231,28 +1485,22 @@ class SpinningSawbladeTrap {
     draw(ctx, theme) {
         ctx.save();
 
-        // 1. Draw guide rail slot if patrolling
-        if (this.patrolAxis === 'x') {
-            ctx.fillStyle = '#1a1410';
-            ctx.fillRect(this.minX - 2, this.startY - 3, (this.maxX - this.minX) + 4, 6);
-            ctx.fillStyle = '#423328';
-            ctx.fillRect(this.minX - 4, this.startY - 5, 4, 10);
-            ctx.fillRect(this.maxX, this.startY - 5, 4, 10);
-        } else if (this.patrolAxis === 'y') {
-            ctx.fillStyle = '#1a1410';
-            ctx.fillRect(this.startX - 3, this.minY - 2, 6, (this.maxY - this.minY) + 4);
-            ctx.fillStyle = '#423328';
-            ctx.fillRect(this.startX - 5, this.minY - 4, 10, 4);
-            ctx.fillRect(this.startX - 5, this.maxY, 10, 4);
-        }
+        // NO MECHANICAL RAILS OR SLOTS: completely seamless with the environment!
 
-        // 2. Draw spinning sawblade
+        // Draw spinning sawblade
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
 
         const r = this.radius;
         const innerR = r * 0.72;
         const teeth = this.teethCount;
+
+        // Faint spinning buzz aura for high velocity
+        ctx.beginPath();
+        ctx.arc(0, 0, r + 1, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 235, 59, 0.22)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
 
         // Serrated razor teeth
         ctx.fillStyle = '#b0bec5'; // Blade metallic grey
@@ -1630,9 +1878,13 @@ class FallingPlatformTrap {
                 this.isSolid = false;
             }
 
-            if (this.y > 650) {
+            const limitY = this.floorBelowY !== undefined ? (this.floorBelowY - this.h) : 650;
+            if (this.y >= limitY) {
                 this.state = 'gone';
                 this.isSolid = false;
+                if (particles && particles.spawnDust) {
+                    particles.spawnDust(this.x + this.w / 2, limitY + this.h);
+                }
             }
         }
     }
@@ -1651,6 +1903,8 @@ class FallingPlatformTrap {
 
     draw(ctx, theme) {
         if (this.state === 'gone') return;
+        const limitY = this.floorBelowY !== undefined ? (this.floorBelowY - this.h) : 650;
+        if (this.y > limitY) return;
         ctx.save();
         let drawX = this.x;
         let drawY = this.y;
@@ -1876,6 +2130,7 @@ window.TrollPortalTrap = TrollPortalTrap;
 window.DroppingCeilingSpikeTrap = DroppingCeilingSpikeTrap;
 window.StaticSpikeTrap = StaticSpikeTrap;
 window.VanishingFloorTrap = VanishingFloorTrap;
+window.ShiftingGroundTrap = VanishingFloorTrap;
 window.PistonCrusherTrap = PistonCrusherTrap;
 window.RollingBallTrap = RollingBallTrap;
 window.EmergingSpikeTrap = EmergingSpikeTrap;

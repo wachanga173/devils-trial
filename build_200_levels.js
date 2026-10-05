@@ -512,17 +512,17 @@ function buildPistonAlley(id, title, theme) {
         { type: 'piston_crusher', x: 240, startY: 190, targetY: 240, w: 40, h: 105, triggerRange: 50, pauseDuration: s.crusherPause },
         { type: 'piston_crusher', x: 380, startY: 190, targetY: 240, w: 40, h: 105, triggerRange: 50, pauseDuration: s.crusherPause },
         { type: 'static_spike', x: 190, y: 345, w: 28, h: 15 },
-        { type: 'collapsing_floor', x: 310, y: 345, w: 48, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 310, y: 345, w: 48, h: 35, direction: 'right', speed: 2.8, shiftDistance: 60 },
         { type: 'piston_crusher', x: 520, startY: 190, targetY: 240, w: 40, h: 105, triggerRange: 50, pauseDuration: s.crusherPause },
         { type: 'hidden_spike', x: 450, y: 345, w: 26, h: 16, triggerRange: 38 },
         { type: 'dropping_spike', x: 460, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 42 },
         { type: 'rolling_ball', x: 740, y: 345, groundY: 345, radius: 18, vx: s.ballSpd, triggerRange: 80 },
-        { type: 'collapsing_floor', x: 450, y: 345, w: 45, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 450, y: 345, w: 45, h: 35, direction: 'shift_away', speed: 3.2, shiftDistance: 50 },
         { type: 'piston_crusher', x: 640, startY: 190, targetY: 240, w: 38, h: 105, triggerRange: 45, pauseDuration: s.crusherPause },
         { type: 'reversed_controls', x: 380, y: 290, w: 120, h: 55 },
         { type: 'spinning_saw', x: 590, y: 315, radius: 18, patrolAxis: 'x', minX: 560, maxX: 620, speed: s.sawSpd },
         { type: 'dropping_spike', x: 600, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 40 },
-        { type: 'collapsing_floor', x: 600, y: 345, w: 45, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 600, y: 345, w: 45, h: 35, direction: 'left', speed: 2.8, shiftDistance: 55 },
         { type: 'static_spike', x: 480, y: 345, w: 26, h: 15 },
         { type: 'piston_crusher', x: 680, startY: 190, targetY: 240, w: 36, h: 105, triggerRange: 45, pauseDuration: s.crusherPause }
     ];
@@ -558,16 +558,16 @@ function buildBoulderRamp(id, title, theme) {
         { type: 'rolling_ball', x: 740, y: 345, groundY: 345, radius: 18, vx: s.ballSpd, triggerRange: 95 },
         { type: 'static_spike', x: 280, y: 345, w: 28, h: 15 },
         { type: 'dropping_spike', x: 420, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 45 },
-        { type: 'collapsing_floor', x: 490, y: 345, w: 50, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 490, y: 345, w: 50, h: 35, direction: 'left', speed: 2.8, shiftDistance: 55 },
         { type: 'hidden_spike', x: 590, y: 345, w: 26, h: 16, triggerRange: 36 },
         { type: 'rolling_ball', x: 620, y: 345, groundY: 345, radius: 16, vx: s.ballSpd * 0.85, triggerRange: 60 },
         { type: 'spinning_saw', x: 360, y: 315, radius: 18, patrolAxis: 'x', minX: 320, maxX: 400, speed: s.sawSpd },
         { type: 'piston_crusher', x: 490, startY: 190, targetY: 240, w: 38, h: 105, triggerRange: 45, pauseDuration: s.crusherPause },
-        { type: 'collapsing_floor', x: 330, y: 345, w: 45, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 330, y: 345, w: 45, h: 35, direction: 'shift_away', speed: 3.0, shiftDistance: 50 },
         { type: 'reversed_controls', x: 460, y: 290, w: 120, h: 55 },
         { type: 'dropping_spike', x: 550, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 40 },
         { type: 'rolling_ball', x: 200, y: 345, groundY: 345, radius: 16, vx: -s.ballSpd * 0.75, triggerX: 360, triggerRange: 60 },
-        { type: 'collapsing_floor', x: 610, y: 345, w: 45, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 610, y: 345, w: 45, h: 35, direction: 'right', speed: 2.6, shiftDistance: 50 },
         { type: 'static_spike', x: 650, y: 345, w: 26, h: 15 },
         { type: 'dropping_spike', x: 680, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 38 },
         { type: 'rolling_ball', x: 750, y: 345, groundY: 345, radius: 17, vx: s.ballSpd * 0.95, triggerRange: 85 }
@@ -603,7 +603,7 @@ function buildReverseZone(id, title, theme) {
     const pool = [
         { type: 'reversed_controls', x: 340, y: 290, w: 140, h: 55 },
         { type: 'static_spike', x: 410, y: 345, w: 28, h: 15 },
-        { type: 'collapsing_floor', x: 530, y: 345, w: 48, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 530, y: 345, w: 48, h: 35, direction: 'right', speed: 2.6, shiftDistance: 55 },
         { type: 'dropping_spike', x: 480, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 42 },
         { type: 'hidden_spike', x: 620, y: 345, w: 26, h: 16, triggerRange: 38 },
         { type: 'reversed_controls', x: 560, y: 290, w: 100, h: 55 },
@@ -611,10 +611,10 @@ function buildReverseZone(id, title, theme) {
         { type: 'spinning_saw', x: 650, y: 315, radius: 18, patrolAxis: 'x', minX: 610, maxX: 690, speed: s.sawSpd },
         { type: 'rolling_ball', x: 730, y: 345, groundY: 345, radius: 17, vx: s.ballSpd, triggerRange: 90 },
         { type: 'dropping_spike', x: 380, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 40 },
-        { type: 'collapsing_floor', x: 650, y: 345, w: 45, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 650, y: 345, w: 45, h: 35, direction: 'shift_away', speed: 3.2, shiftDistance: 50 },
         { type: 'static_spike', x: 280, y: 345, w: 26, h: 15 },
         { type: 'piston_crusher', x: 480, startY: 190, targetY: 240, w: 38, h: 105, triggerRange: 45, pauseDuration: s.crusherPause },
-        { type: 'collapsing_floor', x: 350, y: 345, w: 45, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 350, y: 345, w: 45, h: 35, direction: 'left', speed: 2.5, shiftDistance: 50 },
         { type: 'dropping_spike', x: 600, y: 230, w: 22, h: 22, groundY: 345, triggerRange: 40 },
         { type: 'spinning_saw', x: 300, y: 315, radius: 16, patrolAxis: 'x', minX: 270, maxX: 330, speed: s.sawSpd }
     ];
@@ -701,14 +701,14 @@ function buildTwinRoutes(id, title, theme) {
     const pool = [
         { type: 'spring_pad', x: 190, y: 345, w: 34, h: 14, boostVy: -11.0 },
         { type: 'static_spike', x: 380, y: 220, w: 28, h: 15 },
-        { type: 'collapsing_floor', x: 320, y: 345, w: 50, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 320, y: 345, w: 50, h: 35, direction: 'right', speed: 2.6, shiftDistance: 50 },
         { type: 'dropping_spike', x: 480, y: 150, w: 22, h: 22, groundY: 220, triggerRange: 40 },
         { type: 'piston_crusher', x: 450, startY: 220, targetY: 260, w: 38, h: 85, triggerRange: 45, pauseDuration: s.crusherPause },
         { type: 'hidden_spike', x: 550, y: 345, w: 26, h: 16, triggerRange: 36 },
         { type: 'spinning_saw', x: 520, y: 195, radius: 16, patrolAxis: 'x', minX: 470, maxX: 570, speed: s.sawSpd },
         { type: 'rolling_ball', x: 620, y: 345, groundY: 345, radius: 17, vx: s.ballSpd, triggerRange: 75 },
         { type: 'dropping_spike', x: 380, y: 260, w: 22, h: 22, groundY: 345, triggerRange: 40 },
-        { type: 'collapsing_floor', x: 420, y: 220, w: 45, h: 35, dropSpeed: s.dropSpd },
+        { type: 'shifting_ground', x: 420, y: 220, w: 45, h: 35, direction: 'shift_away', speed: 3.0, shiftDistance: 45 },
         { type: 'reversed_controls', x: 290, y: 310, w: 90, h: 45 },
         { type: 'piston_crusher', x: 520, startY: 220, targetY: 260, w: 38, h: 85, triggerRange: 45, pauseDuration: s.crusherPause },
         { type: 'static_spike', x: 670, y: 345, w: 26, h: 15 },
@@ -1020,11 +1020,12 @@ function getActiveLevelSolids(level, activeTraps) {
     const isFallingPlatform = (t) => (typeof FallingPlatformTrap !== 'undefined' && t instanceof FallingPlatformTrap);
     const isVanishingTrap = (t) => (typeof VanishingFloorTrap !== 'undefined' && t instanceof VanishingFloorTrap);
 
-    const floorTraps = (activeTraps || []).filter(t => isVanishingTrap(t) || isFallingPlatform(t));
+    const floorTraps = (activeTraps || []).filter(t => isVanishingTrap(t) || isFallingPlatform(t) || t.isFloorTrap || t.isGroundTrap);
     if (floorTraps.length === 0) {
         return [...level.solids];
     }
 
+    const boundsH = (level.bounds && level.bounds.height) ? level.bounds.height : 480;
     const resolvedSolids = [];
     for (const solid of level.solids) {
         const cuttingTraps = floorTraps.filter(t => {
@@ -1041,6 +1042,20 @@ function getActiveLevelSolids(level, activeTraps) {
 
             let curX = solid.x;
             for (const trap of cuttingTraps) {
+                trap.solidH = solid.h;
+                trap.isWorldBottom = (solid.y + solid.h >= boundsH - 10);
+                if (!trap.isWorldBottom && level.solids) {
+                    const solidsBelow = level.solids.filter(s => 
+                        s !== solid && 
+                        s.y >= solid.y + solid.h - 5 && 
+                        (trap.x + trap.w > s.x) && (trap.x < s.x + s.w)
+                    );
+                    if (solidsBelow.length > 0) {
+                        solidsBelow.sort((a, b) => a.y - b.y);
+                        trap.floorBelowY = solidsBelow[0].y;
+                    }
+                }
+
                 const trapLeft = Math.max(solid.x, trap.x);
                 const trapRight = Math.min(solid.x + solid.w, trap.x + trap.w);
 
