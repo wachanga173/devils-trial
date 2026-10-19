@@ -1,7 +1,7 @@
 {
-  "name": "Devil's Trial: Shuffling Traps AI Edition",
+  "name": "Devil's Trial: 200 Handcrafted Trials",
   "short_name": "Devil's Trial",
-  "description": "An adaptive, procedural troll platformer powered by real-time ML AI Director.",
+  "description": "An authentic troll platformer featuring 200 handcrafted trials with evasive doors and dynamic traps.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

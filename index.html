@@ -12,7 +12,7 @@
     <link rel="icon" type="image/svg+xml" href="./icon.svg">
     <link rel="apple-touch-icon" href="./icon.svg">
     <script>
-        // Register PWA Service Worker (Network-First strategy for online AI model & consistency)
+        // Register PWA Service Worker (Network-First strategy with offline fallback caching)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js').then((reg) => {
@@ -136,6 +136,8 @@
             <symbol id="icon-monitor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></symbol>
             <symbol id="icon-fullscreen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></symbol>
             <symbol id="icon-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></symbol>
+            <symbol id="icon-arrow-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol>
+            <symbol id="icon-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
         </defs>
     </svg>
 
@@ -380,20 +382,20 @@
                         <br><svg class="ui-icon" style="color: #ffca28;"><use href="#icon-folder"></use></svg> <strong>Windows File Explorer:</strong> Click <em>1-Click Launcher (.bat)</em>, or copy the Win+R command, press <kbd>Win</kbd> + <kbd>R</kbd>, paste &amp; hit <kbd>Enter</kbd>.
                     </div>
                     <div id="mobileStorageNote" class="device-path-note mobile-storage-note" style="display: none;">
-                        <svg class="ui-icon" style="color: #ffca28;"><use href="#icon-smartphone"></use></svg> <strong>Mobile &amp; Tablet Sandbox:</strong> On phones and tablets, game progress and AI memory are securely kept inside this browser origin's isolated storage sandbox (<span class="code-val">devils_trial_save_v1</span>). Use <em>Share Save Data</em> or <em>Download Save (.JSON)</em> above to backup or transfer your progress!
+                        <svg class="ui-icon" style="color: #ffca28;"><use href="#icon-smartphone"></use></svg> <strong>Mobile &amp; Tablet Sandbox:</strong> On phones and tablets, game progress and death statistics are securely kept inside this browser origin's isolated storage sandbox (<span class="code-val">devils_trial_save_v1</span>). Use <em>Share Save Data</em> or <em>Download Save (.JSON)</em> above to backup or transfer your progress!
                     </div>
                 </div>
 
                 <div class="pwa-storage-callout">
                     <span class="callout-icon"><svg class="ui-icon"><use href="#icon-download"></use></svg></span>
                     <div class="callout-body">
-                        <strong>Shared Storage Guarantee:</strong> Installing Devil's Trial as a PWA uses this <em>exact same local storage partition</em> (<span class="code-val">devils_trial_save_v1</span>). All your levels, deaths, and AI memory persist seamlessly!
+                        <strong>Shared Storage Guarantee:</strong> Installing Devil's Trial as a PWA uses this <em>exact same local storage partition</em> (<span class="code-val">devils_trial_save_v1</span>). All your levels, deaths, and completion stats persist seamlessly!
                     </div>
                 </div>
 
                 <div class="danger-zone">
                     <div class="danger-title"><svg class="ui-icon" style="color: #ff5252;"><use href="#icon-alert"></use></svg> PERMANENT DATA DESTRUCTION</div>
-                    <p class="danger-desc">This will permanently destroy all saved progress, death statistics, and AI learning memory from your device's local storage. This action cannot be reversed.</p>
+                    <p class="danger-desc">This will permanently destroy all saved progress, death statistics, and unlocked trial records from your device's local storage. This action cannot be reversed.</p>
                     <button id="destroyDataBtn" class="btn-danger-destroy">
                         <svg class="ui-icon" style="color: #ff5252;"><use href="#icon-flame"></use></svg> PERMANENTLY DESTROY ALL DATA &amp; RESET
                     </button>
@@ -429,7 +431,7 @@
                     <h2 class="modal-title"><svg class="ui-icon"><use href="#icon-download"></use></svg> INSTALL DEVIL'S TRIAL</h2>
                     <button id="closePwaGuideBtn" class="close-modal-btn" aria-label="Close Install Guide">✕</button>
                 </div>
-                <p class="pwa-guide-desc">Installing as a Progressive Web App (PWA) gives you full landscape fullscreen windowing and uses the <strong>exact same browser storage</strong>, keeping all your level progress and AI learning!</p>
+                <p class="pwa-guide-desc">Installing as a Progressive Web App (PWA) gives you full landscape fullscreen windowing and uses the <strong>exact same browser storage</strong>, keeping all your level progress and completion records!</p>
                 <div id="pwaGuideSteps" class="pwa-guide-steps">
                     <!-- Populated dynamically by detected browser/OS -->
                 </div>
@@ -442,9 +444,15 @@
         <!-- Interactive Legal, Privacy & FAQ Center Modal -->
         <div id="legalOverlay" class="overlay-modal" aria-hidden="true">
             <div class="modal-content legal-modal-content">
-                <div class="storage-modal-header">
+                <div class="storage-modal-header legal-modal-header-bar">
                     <h2 class="modal-title"><svg class="ui-icon"><use href="#icon-file-text"></use></svg> LEGAL &amp; FAQ CENTER</h2>
-                    <button id="closeLegalBtn" class="close-modal-btn" aria-label="Close Legal Menu">✕</button>
+                    <div class="legal-header-actions">
+                        <button id="topBackLegalBtn" class="btn-return-header" aria-label="Return to Game" title="Close and return to game">
+                            <svg class="ui-icon"><use href="#icon-arrow-left"></use></svg>
+                            <span id="topBackLegalText">BACK TO GAME</span>
+                        </button>
+                        <button id="closeLegalBtn" class="close-modal-btn" aria-label="Close Legal Menu" title="Close (ESC)">✕</button>
+                    </div>
                 </div>
 
                 <!-- Category Tab Switcher -->
@@ -452,13 +460,13 @@
                     <button class="modal-tab-btn active" data-tab="terms"><svg class="ui-icon"><use href="#icon-file-text"></use></svg> Terms</button>
                     <button class="modal-tab-btn" data-tab="privacy"><svg class="ui-icon"><use href="#icon-lock"></use></svg> Privacy</button>
                     <button class="modal-tab-btn" data-tab="faq"><svg class="ui-icon"><use href="#icon-help"></use></svg> FAQs</button>
-                    <button class="modal-tab-btn" data-tab="ai"><svg class="ui-icon"><use href="#icon-brain"></use></svg> AI &amp; Fair Play</button>
+                    <button class="modal-tab-btn" data-tab="fairplay"><svg class="ui-icon"><use href="#icon-shield"></use></svg> 200 Trials &amp; Fair Play</button>
                 </div>
 
                 <!-- In-Modal Quick Search -->
                 <div class="modal-search-box">
                     <span class="modal-search-icon"><svg class="ui-icon"><use href="#icon-search"></use></svg></span>
-                    <input type="text" id="inModalLegalSearch" class="modal-search-input" placeholder="Quick search terms, privacy, FAQs, crawling, AI..." aria-label="Search Legal &amp; FAQs">
+                    <input type="text" id="inModalLegalSearch" class="modal-search-input" placeholder="Quick search terms, privacy, FAQs, 200 trials, mechanics..." aria-label="Search Legal &amp; FAQs">
                 </div>
 
                 <!-- Scrollable Body with Tab Panels -->
@@ -526,7 +534,7 @@
                                     <span class="acc-chevron">▼</span>
                                 </button>
                                 <div class="in-modal-acc-a">
-                                    <p>Only your unlocked level index, death count, chosen visual theme, chaos mode state, last saved timestamp, and local AI telemetry feature weights (jump counts, rush speed). Total footprint: ~2 KB.</p>
+                                    <p>Only your unlocked level index, death count, chosen visual theme, and last saved timestamp. Total footprint: ~1 KB.</p>
                                 </div>
                             </div>
                             <div class="in-modal-acc-item">
@@ -557,7 +565,7 @@
                     <div id="tabContentFaq" class="tab-panel">
                         <div class="legal-mini-card">
                             <div class="mini-card-title"><svg class="ui-icon"><use href="#icon-help"></use></svg> Frequently Asked Questions</div>
-                            <p>Quick answers to common questions about crawling mechanics, troll traps, AI adaptation, and save persistence.</p>
+                            <p>Quick answers to common questions about crawling mechanics, troll traps, 200 handcrafted levels, and save persistence.</p>
                         </div>
                         <div class="legal-accordion-group">
                             <div class="in-modal-acc-item">
@@ -611,41 +619,52 @@
                         </div>
                     </div>
 
-                    <!-- TAB 4: AI & FAIR PLAY -->
-                    <div id="tabContentAi" class="tab-panel">
+                    <!-- TAB 4: 200 TRIALS & FAIR PLAY -->
+                    <div id="tabContentFairplay" class="tab-panel">
                         <div class="legal-mini-card">
-                            <div class="mini-card-title"><svg class="ui-icon"><use href="#icon-brain"></use></svg> AI Director &amp; Anti-Checkmate Guarantee</div>
-                            <p>Our client-side Machine Learning model analyzes your movement dynamics in real time to provide fair, personalized platforming challenge.</p>
+                            <div class="mini-card-title"><svg class="ui-icon"><use href="#icon-shield"></use></svg> 200 Handcrafted Trials &amp; Fair Play Guarantee</div>
+                            <p>Every single one of the 200 campaign trials is strictly handcrafted, obstacle-cleared, and mathematically validated for 100% fair platforming solvability.</p>
                         </div>
                         <div class="legal-accordion-group">
                             <div class="in-modal-acc-item">
                                 <button class="in-modal-acc-q">
-                                    <span>The 4 Player Playstyle Profiles</span>
+                                    <span>The 10 Handcrafted Architectural Archetypes</span>
                                     <span class="acc-chevron">▼</span>
                                 </button>
                                 <div class="in-modal-acc-a">
-                                    <p>• <strong style="color: #ffca28;">RUSHER:</strong> High horizontal speed, sprints blindly ➔ countered with delayed drop spikes &amp; roll boulders.<br>
-                                    • <strong style="color: #80d8ff;">CAUTIOUS:</strong> Hesitates before jumping ➔ countered with rhythmic piston crushers.<br>
-                                    • <strong style="color: #69f0ae;">HOPPER:</strong> Bunny-hops constantly ➔ countered with ceiling-mounted sawblades.<br>
-                                    • <strong style="color: #fff;">BALANCED:</strong> Mixed tactical player ➔ countered with hybrid trap selections.</p>
+                                    <p>The campaign progresses through 10 distinct thematic chapters across 200 unique trials:<br>
+                                    • <strong style="color: #ffca28;">Chapters 1–2 (Trials 1–40):</strong> The Descent of Deception &amp; Evasive Shuffles (foundation troll mechanics).<br>
+                                    • <strong style="color: #80d8ff;">Chapters 3–4 (Trials 41–80):</strong> Vanishing Foundations &amp; Razor Tunnel Crawls (crouch &amp; crawl agility).<br>
+                                    • <strong style="color: #69f0ae;">Chapters 5–6 (Trials 81–120):</strong> Piston Crush Gauntlet &amp; Bounding Cascade (rhythmic timing).<br>
+                                    • <strong style="color: #ff5252;">Chapters 7–8 (Trials 121–160):</strong> Inverted Horizons &amp; Spatial Paradoxes (gravity &amp; reverse control trials).<br>
+                                    • <strong style="color: #ffd700;">Chapters 9–10 (Trials 161–200):</strong> The Crucible of Despair &amp; The Devil's Gauntlet (mastery finale).</p>
                                 </div>
                             </div>
                             <div class="in-modal-acc-item">
                                 <button class="in-modal-acc-q">
-                                    <span>Anti-Checkmate Spatial Exclusion Matrix</span>
+                                    <span>Obstacle-Aware Evasive Doors &amp; Safe Spawns</span>
                                     <span class="acc-chevron">▼</span>
                                 </button>
                                 <div class="in-modal-acc-a">
-                                    <p>Traps pass through a strict compatibility algorithm: rolling boulders cannot share elevation corridors with floor collapses in evasion zones, and dropping spikes never sandwich players with floor spikes. Every obstacle is solvable!</p>
+                                    <p>Exit doors calculate full bounding-box solid collisions before shifting. Doors will never hop into solid walls, clip ceilings, or trap the player. Player spawn points feature permanent 60px safe clearance zones free of instant hazards.</p>
                                 </div>
                             </div>
                             <div class="in-modal-acc-item">
                                 <button class="in-modal-acc-q">
-                                    <span>Switching to Static Trap Mode</span>
+                                    <span>Anti-Checkmate Spatial Exclusion &amp; Solvability</span>
                                     <span class="acc-chevron">▼</span>
                                 </button>
                                 <div class="in-modal-acc-a">
-                                    <p>Want a static platformer for speedrun route practice? Click the AI DIRECTOR button in the game header to turn Adaptive AI off anytime.</p>
+                                    <p>Traps adhere to strict spatial exclusion rules: rolling boulders never occupy the same elevation corridors as floor collapses, and dropping spikes never sandwich players with floor spikes. Every trial is 100% beatable through timing, precision, and observation.</p>
+                                </div>
+                            </div>
+                            <div class="in-modal-acc-item">
+                                <button class="in-modal-acc-q">
+                                    <span>Fair Play, Modding &amp; Speedrunning Integrity</span>
+                                    <span class="acc-chevron">▼</span>
+                                </button>
+                                <div class="in-modal-acc-a">
+                                    <p>All game physics run deterministically at 60 FPS delta ticks with sub-pixel collision resolution. Speedruns are tracked with authentic death counts and level clears with no hidden modifiers or algorithmic handicaps.</p>
                                 </div>
                             </div>
                         </div>
@@ -660,7 +679,12 @@
                     <a id="openFullLegalPageLink" href="./legal.html" target="_blank" class="btn-location-action btn-location-subtle" style="text-decoration: none; flex: 1;">
                         <svg class="ui-icon"><use href="#icon-globe"></use></svg> OPEN FULL PORTAL <svg class="ui-icon"><use href="#icon-external"></use></svg>
                     </a>
-                    <button id="backFromLegalBtn" class="btn-primary" style="flex: 1;">BACK TO GAME</button>
+                    <button id="backFromLegalBtn" class="btn-secondary" style="flex: 1;">
+                        <svg class="ui-icon"><use href="#icon-arrow-left"></use></svg> <span id="backFromLegalText">BACK TO GAME</span>
+                    </button>
+                    <button id="directResumeFromLegalBtn" class="btn-primary" style="flex: 1;">
+                        <svg class="ui-icon"><use href="#icon-play"></use></svg> RESUME GAME
+                    </button>
                 </div>
             </div>
         </div>

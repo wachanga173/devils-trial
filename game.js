@@ -384,7 +384,9 @@ class Game {
         const headerLegalBtn = document.getElementById('headerLegalBtn');
         const pauseLegalBtn = document.getElementById('pauseLegalBtn');
         const closeLegalBtn = document.getElementById('closeLegalBtn');
+        const topBackLegalBtn = document.getElementById('topBackLegalBtn');
         const backFromLegalBtn = document.getElementById('backFromLegalBtn');
+        const directResumeFromLegalBtn = document.getElementById('directResumeFromLegalBtn');
         const footerTermsBtn = document.getElementById('footerTermsBtn');
         const footerPrivacyBtn = document.getElementById('footerPrivacyBtn');
         const footerFaqBtn = document.getElementById('footerFaqBtn');
@@ -392,36 +394,47 @@ class Game {
         if (headerLegalBtn) {
             headerLegalBtn.addEventListener('click', () => {
                 if (this.gameState === 'playing') this.togglePause();
-                this.toggleLegalModal(true, 'terms');
+                this.toggleLegalModal(true, 'terms', false);
             });
         }
         if (pauseLegalBtn) {
             pauseLegalBtn.addEventListener('click', () => {
-                this.toggleLegalModal(true, 'terms');
+                this.toggleLegalModal(true, 'terms', true);
             });
         }
         if (closeLegalBtn) {
             closeLegalBtn.addEventListener('click', () => this.toggleLegalModal(false));
         }
+        if (topBackLegalBtn) {
+            topBackLegalBtn.addEventListener('click', () => this.toggleLegalModal(false));
+        }
         if (backFromLegalBtn) {
             backFromLegalBtn.addEventListener('click', () => this.toggleLegalModal(false));
+        }
+        if (directResumeFromLegalBtn) {
+            directResumeFromLegalBtn.addEventListener('click', () => {
+                this.toggleLegalModal(false);
+                if (this.gameState === 'paused') {
+                    this.togglePause();
+                }
+            });
         }
         if (footerTermsBtn) {
             footerTermsBtn.addEventListener('click', () => {
                 if (this.gameState === 'playing') this.togglePause();
-                this.toggleLegalModal(true, 'terms');
+                this.toggleLegalModal(true, 'terms', false);
             });
         }
         if (footerPrivacyBtn) {
             footerPrivacyBtn.addEventListener('click', () => {
                 if (this.gameState === 'playing') this.togglePause();
-                this.toggleLegalModal(true, 'privacy');
+                this.toggleLegalModal(true, 'privacy', false);
             });
         }
         if (footerFaqBtn) {
             footerFaqBtn.addEventListener('click', () => {
                 if (this.gameState === 'playing') this.togglePause();
-                this.toggleLegalModal(true, 'faq');
+                this.toggleLegalModal(true, 'faq', false);
             });
         }
 
@@ -1199,7 +1212,7 @@ class Game {
             "Are you absolutely sure you want to delete all saved history from local storage?\n\n" +
             "• Progress will be reset to Level 1\n" +
             "• Total death count will reset to 0\n" +
-            "• AI learning memory and weights will be permanently wiped\n\n" +
+            "• All 200 trial records and statistics will be permanently wiped\n\n" +
             "This action cannot be undone."
         ) : true;
 
@@ -1229,10 +1242,15 @@ class Game {
         this.showToast(`${trashIco} All local storage data has been permanently destroyed.`);
     }
 
-    toggleLegalModal(open, targetTab = 'terms') {
+    toggleLegalModal(open, targetTab = 'terms', fromPauseMenu = null) {
         const modal = document.getElementById('legalOverlay');
         if (!modal) return;
         if (open) {
+            if (fromPauseMenu !== null) {
+                this.legalOpenedFromPause = fromPauseMenu;
+            } else {
+                this.legalOpenedFromPause = (this.gameState === 'paused' && this.pauseOverlay && this.pauseOverlay.classList.contains('active'));
+            }
             modal.classList.add('active');
             modal.setAttribute('aria-hidden', 'false');
             this.switchLegalModalTab(targetTab);
@@ -1241,17 +1259,38 @@ class Game {
                 searchInput.value = '';
                 this.filterLegalModalContent('');
             }
+
+            // Dynamically update return labels based on context
+            const topBackText = document.getElementById('topBackLegalText');
+            const bottomBackText = document.getElementById('backFromLegalText');
+            const topBackBtn = document.getElementById('topBackLegalBtn');
+            const label = this.legalOpenedFromPause ? 'BACK TO PAUSE' : 'RESUME GAME';
+            if (topBackText) topBackText.innerText = label;
+            if (bottomBackText) bottomBackText.innerText = label;
+            if (topBackBtn) topBackBtn.title = this.legalOpenedFromPause ? 'Return to Pause Menu' : 'Resume Playing Game';
         } else {
             modal.classList.remove('active');
             modal.setAttribute('aria-hidden', 'true');
+            if (!this.legalOpenedFromPause) {
+                // If opened directly from gameplay, resume playing immediately!
+                if (this.gameState === 'paused') {
+                    this.togglePause();
+                }
+            } else {
+                // If opened from pause menu, keep pause menu visible and ready
+                if (this.pauseOverlay && !this.pauseOverlay.classList.contains('active')) {
+                    this.pauseOverlay.classList.add('active');
+                }
+            }
         }
     }
 
     switchLegalModalTab(tabName) {
+        if (tabName === 'ai') tabName = 'fairplay';
         const tabBtns = document.querySelectorAll('.legal-modal-tabs .modal-tab-btn');
         const panels = document.querySelectorAll('.legal-modal-scroll .tab-panel');
         tabBtns.forEach(btn => {
-            if (btn.dataset.tab === tabName) {
+            if (btn.dataset.tab === tabName || (tabName === 'fairplay' && btn.dataset.tab === 'ai')) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
@@ -1259,7 +1298,7 @@ class Game {
         });
         panels.forEach(panel => {
             const panelId = 'tabContent' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
-            if (panel.id === panelId) {
+            if (panel.id === panelId || (tabName === 'fairplay' && panel.id === 'tabContentAi')) {
                 panel.classList.add('active');
             } else {
                 panel.classList.remove('active');
