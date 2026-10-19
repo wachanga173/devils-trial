@@ -229,38 +229,115 @@ class AdaptiveDoor {
         this.onShutComplete = callback;
     }
 
-    findEvasionTarget(player) {
-        // If level has a scripted shift delta (e.g. Level 4 with shiftX: -85), honor it on first hop
-        if (this.def.shiftX && this.shiftsLeft === this.evasionsMax) {
-            return { x: this.x + this.def.shiftX, y: this.y };
+    isTargetValid(x, y) {
+        const boundsW = (this.level && this.level.bounds) ? this.level.bounds.width : 840;
+        const boundsH = (this.level && this.level.bounds) ? this.level.bounds.height : 480;
+        const solids = (this.level && this.level.solids) ? this.level.solids : [];
+        const traps = (this.level && this.level.traps) ? this.level.traps : [];
+
+        // 1. Must stay safely within level boundaries
+        if (x < 15 || x + this.w > boundsW - 15) return false;
+        if (y < 15 || y + this.h > boundsH - 15) return false;
+
+        // 2. Must not overlap any solid obstacle (walls, ceilings, pillars)
+        for (const s of solids) {
+            if (s.passthrough) continue;
+            const overlapX = Math.min(x + this.w, s.x + s.w) - Math.max(x, s.x);
+            const overlapY = Math.min(y + this.h, s.y + s.h) - Math.max(y, s.y);
+            if (overlapX > 1 && overlapY > 1) {
+                return false;
+            }
         }
 
+        // 3. Must stand firmly on solid ground
+        let hasGround = false;
+        const groundY = y + this.h;
+        for (const s of solids) {
+            if (s.passthrough || s.isWallOnly) continue;
+            if (Math.abs(s.y - groundY) <= 3) {
+                if (x + this.w - 4 >= s.x && x + 4 <= s.x + s.w) {
+                    hasGround = true;
+                    break;
+                }
+            }
+        }
+        if (!hasGround) return false;
+
+        // 4. Must not overlap deadly static hazards at landing spot
+        for (const t of traps) {
+            if (t.type === 'static_spike' || t.type === 'spinning_saw') {
+                const tX = t.x !== undefined ? t.x : (t.startX || 0);
+                const tY = t.y !== undefined ? t.y : 0;
+                const tW = t.w || (t.radius ? t.radius * 2 : 24);
+                const tH = t.h || (t.radius ? t.radius * 2 : 24);
+                const overlapX = Math.min(x + this.w, tX + tW) - Math.max(x, tX);
+                const overlapY = Math.min(y + this.h, tY + tH) - Math.max(y, tY);
+                if (overlapX > 2 && overlapY > 2) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    findEvasionTarget(player) {
         const boundsW = (this.level && this.level.bounds) ? this.level.bounds.width : 840;
         const solids = (this.level && this.level.solids) ? this.level.solids : [];
         const pX = player ? player.x : this.x;
 
-        // Determine direction away from player
-        let dir = (this.x >= pX) ? 1 : -1;
-        if (dir > 0 && this.x > boundsW - 160) dir = -1;
-        if (dir < 0 && this.x < 160) dir = 1;
+        // 1. Scripted shift if defined in level definition (e.g. shiftDirection & shiftDistance, or shiftX)
+        let scriptDir = null;
+        let scriptDist = null;
+        if (this.def.shiftDirection !== undefined && this.def.shiftDistance !== undefined) {
+            scriptDir = this.def.shiftDirection;
+            scriptDist = this.def.shiftDistance;
+        } else if (this.def.shiftX !== undefined) {
+            scriptDir = Math.sign(this.def.shiftX);
+            scriptDist = Math.abs(this.def.shiftX);
+        }
 
-        // Try candidate hop distances
-        const candidateDists = [115, 145, 85, 170, -110];
-        for (const dist of candidateDists) {
-            const testX = Math.max(90, Math.min(boundsW - 90 - this.w, this.x + dir * dist));
-            // Check if there is solid ground at testX
-            for (const s of solids) {
-                if (s.passthrough || s.isWallOnly) continue;
-                if (testX + this.w - 4 >= s.x && testX + 4 <= s.x + s.w) {
-                    if (Math.abs(s.y - (this.y + this.h)) < 45) {
-                        return { x: testX, y: s.y - this.h };
+        if (this.shiftsLeft === this.evasionsMax && scriptDir !== null && scriptDist !== null) {
+            const testX = this.x + scriptDir * scriptDist;
+            if (this.isTargetValid(testX, this.y)) {
+                return { x: testX, y: this.y };
+            }
+        }
+
+        // 2. Dynamic evasion: Determine preferred direction away from player
+        let preferredDir = (this.x >= pX) ? 1 : -1;
+        if (this.x > boundsW - 180) preferredDir = -1;
+        if (this.x < 180) preferredDir = 1;
+
+        // Candidate distances to try, from ideal leap to compact hops
+        const testDirs = [preferredDir, -preferredDir];
+        const candidateDists = [115, 85, 140, 60, 45, 175, 30];
+
+        for (const d of testDirs) {
+            for (const dist of candidateDists) {
+                const testX = this.x + d * dist;
+                // Test current floor level
+                if (this.isTargetValid(testX, this.y)) {
+                    return { x: testX, y: this.y };
+                }
+                // Test platforms at nearby heights (stepped terraces)
+                for (const s of solids) {
+                    if (s.passthrough || s.isWallOnly) continue;
+                    if (testX + this.w - 4 >= s.x && testX + 4 <= s.x + s.w) {
+                        const testY = s.y - this.h;
+                        if (Math.abs(testY - this.y) <= 45 && Math.abs(testY - this.y) > 0) {
+                            if (this.isTargetValid(testX, testY)) {
+                                return { x: testX, y: testY };
+                            }
+                        }
                     }
                 }
             }
         }
 
-        const fallbackX = Math.max(90, Math.min(boundsW - 90 - this.w, this.x + dir * 115));
-        return { x: fallbackX, y: this.y };
+        // 3. Fallback: If no candidate location is safe from wall collisions,
+        // hop safely in-place instead of jumping into a wall or void!
+        return { x: this.x, y: this.y };
     }
 
     update(player, aiModel, game) {
