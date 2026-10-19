@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Privacy Policy &amp; Data Transparency | Devil's Trial</title>
-    <meta name="description" content="Privacy Policy for Devil's Trial: Zero-telemetry, zero cookies, 100% local storage. Read how your game progress and AI telemetry are stored strictly on your device.">
+    <meta name="description" content="Privacy Policy for Devil's Trial: Zero-telemetry, zero cookies, 100% local storage. Read how your game progress and preferences are stored strictly on your device.">
     <link rel="icon" type="image/svg+xml" href="./icon.svg">
     <link rel="stylesheet" href="./legal.css?v=1">
     <script src="./icons.js?v=28"></script>
@@ -49,7 +49,7 @@
             <h3><svg class="ui-icon ui-icon-md"><use href="#icon-shield"></use></svg> OUR PRIVACY PLEDGE AT A GLANCE</h3>
             <ul>
                 <li><strong>No User Accounts:</strong> You do not need to register, provide an email address, or create a password to play.</li>
-                <li><strong>Zero Remote Telemetry:</strong> None of your gameplay inputs, reaction speeds, death coordinates, or AI learning weights are transmitted across the internet to any server.</li>
+                <li><strong>Zero Remote Telemetry:</strong> None of your gameplay inputs, reaction speeds, death coordinates, or level progress are transmitted across the internet to any server.</li>
                 <li><strong>Zero Third-Party Trackers:</strong> No Google Analytics, no Facebook SDK, no ad tracking pixels, and no fingerprinting scripts.</li>
                 <li><strong>Complete User Control:</strong> You can inspect the live save JSON at any time, export it as a file, or permanently incinerate all stored data with a single button in-game.</li>
             </ul>
@@ -81,8 +81,8 @@
                 <h2>Scope &amp; Privacy-First Architecture</h2>
             </div>
             <div class="section-body">
-                <p>This Privacy Policy explains how <strong>Devil's Trial: Adaptive Shuffling Traps</strong> ("we", "us", or "our") processes data when you interact with our web application, install our Progressive Web App (PWA), or access the game locally.</p>
-                <p>Unlike conventional modern web applications that rely on persistent cloud databases, user tracking pixels, and profiling algorithms, Devil's Trial adheres strictly to a <strong>Local-First, Zero-Telemetry</strong> model. All game state computation, physics logic, and machine learning adaptations take place locally inside your browser's execution sandbox.</p>
+                <p>This Privacy Policy explains how <strong>Devil's Trial: 200 Handcrafted Devil Trials</strong> ("we", "us", or "our") processes data when you interact with our web application, install our Progressive Web App (PWA), or access the game locally.</p>
+                <p>Unlike conventional modern web applications that rely on persistent cloud databases, user tracking pixels, and profiling algorithms, Devil's Trial adheres strictly to a <strong>Local-First, Zero-Telemetry</strong> model. All game state computation, 200 handcrafted levels, physics logic, and audio synthesis take place locally inside your browser's execution sandbox.</p>
             </div>
         </article>
 
@@ -150,12 +150,10 @@
                 <p>To preserve your progression across game sessions, Devil's Trial writes state information solely to your device's browser local storage (<span class="code-pill">localStorage</span>). This data is completely sandboxed to your browser's origin (<span class="code-pill">window.location.origin</span>) and is inaccessible to other websites.</p>
                 <p>The stored information includes:</p>
                 <ul>
-                    <li><strong>Level Progression:</strong> The index of the highest level you have reached (<span class="code-pill">currentLevelIndex</span>).</li>
+                    <li><strong>Level Progression:</strong> The zero-based index of the level you are currently on (<span class="code-pill">currentLevelIndex</span>, ranging from 0 to 199).</li>
                     <li><strong>Death Statistics:</strong> Total count of player deaths incurred across sessions (<span class="code-pill">deathCount</span>).</li>
                     <li><strong>Visual Theme Preference:</strong> The active color palette chosen in settings (e.g., <span class="code-pill">inferno</span>, <span class="code-pill">midnight</span>, <span class="code-pill">toxic</span>).</li>
-                    <li><strong>Chaos Mode Setting:</strong> Whether dynamic trap shuffling is toggled on or off (<span class="code-pill">chaosMode: true/false</span>).</li>
                     <li><strong>Timestamp:</strong> The ISO timestamp of your most recent auto-save (<span class="code-pill">lastSaved</span>).</li>
-                    <li><strong>Local AI Telemetry &amp; Weights:</strong> Numerical feature vectors derived from your recent movement (jump frequency, rushing distance, reaction times, and trap efficacy counters).</li>
                 </ul>
             </div>
         </article>
@@ -182,30 +180,7 @@
   "currentLevelIndex": 4,
   "deathCount": 27,
   "currentThemeKey": "midnight",
-  "chaosMode": true,
-  "lastSaved": "2026-09-09T10:40:00.000Z",
-  "ai": {
-    "telemetry": {
-      "totalFrames": 4820,
-      "movingFrames": 3120,
-      "idleFrames": 1700,
-      "jumpCount": 84,
-      "rushDistance": 1420.5
-    },
-    "weights": {
-      "RUSHER": [0.45, -0.3, 0.2, 0.5],
-      "CAUTIOUS": [-0.4, 0.5, -0.2, -0.4],
-      "HOPPER": [0.1, -0.1, 0.7, 0.2],
-      "BALANCED": [0.0, 0.0, 0.0, 0.0]
-    },
-    "trapEfficacy": {
-      "rolling_ball": 1.45,
-      "spinning_saw": 1.2,
-      "collapsing_floor": 0.95
-    },
-    "learningEpochs": 12,
-    "playerSkillEstimate": 1.85
-  }
+  "lastSaved": "2026-10-19T10:40:00.000Z"
 }</pre>
                 </div>
             </div>
@@ -222,8 +197,8 @@
                 <ul>
                     <li>The installed PWA window and the browser tab share the <strong>exact same local storage partition</strong>.</li>
                     <li>Levels cleared in the browser tab are immediately present when launching the PWA.</li>
-                    <li>Your AI Director learning epochs are unified across both launch methods.</li>
-                    <li>Total data footprint is approximately <strong>1.5 KB to 4 KB</strong>, requiring a microscopic fraction of device storage.</li>
+                    <li>Your death counts and level progression are unified across both launch methods.</li>
+                    <li>Total data footprint is approximately <strong>0.5 KB</strong>, requiring a microscopic fraction of device storage.</li>
                 </ul>
             </div>
         </article>
@@ -254,7 +229,7 @@
             <div class="section-body">
                 <p>The game registers a lightweight Service Worker (<span class="code-pill">sw.js</span>) utilizing the browser's Cache Storage API (<span class="code-pill">devils-trial-v3</span>). The Service Worker operates under a <strong>Network-First Strategy</strong>:</p>
                 <ul>
-                    <li><strong>Online Mode:</strong> Checks for the newest version of code files, AI parameters, and balance tweaks from the host server.</li>
+                    <li><strong>Online Mode:</strong> Checks for the newest version of code files, level assets, and balance tweaks from the host server.</li>
                     <li><strong>Offline Mode Fallback:</strong> If an internet connection is unavailable, it immediately serves precached HTML, CSS, JavaScript, and SVG assets so the game remains 100% playable anywhere without connectivity.</li>
                     <li>No user queries, personal logs, or gameplay inputs are cached or transmitted by the Service Worker.</li>
                 </ul>

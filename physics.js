@@ -186,7 +186,7 @@ class Physics {
         const pBottom = player.y;
 
         for (const s of solids) {
-            if (s.passthrough || s.isOneWay || s.isWallOnly) continue;
+            if (s.passthrough || s.isOneWay) continue;
 
             // Only collide horizontally if within the vertical span of the solid
             // (pBottom > s.y + 1 prevents snagging on flat floors under feet)

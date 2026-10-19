@@ -1650,18 +1650,15 @@ class MovingPlatformTrap {
 
     update(player, game, onTrigger) {
         // Detect if player is standing on top
+        let onTop = false;
         if (player && player.onGround && !player.isJumping) {
             const pLeft = player.x - player.width / 2;
             const pRight = player.x + player.width / 2;
-            const onTop = pRight > this.x + 2 && pLeft < this.x + this.w - 2 && Math.abs(player.y - this.y) <= 4;
-            if (onTop) {
-                this.stepTimer++;
-                // Carry player smoothly along platform transit
-                player.x += this.vx;
-                player.y += this.vy;
-            } else {
-                this.stepTimer = 0;
-            }
+            onTop = pRight > this.x + 2 && pLeft < this.x + this.w - 2 && Math.abs(player.y - this.y) <= 5;
+        }
+
+        if (onTop) {
+            this.stepTimer++;
         } else {
             this.stepTimer = 0;
         }
@@ -1673,33 +1670,71 @@ class MovingPlatformTrap {
             this.vx = 0;
             this.y += this.vy;
             if (this.y < this.min) this.y = this.min;
+            if (onTop) {
+                player.y = this.y;
+                player.vy = this.vy;
+                player.onGround = true;
+            }
             return;
         }
 
-        // Normal patrol motion
+        // Normal patrol motion with exact frame delta
+        let dx = 0;
+        let dy = 0;
         if (this.axis === 'x') {
-            this.x += this.speed * this.dir;
-            this.vx = this.speed * this.dir;
-            this.vy = 0;
-            if (this.x >= this.max) {
+            const nextX = this.x + this.speed * this.dir;
+            if (nextX >= this.max) {
+                dx = this.max - this.x;
                 this.x = this.max;
                 this.dir = -1;
-            } else if (this.x <= this.min) {
+            } else if (nextX <= this.min) {
+                dx = this.min - this.x;
                 this.x = this.min;
                 this.dir = 1;
+            } else {
+                dx = this.speed * this.dir;
+                this.x = nextX;
             }
+            this.vx = dx;
+            this.vy = 0;
         } else if (this.axis === 'y') {
-            this.y += this.speed * this.dir;
-            this.vy = this.speed * this.dir;
-            this.vx = 0;
-            if (this.y >= this.max) {
+            const nextY = this.y + this.speed * this.dir;
+            if (nextY >= this.max) {
+                dy = this.max - this.y;
                 this.y = this.max;
                 this.dir = -1;
-            } else if (this.y <= this.min) {
+            } else if (nextY <= this.min) {
+                dy = this.min - this.y;
                 this.y = this.min;
                 this.dir = 1;
+            } else {
+                dy = this.speed * this.dir;
+                this.y = nextY;
             }
+            this.vy = dy;
+            this.vx = 0;
         }
+
+        // Smoothly synchronize player with moving platform
+        if (onTop) {
+            player.x += dx;
+            player.y = this.y;
+            player.vy = 0;
+            player.onGround = true;
+        }
+    }
+
+    getSolidBox() {
+        if (!this.isSolid || !this.active) return null;
+        return {
+            x: this.x,
+            y: this.y,
+            w: this.w,
+            h: this.h,
+            vx: this.vx || 0,
+            vy: this.vy || 0,
+            isOneWay: true
+        };
     }
 
     getHazardBox() {
